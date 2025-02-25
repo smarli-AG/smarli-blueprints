@@ -6,7 +6,27 @@ blueprint:
   description: >
     # 📳 smarli. Weather Warning
 
-    This automation will warn smarli. users about upcoming weather events so that they can leave their homes fully prepared.
+
+    This automation will warn users about upcoming weather events so that they can leave their homes fully prepared.
+
+    *Version 1.0.0 | 2025-02-25*
+
+    <details>
+    <summary><b>How to set it up</b></summary>
+
+      1. Select at what time the notification should be sent - this is the trigger
+
+      2. Select the weather entity that should be watched
+
+      3. Select which weather conditions you'd like to be informed about
+
+      4. If you like, update the texts that will be sent with the notification
+
+      5. Add additional triggers, conditions, or actions manually - this is for experienced users only.
+    </details>
+
+
+    All input fields are required unless they are marked as ` (optional) `.
   domain: automation
   author: loocd [smarli. AG]
   source_url: https://github.com/smarli-AG/smarli-blueprints/blob/76d976d42d8aa73d5cfddfae8f92b1dca56afae8/automation/weatherWarning.yaml
@@ -176,10 +196,13 @@ blueprint:
           default: In deiner Umgebung wurde Nebel angekündigt. Sei entsprechend vorsichtig.
 
     custom_inputs:
-      name: Additional Custom Inputs
+      name: "DANGER ZONE: Additional Custom Inputs"
       icon: mdi:alert
       description: >-
-        :warning: Watch out! This is advanced functionality and should only be used if you know what you're doing!
+        **WATCH OUT!**  
+
+        This is advanced functionality and should only be used if you know what you're doing!  
+
 
         Use this section to define custom triggers and conditions, as well as actions that will run at the end of the automation.
       collapsed: true
@@ -213,19 +236,41 @@ blueprint:
 # this is required in order to use inputs as variables within templates
 variables:
   weather_entity: !input weather_entity
+  weather_condition: "{{ states(weather_entity) }}"
   weather_events: !input weather_events
 
   custom_actions: !input custom_actions
 
+  # Put all messages, notification titles and icons into dictionaries that
+  # can be targeted with the current weather condition.
+  # This way only one notify action is required, instead of one per condition.
   messages:
     rainy: !input message_rainy
     pouring: !input message_pouring
+    lightning: !input message_lightning
+    lightning-rainy: !input message_lightning # take same message as for lightning
+    hail: !input message_hail
+    snowy: !input message_snowy
+    snowy-rainy: !input message_snowy-rainy
+    fog: !input message_fog
   titles:
     rainy: !input notification_title_rainy
     pouring: !input notification_title_pouring
+    lightning: !input notification_title_lightning
+    lightning-rainy: !input notification_title_lightning # take same title as for lightning
+    hail: !input notification_title_hail
+    snowy: !input notification_title_snowy
+    snowy-rainy: !input notification_title_snowy-rainy
+    fog: !input notification_title_fog
   icons:
     rainy: "mdi:weather-rainy"
     pouring: "mdi:weather-pouring"
+    lightning: mdi:weather-lightning
+    lightning-rainy: mdi:weather-lightning # take same icon as for lightning
+    hail: mdi:weather-hail
+    snowy: mdi:weather-snowy
+    snowy-rainy: mdi:weather-snowy-rainy
+    fog: mdi:weather-fog
 
 ##############
 # Automation #
@@ -238,42 +283,37 @@ triggers:
   - trigger: time
     at: !input trigger_time
   - triggers: !input custom_triggers
-conditions:
+conditions: # by default, conditions follow an AND logic
   - condition: template
     value_template: "{{ states(weather_entity) in weather_events }}"
   ## Custom conditions
   - condition: and
     conditions: !input custom_conditions
 actions:
-  - variables:
-      weather_condition: >-
-        {% set weather_entity_condition = states(weather_entity) %}
-
-        {% if weather_entity_condition in ['lightning', 'lightning, rainy'] %}
-          {% set weather_entity_condition = 'lightning' %}
-        {% elif weather_entity_condition in ['snowy', 'snowy, rainy'] %}
-          {% set weather_entity_condition = 'snowy' %}
-        {% endif %}
-
-        {{ weather_entity_condition }}
-
   - action: notify.notify
     data:
       message: "{{messages[weather_condition]}}"
       title: "{{titles[weather_condition]}}"
       data:
+        # platform-independent options
+        actions:
+          - action: thanks # setting an action that does nothing, but it clears the notification
+            title: Danke smarli.!
+
+        # android-only options
         ttl: 0
         priority: high
         visibility: public
         notification_icon: "{{icons[weather_condition]}}"
         color: blue
-        actions:
-          - action: thanks
-            title: Danke smarli.!
+        clickAction: noAction
+
+        # ios-only options
+        url: # used as url for iOS, nothing defined here
     metadata: {}
 
   ## Custom actions
   - if:
       - condition: template
-        value_template: "{{custom_actions != none }}"
+        value_template: "{{custom_actions is not none }}"
     then: !input custom_actions
