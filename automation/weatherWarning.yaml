@@ -4,7 +4,7 @@ blueprint:
   ############
   name: smarli. Weather Warning
   description: >
-    # 📳 smarli. Weather Warning
+    # 🔔 smarli. Weather Warning
 
 
     This automation will warn users about upcoming weather events so that they can leave their homes fully prepared.
