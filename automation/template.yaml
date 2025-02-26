@@ -1,0 +1,129 @@
+blueprint:
+  ############
+  # Metadata #
+  ############
+  name: Name of blueprint, usually 'smarli.' followed by the purpose of the automation (e.g. smarli. Weather Warning)
+  description: >
+    # This is the H1, repeat the name, but add an emoji at the beginning (e.g. 🔔 smarli. Weather Warning)
+
+    Add a short description of what the automation will achieve.
+
+    *Version x.x.x | YYYY-MM-DD*
+
+    <details>
+    <summary><b>How to set it up</b></summary>
+
+      1. Here add a couple of steps that need to be followed when setting up the automation based on this blueprint.
+    </details>
+
+
+    All input fields are required unless they are marked as ` (optional) `.
+  domain: automation
+  author: your-github-user [smarli. AG]
+  source_url: url to the blueprint
+  homeassistant:
+    min_version: minimum required HA core version depending on the functionality of the blueprint (e.g. 2024.11.3). [At minimum, 2024.10.0 is required](https://www.home-assistant.io/docs/automation/trigger/#merging-lists-of-triggers)
+
+  ###############
+  # User Inputs #
+  ###############
+  input:
+    trigger_inputs:
+      name: Trigger Inputs
+      icon: mdi:star-box-multiple
+      description: These inputs are used to set the automation triggers
+      input:
+        myinput-for-triggers:
+          name: add short name
+          description: add short description
+          selector: define the selector for this input -> https://www.home-assistant.io/docs/blueprint/selectors/
+          default: add default value if you wish (needed to allow for optional fields)
+
+    condition_inputs:
+      name: Condition Inputs
+      icon: mdi:help-box-multiple
+      description: These inputs are used to set the automation conditions
+      input:
+        myinput-for-triggers:
+          name: add short name
+          description: add short description
+          selector: define the selector for this input -> https://www.home-assistant.io/docs/blueprint/selectors/
+          default: add default value if you wish (needed to allow for optional fields)
+
+    action_inputs:
+      name: Action Inputs
+      icon: mdi:play-box-multiple
+      description: These inputs are used to set the actions
+      input:
+        myinput-for-actions:
+          name: add short name
+          description: add short description
+          selector: define the selector for this input -> https://www.home-assistant.io/docs/blueprint/selectors/
+          default: add default value if you wish (needed to allow for optional fields)
+
+    custom_inputs: # leave these as is - should be present in any blueprint
+      name: "DANGER ZONE: Additional Custom Inputs"
+      icon: mdi:alert
+      description: >-
+        **WATCH OUT!**  
+
+        This is advanced functionality and should only be used if you know what you're doing!  
+
+
+        Use this section to define custom triggers and conditions, as well as actions that will run at the end of the automation.
+      collapsed: true
+      input:
+        custom_triggers:
+          name: Custom triggers (optional)
+          description: >-
+            Use this to define custom triggers in addition to the default triggers.
+          selector:
+            trigger:
+          default: []
+        custom_conditions:
+          name: Custom conditions (optional)
+          description: >-
+            Use this to define custom conditions in addition to the default conditions.
+          selector:
+            condition:
+          default: []
+        custom_actions:
+          name: Custom actions (optional)
+          description: >-
+            Use this to define custom actions that should be executed at the end of this automation.
+          selector:
+            action:
+          default: []
+
+#########################
+# Variables Translation #
+#########################
+
+# this is required in order to use inputs as variables within templates
+variables:
+
+##############
+# Automation #
+##############
+
+mode: single
+max_exceeded: silent
+
+triggers:
+  - trigger: add your trigger here
+  ## Custom triggers
+  - triggers: !input custom_triggers
+
+conditions: # by default, conditions follow an AND logic
+  - condition: add your condition here
+  ## Custom conditions
+  - condition: and
+    conditions: !input custom_conditions
+
+actions:
+  - action: add your actions here
+  ## Custom actions
+  - if:
+      - condition: template
+        value_template: "{{custom_actions is not none }}"
+    then: !input custom_actions
