@@ -9,7 +9,7 @@ blueprint:
 
     This automation will warn users about upcoming weather events so that they can leave their homes fully prepared.
 
-    *Version 1.0.0 | 2025-02-25*
+    *Version 1.0.1 | 2025-02-26*
 
     <details>
     <summary><b>How to set it up</b></summary>
@@ -299,7 +299,9 @@ actions:
         actions:
           - action: thanks # setting an action that does nothing, but it clears the notification
             title: Danke smarli.!
-
+          - action: "URI"
+            title: "Öffnen"
+            uri: "entityId:{{weather_entity}}" # opening the more info dialogue is only supported on Android, iOS will just open the starting screen (where the weather entity is also located)
         # android-only options
         ttl: 0
         priority: high
