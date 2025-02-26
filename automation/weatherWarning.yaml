@@ -282,13 +282,16 @@ max_exceeded: silent
 triggers:
   - trigger: time
     at: !input trigger_time
+  ## Custom triggers
   - triggers: !input custom_triggers
+
 conditions: # by default, conditions follow an AND logic
   - condition: template
     value_template: "{{ states(weather_entity) in weather_events }}"
   ## Custom conditions
   - condition: and
     conditions: !input custom_conditions
+
 actions:
   - action: notify.notify
     data:
@@ -313,7 +316,6 @@ actions:
         # ios-only options
         url: # used as url for iOS, nothing defined here
     metadata: {}
-
   ## Custom actions
   - if:
       - condition: template
