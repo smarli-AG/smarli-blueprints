@@ -236,7 +236,6 @@ blueprint:
 # this is required in order to use inputs as variables within templates
 variables:
   weather_entity: !input weather_entity
-  weather_condition: "{{ states(weather_entity) }}"
   weather_events: !input weather_events
 
   custom_actions: !input custom_actions
@@ -286,36 +285,49 @@ triggers:
   - triggers: !input custom_triggers
 
 conditions: # by default, conditions follow an AND logic
-  - condition: template
-    value_template: "{{ states(weather_entity) in weather_events }}"
   ## Custom conditions
   - condition: and
     conditions: !input custom_conditions
 
 actions:
-  - action: notify.notify
+  - action: weather.get_forecasts
+    target:
+      entity_id: !input weather_entity
     data:
-      message: "{{messages[weather_condition]}}"
-      title: "{{titles[weather_condition]}}"
-      data:
-        # platform-independent options
-        actions:
-          - action: thanks # setting an action that does nothing, but it clears the notification
-            title: Danke smarli.!
-          - action: "URI"
-            title: "Öffnen"
-            uri: "entityId:{{weather_entity}}" # opening the more info dialogue is only supported on Android, iOS will just open the starting screen (where the weather entity is also located)
-        # android-only options
-        ttl: 0
-        priority: high
-        visibility: public
-        notification_icon: "{{icons[weather_condition]}}"
-        color: blue
-        clickAction: noAction
+      type: daily
+    response_variable: daily
+  - variables:
+      forecast: "{{ daily[weather_entity].forecast }}"
+      forecast_today: "{{ forecast[0].condition }}"
+  - if:
+      - condition: template
+        value_template: "{{ forecast_today in weather_events }}"
+    then:
+      - action: notify.notify
+        data:
+          message: "{{messages[forecast_today]}}"
+          title: "{{titles[forecast_today]}}"
+          data:
+            # platform-independent options
+            actions:
+              - action: thanks # setting an action that does nothing, but it clears the notification
+                title: Danke smarli.!
+              - action: "URI"
+                title: "Öffnen"
+                uri: "entityId:{{weather_entity}}" # opening the more info dialogue is only supported on Android, iOS will just open the starting screen (where the weather entity is also located)
 
-        # ios-only options
-        url: # used as url for iOS, nothing defined here
-    metadata: {}
+            # android-only options
+            ttl: 0
+            priority: high
+            visibility: public
+            notification_icon: "{{icons[forecast_today]}}"
+            color: blue
+            clickAction: noAction
+
+            # ios-only options
+            url: # used as url for iOS, nothing defined here
+        metadata: {}
+
   ## Custom actions
   - if:
       - condition: template
