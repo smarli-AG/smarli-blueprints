@@ -1,3 +1,14 @@
+# TODO: potential improvements:
+# - Ability to track multiple weather entities
+#   (change to multiple true, write all forecasts into a list and check if any of the tracked wheather events are in that list.
+#   How do we handle different weather events from different entities, that are all in the list? Maybe with a main entity?)
+#   => Likely makes things unnecessarily complicated
+# - Differentiate notify action between Android and iOS
+#   see for example this approach https://github.com/samuelthng/t-house-blueprints/blob/main/notifications.yaml
+#   uses has an approach to check the platform of the device. maybe this can be integrated as well
+#   -> get all devices, check their manufacturer or os and then put them in different lists. then send different
+#   notifications to iOS and android. maybe similar to this repeat function: https://gist.github.com/milperks/3a2cce4805735ebcadab701162257139
+
 blueprint:
   ############
   # Metadata #
@@ -290,18 +301,23 @@ conditions: # by default, conditions follow an AND logic
     conditions: !input custom_conditions
 
 actions:
+  # first get the current weather forecast and write it into a variable called 'daily'
   - action: weather.get_forecasts
     target:
       entity_id: !input weather_entity
     data:
       type: daily
     response_variable: daily
+  # grab that variable and extracht the forecast for the weather_entity from it.
+  # then get today's (->0) condition from forecast for that entity.
   - variables:
       forecast: "{{ daily[weather_entity].forecast }}"
       forecast_today: "{{ forecast[0].condition }}"
+  # check if the forecast condition is part of the tracked weather_events or not
   - if:
       - condition: template
         value_template: "{{ forecast_today in weather_events }}"
+    # if so, send the notification
     then:
       - action: notify.notify
         data:
