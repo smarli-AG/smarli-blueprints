@@ -8,6 +8,7 @@
 #   uses has an approach to check the platform of the device. maybe this can be integrated as well
 #   -> get all devices, check their manufacturer or os and then put them in different lists. then send different
 #   notifications to iOS and android. maybe similar to this repeat function: https://gist.github.com/milperks/3a2cce4805735ebcadab701162257139
+# - Language support by creating dictionaries with non-editable texts and tying them into the language entity
 
 blueprint:
   ############
@@ -15,7 +16,7 @@ blueprint:
   ############
   name: smarli. Weather Warning
   description: >
-    # 🔔 smarli. Weather Warning
+    # 🌩️ smarli. Weather Warning
 
 
     This automation will warn users about upcoming weather events so that they can leave their homes fully prepared.
