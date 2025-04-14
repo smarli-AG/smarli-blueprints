@@ -343,6 +343,9 @@ actions:
 
             # ios-only options
             url: # used as url for iOS, nothing defined here
+            data:
+              push:
+              	interruption-level: time-sensitive
         metadata: {}
 
   ## Custom actions
