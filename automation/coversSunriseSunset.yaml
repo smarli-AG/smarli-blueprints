@@ -20,7 +20,9 @@
 # - additional actions öffnen/schliessen
 # - additioanl triggers öffnen(schliessen)
 
-# siehe auch blueprint in sandbox
+# alle gegebenen covers "auslisten" falls es gruppen hat. dann durch diese durch loopen und aktionen durchführen, falls z.B. eine noch manuell bewegt wurde und jetzt nicht verändert werden soll.
+
+# siehe auch blueprint in sandbox: https://github.com/hvorragend/ha-blueprints/blob/main/blueprints/automation/cover_control_automation.yaml
 
 blueprint:
   ############
@@ -57,6 +59,12 @@ blueprint:
       icon: mdi:star-box-multiple
       description: These inputs are used to set the automation triggers
       input:
+        should_differentiate_workdays:
+        lux_sensor_entity:
+        sensor_duration_lux:
+        temp_sensor_entity:
+        sensor_duration_temp:
+
         daynight_sunrise_delay:
         daynight_sunrise_delay_helper:
         daynight_sunset_delay:
@@ -69,10 +77,16 @@ blueprint:
         daynight_lux_open_helper:
         daynight_lux_close:
         daynight_lux_close_helper:
-        daynight_latest_open:
-        daynight_latest_open_helper:
-        daynight_latest_close:
-        daynight_latest_close_helper:
+
+        daynight_latest_open_workday:
+        daynight_latest_open_workday_helper:
+        daynight_latest_open_non-workday:
+        daynight_latest_open_non-workday_helper:
+        daynight_latest_close_workday-tomorrow:
+        daynight_latest_close_workday-tomorrow_helper:
+        daynight_latest_close_non-workday-tomorrow:
+        daynight_latest_close_non-workday-tomorrow_helper:
+
         climate_temp_threshold_close:
         climate_temp_threshold_close_helper:
         climate_temp_threashold_close:
@@ -81,7 +95,10 @@ blueprint:
         climate_lux_close_helper:
         climate_lux_open:
         climate_lux_open_helper:
-        sensor_delay:
+
+        weather_events:
+        weather_events_helper:
+        weather_entity:
 
     condition_inputs:
       name: Condition Inputs
@@ -90,17 +107,20 @@ blueprint:
       input:
         from_time:
         to_time:
+        time_since_last_change:
 
     action_inputs:
       name: Action Inputs
       icon: mdi:play-box-multiple
       description: These inputs are used to set the actions
       input:
-        myinput-for-actions:
-          name: add short name
-          description: add short description
-          selector: define the selector for this input -> https://www.home-assistant.io/docs/blueprint/selectors/
-          default: add default value if you wish (needed to allow for optional fields)
+        cover_entity:
+        close_position_daynight:
+        close_position_daynight_helper:
+        close_position_climate:
+        close_position_climate_helper:
+        tilt_position_daynight: #horizontal vs vertical
+        tilt_position_climate: #horizontal vs vertical
 
     custom_inputs: # leave these as is - should be present in any blueprint
       name: "DANGER ZONE: Additional Custom Inputs"
