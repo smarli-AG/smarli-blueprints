@@ -44,7 +44,7 @@ blueprint:
     All input fields are required unless they are marked as ` (optional) `.
   domain: automation
   author: loocd [smarli. AG]
-  source_url: url to the blueprint
+  source_url: https://github.com/smarli-AG/smarli-blueprints/blob/main/automation/coversSunriseSunset.yaml
   homeassistant:
     min_version: 2024.10.0
 
