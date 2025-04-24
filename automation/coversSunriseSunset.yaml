@@ -39,7 +39,9 @@ blueprint:
     <details>
     <summary><b>How to set it up</b></summary>
 
-      1. Here add a couple of steps that need to be followed when setting up the automation based on this blueprint.
+      1. Set up the required helpers:
+        - input_boolean.cover_automation_tracker
+      2. Here add a couple of steps that need to be followed when setting up the automation based on this blueprint.
     </details>
 
 
@@ -57,57 +59,416 @@ blueprint:
     trigger_inputs:
       name: Trigger Inputs
       icon: mdi:star-box-multiple
-      description: These inputs are used to set the automation triggers
-      input:
-        should_differentiate_workdays:
-        lux_sensor_entity:
-        sensor_duration_lux:
-        temp_sensor_entity:
-        sensor_duration_temp:
+      description: |
+        These inputs are used to set the automation triggers
 
-        daynight_sunrise_delay:
-        daynight_sunrise_delay_helper:
-        daynight_sunset_delay:
-        daynight_sunset_delay_helper:
-        daynight_time_based_open:
-        daynight_time_based_open_helper:
-        daynight_time_based_close:
-        daynight_time_based_close_helper:
-        daynight_lux_open:
-        daynight_lux_open_helper:
-        daynight_lux_close:
-        daynight_lux_close_helper:
+      input:
+        should_suspend_after_manual_interaction:
+          name: Suspend After Manual Interaction (optional)
+          description: If covers are controlled manually, suspend this automation for a specified amount of time (see `Suspension Duration`). This will not affect executions triggered by weather events.
+          selector:
+            boolean:
+          default: true
+        suspension_duration:
+          name: Suspension Duration (optional)
+          description: If suspension after manual interaction is turned on, this setting specifies how long the suspension should last.
+          selector:
+            duration:
+          default:
+            hours: 1
+            minutes: 0
+            seconds: 0
+        was_triggered_by_automation_helper:
+          name: Automation Tracker Helper (optional)
+          description: Select the helper that tracks whether the automation is running or not. Only required if suspension after manual control is active.
+          selector:
+            entity:
+              filter:
+                - integration: input_boolean
+          default: input_boolean.cover_automation_tracker
+        is_suspension_active_helper:
+          name: Suspension Tracker (optional)
+          description: Select the helper that tracks whether a suspension is active or not. Only required if suspension after manual control is active.
+          selector:
+            entity:
+              filter:
+                - integration: input_boolean
+          default: input_boolean.cover_automation_suspension
+        lux_sensor_delay:
+          name: Brightness Sensor Stabilizer (optional)
+          description: How long does the brightness sensor need to be above the defined threshold before triggering the automation? This can be done to avoid frequent back-and-forth switching (e.g. if a cloud passes in front of the sun).
+          selector:
+            duration:
+          default:
+            hours: 0
+            minutes: 5
+            seconds: 0
+        temp_sensor_delay:
+          name: Temperature Sensor Stabilizer (optional)
+          description: How long does the temperature sensor need to be above the defined threshold before triggering the automation? This can be done to avoid frequent back-and-forth switching (e.g. while the sensor fluctuates around the threshold).
+          selector:
+            duration:
+          default:
+            hours: 0
+            minutes: 5
+            seconds: 0
+        day_night_cycle_method:
+          name: Day-Night Cycle Method
+          description: Based on which method should the day-night cycle (opening covers in the morning, closing them at night) operate?
+          selector:
+            select:
+              options:
+                - label: Sunrise/Sunset
+                  value: sun
+                - label: Time
+                  value: time
+                - label: Brightness
+                  value: brightness
+                - label: Disable Day-Night Cycle
+                  value: disabled
+          default: sun
+        daynight_sunrise_offset:
+          name: Sunrise Delay (minutes)
+          description: Delay after sunrise to open covers.
+          default: 0
+          selector:
+            number:
+              min: -999
+              max: 999
+              unit_of_measurement: minutes
+              mode: box
+
+        daynight_sunrise_offset_helper:
+          name: Sunrise Delay Helper
+          description: Helper entity to override the sunrise delay.
+          default: ""
+          selector:
+            entity:
+              domain: input_number
+
+        daynight_sunset_offset:
+          name: Sunset Delay (minutes)
+          description: Delay after sunset to close covers.
+          default: 0
+          selector:
+            number:
+              min: -999
+              max: 999
+              unit_of_measurement: minutes
+              mode: box
+
+        daynight_sunset_offset_helper:
+          name: Sunset Delay Helper
+          description: Helper entity to override the sunset delay.
+          default: ""
+          selector:
+            entity:
+              domain: input_number
+
+        daynight_time_open:
+          name: Open Time
+          description: Time to open covers.
+          default: "07:00:00"
+          selector:
+            time:
+
+        daynight_time_open_helper:
+          name: Open Time Helper
+          description: Helper entity to override the open time.
+          default: ""
+          selector:
+            entity:
+              domain: input_datetime
+
+        daynight_time_close:
+          name: Close Time
+          description: Time to close covers.
+          default: "22:00:00"
+          selector:
+            time:
+
+        daynight_time_close_helper:
+          name: Close Time Helper
+          description: Helper entity to override the close time.
+          default: ""
+          selector:
+            entity:
+              domain: input_datetime
+
+        daynight_brightness_open:
+          name: Brightness to Open (lux)
+          description: Brightness level to open covers.
+          default: 300
+          selector:
+            number:
+              min: 0
+              max: 100000
+              unit_of_measurement: lux
+
+        daynight_brightness_open_helper:
+          name: Brightness Open Helper
+          description: Helper entity to override the brightness to open.
+          default: ""
+          selector:
+            entity:
+              domain: input_number
+
+        daynight_brightness_close:
+          name: Brightness to Close (lux)
+          description: Brightness level to close covers.
+          default: 10
+          selector:
+            number:
+              min: 0
+              max: 100000
+              unit_of_measurement: lux
+              mode: box
+
+        daynight_brightness_close_helper:
+          name: Brightness Close Helper
+          description: Helper entity to override the brightness to close.
+          default: ""
+          selector:
+            entity:
+              domain: input_number
+
+        daynight_brightness_sensor:
+          name: Brightness Sensor
+          description: Brightness sensor entity.
+          selector:
+            entity:
+              domain: sensor
+              device_class: illuminance
+
+        daynight_should_use_latest_open:
 
         daynight_latest_open_workday:
-        daynight_latest_open_workday_helper:
-        daynight_latest_open_non-workday:
-        daynight_latest_open_non-workday_helper:
-        daynight_latest_close_workday-tomorrow:
-        daynight_latest_close_workday-tomorrow_helper:
-        daynight_latest_close_non-workday-tomorrow:
-        daynight_latest_close_non-workday-tomorrow_helper:
+          name: Latest Open Time (Workday)
+          description: Latest time to open covers on workdays.
+          default: "09:00:00"
+          selector:
+            time:
 
-        climate_temp_threshold_close:
-        climate_temp_threshold_close_helper:
-        climate_temp_threashold_close:
-        climate_temp_threashold_close_helper:
-        climate_lux_close:
-        climate_lux_close_helper:
-        climate_lux_open:
-        climate_lux_open_helper:
+        daynight_latest_open_workday_helper:
+          name: Latest Open Time Workday Helper
+          description: Helper entity to override the latest open time on workdays.
+          default: ""
+          selector:
+            entity:
+              domain: input_datetime
+
+        daynight_latest_close_workday_tomorrow:
+          name: Latest Close Time (Workday)
+          description: Latest time to close covers on workdays.
+          default: "23:00:00"
+          selector:
+            time:
+
+        daynight_latest_close_workday_tomorrow_helper:
+          name: Latest Close Time Workday Helper
+          description: Helper entity to override the latest close time on workdays.
+          default: ""
+          selector:
+            entity:
+              domain: input_datetime
+
+        daynight_latest_open_non_workday:
+          name: Latest Open Time (Non-Workday)
+          description: Latest time to open covers on non-workdays.
+          default: "10:00:00"
+          selector:
+            time:
+
+        daynight_latest_open_non_workday_helper:
+          name: Latest Open Time Non-Workday Helper
+          description: Helper entity to override the latest open time on non-workdays.
+          default: ""
+          selector:
+            entity:
+              domain: input_datetime
+
+        daynight_latest_close_non_workday_tomorrow:
+          name: Latest Close Time (Non-Workday)
+          description: Latest time to close covers on non-workdays.
+          default: "23:00:00"
+          selector:
+            time:
+
+        daynight_latest_close_non_workday_tomorrow_helper:
+          name: Latest Close Time Non-Workday Helper
+          description: Helper entity to override the latest close time on non-workdays.
+          default: ""
+          selector:
+            entity:
+              domain: input_datetime
+
+        daynight_differentiate_workdays:
+          name: Differentiate Workdays
+          description: Differentiate between workdays and non-workdays.
+          selector:
+            boolean:
+
+        climate_temp_close:
+          name: Temperature to Close (°C)
+          description: Temperature threshold to close covers.
+          default: 25
+          selector:
+            number:
+              min: -50
+              max: 100
+              unit_of_measurement: °C
+
+        climate_temp_close_helper:
+          name: Temperature Close Helper
+          description: Helper entity to override the temperature to close.
+          default: ""
+          selector:
+            entity:
+              domain: input_number
+
+        climate_temp_open:
+          name: Temperature to Open (°C)
+          description: Temperature threshold to open covers.
+          default: 20
+          selector:
+            number:
+              min: -50
+              max: 100
+              unit_of_measurement: °C
+
+        climate_temp_open_helper:
+          name: Temperature Open Helper
+          description: Helper entity to override the temperature to open.
+          default: ""
+          selector:
+            entity:
+              domain: input_number
+
+        climate_temp_sensor:
+          name: Temperature Sensor
+          description: Temperature sensor entity.
+          selector:
+            entity:
+              domain: sensor
+              device_class: temperature
+
+        climate_brightness_sensor:
+          name: Brightness Sensor
+          description: Brightness sensor entity.
+          selector:
+            entity:
+              domain: sensor
+              device_class: illuminance
+
+        climate_brightness_close:
+          name: Brightness to Close (lux)
+          description: Brightness level to close covers.
+          default: 500
+          selector:
+            number:
+              min: 0
+              max: 100000
+              unit_of_measurement: lux
+
+        climate_brightness_close_helper:
+          name: Brightness Close Helper
+          description: Helper entity to override the brightness to close.
+          default: ""
+          selector:
+            entity:
+              domain: input_number
+
+        climate_brightness_open:
+          name: Brightness to Open (lux)
+          description: Brightness level to open covers.
+          default: 100
+          selector:
+            number:
+              min: 0
+              max: 100000
+              unit_of_measurement: lux
+
+        climate_brightness_open_helper:
+          name: Brightness Open Helper
+          description: Helper entity to override the brightness to open.
+          default: ""
+          selector:
+            entity:
+              domain: input_number
 
         weather_events:
-        weather_events_helper:
-        weather_entity:
+          name: Weather Events
+          description: Select weather events to open covers.
+          selector:
+            select:
+              multiple: true
+              options:
+                - label: Hail
+                  value: hail
+                - label: Rain
+                  value: rain
+                - label: Wind
+                  value: wind
+
+        wind_speed_threshold:
+          name: Wind Speed Threshold (m/s)
+          description: Wind speed threshold to open covers.
+          default: 10
+          selector:
+            number:
+              min: 0
+              max: 100
+              unit_of_measurement: m/s
+
+        wind_speed_threshold_helper:
+          name: Wind Speed Threshold Helper
+          description: Helper entity to override the wind speed threshold.
+          default: ""
+          selector:
+            entity:
+              domain: input_number
+
+        weather_sensor:
+          name: Weather Sensor
+          description: Weather sensor entity.
+          selector:
+            entity:
+              domain: weather
 
     condition_inputs:
       name: Condition Inputs
       icon: mdi:help-box-multiple
       description: These inputs are used to set the automation conditions
       input:
-        from_time:
-        to_time:
-        time_since_last_change:
+        time_from:
+          name: Automation Start Time
+          description: Time from which the automation is allowed to run.
+          default: "00:00:00"
+          selector:
+            time:
+
+        time_from_helper:
+          name: Automation Start Time Helper
+          description: Helper entity to override the automation start time.
+          default: ""
+          selector:
+            entity:
+              domain: input_datetime
+
+        time_to:
+          name: Automation End Time
+          description: Time until which the automation is allowed to run.
+          default: "23:59:59"
+          selector:
+            time:
+
+        time_to_helper:
+          name: Automation End Time Helper
+          description: Helper entity to override the automation end time.
+          default: ""
+          selector:
+            entity:
+              domain: input_datetime
 
     action_inputs:
       name: Action Inputs
@@ -115,76 +476,336 @@ blueprint:
       description: These inputs are used to set the actions
       input:
         cover_entity:
-        close_position_daynight:
-        close_position_daynight_helper:
-        close_position_climate:
-        close_position_climate_helper:
-        tilt_position_daynight: #horizontal vs vertical
-        tilt_position_climate: #horizontal vs vertical
-
-    custom_inputs: # leave these as is - should be present in any blueprint
-      name: "DANGER ZONE: Additional Custom Inputs"
-      icon: mdi:alert
-      description: >-
-        **WATCH OUT!**  
-
-        This is advanced functionality and should only be used if you know what you're doing!  
-
-
-        Use this section to define custom triggers and conditions, as well as actions that will run at the end of the automation.
-      collapsed: true
-      input:
-        custom_triggers:
-          name: Custom triggers (optional)
-          description: >-
-            Use this to define custom triggers in addition to the default triggers.
+          name: Cover
+          description: The cover entity to automate.
           selector:
-            trigger:
-          default: []
-        custom_conditions:
-          name: Custom conditions (optional)
-          description: >-
-            Use this to define custom conditions in addition to the default conditions.
-          selector:
-            condition:
-          default: []
-        custom_actions:
-          name: Custom actions (optional)
-          description: >-
-            Use this to define custom actions that should be executed at the end of this automation.
-          selector:
-            action:
-          default: []
+            entity:
+              domain: cover
 
-#########################
-# Variables Translation #
-#########################
+        manual_interaction_helper:
+          name: Manual Interaction Helper
+          description: Helper entity to track manual interactions.
+          default: input_boolean.manual_interaction
+          selector:
+            entity:
+              domain: input_boolean
 
-# this is required in order to use inputs as variables within templates
+        manual_interaction_timer:
+          name: Manual Interaction Timer
+          description: Timer to pause climate actions after manual interaction.
+          default: timer.manual_interaction_pause
+          selector:
+            entity:
+              domain: timer
+
 variables:
+  day_night_cycle_method: !input day_night_cycle_method
+  daynight_sunrise_offset: >
+    {% if daynight_sunrise_offset_helper != "" %}
+      {{ states(daynight_sunrise_offset_helper) | int }}
+    {% else %}
+      {{ daynight_sunrise_offset }}
+    {% endif %}
+  daynight_sunset_offset: >
+    {% if daynight_sunset_offset_helper != "" %}
+      {{ states(daynight_sunset_offset_helper) | int }}
+    {% else %}
+      {{ daynight_sunset_offset }}
+    {% endif %}
+  daynight_time_open: >
+    {% if daynight_time_open_helper != "" %}
+      {{ states(daynight_time_open_helper) }}
+    {% else %}
+      {{ daynight_time_open }}
+    {% endif %}
+  daynight_time_close: >
+    {% if daynight_time_close_helper != "" %}
+      {{ states(daynight_time_close_helper) }}
+    {% else %}
+      {{ daynight_time_close }}
+    {% endif %}
+  daynight_brightness_open: >
+    {% if daynight_brightness_open_helper != "" %}
+      {{ states(daynight_brightness_open_helper) | int }}
+    {% else %}
+      {{ daynight_brightness_open }}
+    {% endif %}
+  daynight_brightness_close: >
+    {% if daynight_brightness_close_helper != "" %}
+      {{ states(daynight_brightness_close_helper) | int }}
+    {% else %}
+      {{ daynight_brightness_close }}
+    {% endif %}
+  daynight_brightness_sensor: !input daynight_brightness_sensor
+  daynight_latest_open_workday: >
+    {% if daynight_latest_open_workday_helper != "" %}
+      {{ states(daynight_latest_open_workday_helper) }}
+    {% else %}
+      {{ daynight_latest_open_workday }}
+    {% endif %}
+  daynight_latest_close_workday_tomorrow: >
+    {% if daynight_latest_close_workday_tomorrow_helper != "" %}
+      {{ states(daynight_latest_close_workday_tomorrow_helper) }}
+    {% else %}
+      {{ daynight_latest_close_workday_tomorrow }}
+    {% endif %}
+  daynight_latest_open_non_workday: >
+    {% if daynight_latest_open_non_workday_helper != "" %}
+      {{ states(daynight_latest_open_non_workday_helper) }}
+    {% else %}
+      {{ daynight_latest_open_non_workday }}
+    {% endif %}
+  daynight_latest_close_non_workday_tomorrow: >
+    {% if daynight_latest_close_non_workday_tomorrow_helper != "" %}
+      {{ states(daynight_latest_close_non_workday_tomorrow_helper) }}
+    {% else %}
+      {{ daynight_latest_close_non_workday_tomorrow }}
+    {% endif %}
+  daynight_differentiate_workdays: !input daynight_differentiate_workdays
+  time_from: >
+    {% if time_from_helper != "" %}
+      {{ states(time_from_helper) }}
+    {% else %}
+      {{ time_from }}
+    {% endif %}
+  time_to: >
+    {% if time_to_helper != "" %}
+      {{ states(time_to_helper) }}
+    {% else %}
+      {{ time_to }}
+    {% endif %}
+  climate_brightness_sensor: !input climate_brightness_sensor
+  climate_temp_close: >
+    {% if climate_temp_close_helper != "" %}
+      {{ states(climate_temp_close_helper) | float }}
+    {% else %}
+      {{ climate_temp_close }}
+    {% endif %}
+  climate_temp_open: >
+    {% if climate_temp_open_helper != "" %}
+      {{ states(climate_temp_open_helper) | float }}
+    {% else %}
+      {{ climate_temp_open }}
+    {% endif %}
+  climate_temp_sensor: !input climate_temp_sensor
+  climate_brightness_close: >
+    {% if climate_brightness_close_helper != "" %}
+      {{ states(climate_brightness_close_helper) | int }}
+    {% else %}
+      {{ climate_brightness_close }}
+    {% endif %}
+  climate_brightness_open: >
+    {% if climate_brightness_open_helper != "" %}
+      {{ states(climate_brightness_open_helper) | int }}
+    {% else %}
+      {{ climate_brightness_open }}
+    {% endif %}
+  weather_events: !input weather_events
+  wind_speed_threshold: >
+    {% if wind_speed_threshold_helper != "" %}
+      {{ states(wind_speed_threshold_helper) | float }}
+    {% else %}
+      {{ wind_speed_threshold }}
+    {% endif %}
+  weather_sensor: !input weather_sensor
+  manual_interaction_helper: !input manual_interaction_helper
+  manual_interaction_timer: !input manual_interaction_timer
 
-##############
-# Automation #
-##############
+trigger:
+  - platform: time
+    at: "{{ daynight_time_open }}"
+    id: daynight_time_open
+  - platform: time
+    at: "{{ daynight_time_close }}"
+    id: daynight_time_close
+  - platform: sun
+    event: sunrise
+    offset: "{{ daynight_sunrise_offset }}"
+    id: sun_open
+  - platform: sun
+    event: sunset
+    offset: "{{ daynight_sunset_offset }}"
+    id: sun_close
+  - platform: numeric_state
+    entity_id: !input daynight_brightness_sensor
+    above: "{{ daynight_brightness_open }}"
+    id: daynight_brightness_open
+  - platform: numeric_state
+    entity_id: !input daynight_brightness_sensor
+    below: "{{ daynight_brightness_close }}"
+    id: daynight_brightness_close
+  - platform: time
+    at: "{{ daynight_latest_open_workday }}"
+    id: daynight_latest_open_workday
+  - platform: time
+    at: "{{ daynight_latest_close_workday_tomorrow }}"
+    id: daynight_latest_close_workday_tomorrow
+  - platform: time
+    at: "{{ daynight_latest_open_non_workday }}"
+    id: daynight_latest_open_non_workday
+  - platform: time
+    at: "{{ daynight_latest_close_non_workday_tomorrow }}"
+    id: daynight_latest_close_non_workday_tomorrow
+  - platform: numeric_state
+    entity_id: !input climate_temp_sensor
+    above: "{{ climate_temp_close }}"
+    id: climate_temp_close
+  - platform: numeric_state
+    entity_id: !input climate_temp_sensor
+    below: "{{ climate_temp_open }}"
+    id: climate_temp_open
+  - platform: numeric_state
+    entity_id: !input climate_brightness_sensor
+    above: "{{ climate_brightness_close }}"
+    id: climate_brightness_close
+  - platform: numeric_state
+    entity_id: !input climate_brightness_sensor
+    below: "{{ climate_brightness_open }}"
+    id: climate_brightness_open
+  - platform: state
+    entity_id: !input weather_sensor
+    to: "hail"
+    id: weather_hail
+  - platform: state
+    entity_id: !input weather_sensor
+    to: "rainy"
+    id: weather_rain
+  - platform: numeric_state
+    entity_id: !input weather_sensor
+    attribute: wind_speed
+    above: "{{ wind_speed_threshold }}"
+    id: weather_wind
+  - platform: event
+    event_type: state_changed
+    event_data:
+      entity_id: !input cover_entity
+    id: manual_interaction
+
+condition:
+  - condition: time
+    after: "{{ time_from }}"
+    before: "{{ time_to }}"
+  - condition: template
+    value_template: "{{ not is_state(manual_interaction_timer, 'active') }}"
+
+action:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ day_night_cycle_method == 'sun' }}"
+          - condition: or
+            conditions:
+              - condition: trigger
+                id: sun_open
+              - condition: trigger
+                id: sun_close
+        sequence:
+          - service: cover.open_cover
+            target:
+              entity_id: !input cover_entity
+            data: {}
+
+      - conditions:
+          - condition: template
+            value_template: "{{ day_night_cycle_method == 'time' }}"
+          - condition: or
+            conditions:
+              - condition: trigger
+                id: daynight_time_open
+              - condition: trigger
+                id: daynight_time_close
+        sequence:
+          - service: cover.open_cover
+            target:
+              entity_id: !input cover_entity
+            data: {}
+
+      - conditions:
+          - condition: template
+            value_template: "{{ day_night_cycle_method == 'brightness' }}"
+          - condition: or
+            conditions:
+              - condition: trigger
+                id: daynight_brightness_open
+              - condition: trigger
+                id: daynight_brightness_close
+        sequence:
+          - service: cover.open_cover
+            target:
+              entity_id: !input cover_entity
+            data: {}
+
+      - conditions:
+          - condition: template
+            value_template: "{{ daynight_differentiate_workdays }}"
+          - condition: or
+            conditions:
+              - condition: trigger
+                id: daynight_latest_open_workday
+              - condition: trigger
+                id: daynight_latest_close_workday_tomorrow
+              - condition: trigger
+                id: daynight_latest_open_non_workday
+              - condition: trigger
+                id: daynight_latest_close_non_workday_tomorrow
+        sequence:
+          - service: cover.open_cover
+            target:
+              entity_id: !input cover_entity
+            data: {}
+
+      - conditions:
+          - condition: or
+            conditions:
+              - condition: trigger
+                id: climate_temp_close
+              - condition: trigger
+                id: climate_temp_open
+              - condition: trigger
+                id: climate_brightness_close
+              - condition: trigger
+                id: climate_brightness_open
+        sequence:
+          - service: cover.close_cover
+            target:
+              entity_id: !input cover_entity
+            data: {}
+
+      - conditions:
+          - condition: or
+            conditions:
+              - condition: trigger
+                id: weather_hail
+              - condition: trigger
+                id: weather_rain
+              - condition: trigger
+                id: weather_wind
+        sequence:
+          - service: cover.open_cover
+            target:
+              entity_id: !input cover_entity
+            data: {}
+
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.event.origin == 'LOCAL' }}"
+          - condition: trigger
+            id: manual_interaction
+        sequence:
+          - service: input_boolean.turn_on
+            target:
+              entity_id: !input manual_interaction_helper
+            data: {}
+          - service: timer.start
+            target:
+              entity_id: !input manual_interaction_timer
+            data:
+              duration: "01:00:00"
+          - wait_template: "{{ is_state(manual_interaction_timer, 'active') }}"
+            timeout: "01:00:00"
+          - service: input_boolean.turn_off
+            target:
+              entity_id: !input manual_interaction_helper
+            data: {}
 
 mode: single
-max_exceeded: silent
-
-triggers:
-  - trigger: add your trigger here
-  ## Custom triggers
-  - triggers: !input custom_triggers
-
-conditions: # by default, conditions follow an AND logic
-  - condition: add your condition here
-  ## Custom conditions
-  - condition: and
-    conditions: !input custom_conditions
-
-actions:
-  - action: add your actions here
-  ## Custom actions
-  - if:
-      - condition: template
-        value_template: "{{custom_actions is not none }}"
-    then: !input custom_actions
