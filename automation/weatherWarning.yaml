@@ -319,7 +319,7 @@ variables:
 
     # android-only options
     ttl: 0
-    priority: hight
+    priority: high
     visibility: public
     notification_icon: "{{icons[forecast_today]}}"
     color: blue
@@ -371,10 +371,10 @@ actions:
       - choose:
           - conditions:
               - condition: template
-                value_template: "{{ notification_scope == specific and notify_recipients|length > 0 }}"
+                value_template: "{{ notification_scope == 'specific' and notify_recipients | length > 0 }}"
             sequence:
               - repeat:
-                  for_each: notify_recipients
+                  for_each: "{{ notify_recipients }}"
                   sequence:
                     - action: "notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}"
                       data:
