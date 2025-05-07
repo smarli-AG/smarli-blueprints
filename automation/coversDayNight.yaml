@@ -500,32 +500,7 @@ variables:
     {% else %}
       {{ time_to }}
     {% endif %}
-  climate_brightness_sensor: !input climate_brightness_sensor
-  climate_temp_close: >
-    {% if climate_temp_close_helper != "" %}
-      {{ states(climate_temp_close_helper) | float }}
-    {% else %}
-      {{ climate_temp_close }}
-    {% endif %}
-  climate_temp_open: >
-    {% if climate_temp_open_helper != "" %}
-      {{ states(climate_temp_open_helper) | float }}
-    {% else %}
-      {{ climate_temp_open }}
-    {% endif %}
-  climate_temp_sensor: !input climate_temp_sensor
-  climate_brightness_close: >
-    {% if climate_brightness_close_helper != "" %}
-      {{ states(climate_brightness_close_helper) | int }}
-    {% else %}
-      {{ climate_brightness_close }}
-    {% endif %}
-  climate_brightness_open: >
-    {% if climate_brightness_open_helper != "" %}
-      {{ states(climate_brightness_open_helper) | int }}
-    {% else %}
-      {{ climate_brightness_open }}
-    {% endif %}
+
   weather_events: !input weather_events
   wind_speed_threshold: >
     {% if wind_speed_threshold_helper != "" %}
@@ -572,22 +547,6 @@ trigger:
   - platform: time
     at: "{{ latest_close_non_workday_tomorrow }}"
     id: latest_close_non_workday_tomorrow
-  - platform: numeric_state
-    entity_id: !input climate_temp_sensor
-    above: "{{ climate_temp_close }}"
-    id: climate_temp_close
-  - platform: numeric_state
-    entity_id: !input climate_temp_sensor
-    below: "{{ climate_temp_open }}"
-    id: climate_temp_open
-  - platform: numeric_state
-    entity_id: !input climate_brightness_sensor
-    above: "{{ climate_brightness_close }}"
-    id: climate_brightness_close
-  - platform: numeric_state
-    entity_id: !input climate_brightness_sensor
-    below: "{{ climate_brightness_open }}"
-    id: climate_brightness_open
   - platform: state
     entity_id: !input weather_sensor
     to: "hail"
@@ -679,24 +638,6 @@ action:
             target:
               entity_id: !input cover_entity
             data: {}
-
-      - conditions:
-          - condition: or
-            conditions:
-              - condition: trigger
-                id: climate_temp_close
-              - condition: trigger
-                id: climate_temp_open
-              - condition: trigger
-                id: climate_brightness_close
-              - condition: trigger
-                id: climate_brightness_open
-        sequence:
-          - service: cover.close_cover
-            target:
-              entity_id: !input cover_entity
-            data: {}
-
       - conditions:
           - condition: or
             conditions:
