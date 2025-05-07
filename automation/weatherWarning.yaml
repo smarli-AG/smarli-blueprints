@@ -310,12 +310,12 @@ variables:
   colors: # see colors here: https://www.w3.org/TR/2010/PR-css3-color-20101028/#html4
     rainy: "#3f43ac" # smarli. blue
     pouring: "#3f43ac" # smarli. blue
-    lightning: "gold"
-    lightning-rainy: "gold" # take same icon as for lightning
-    hail: "lightcyan"
-    snowy: "white"
-    snowy-rainy: "white"
-    fog: "lightgray"
+    lightning: "#ffd700" # gold
+    lightning-rainy: "#ffd700" # gold
+    hail: "#e0ffff" # lightcyan
+    snowy: "#ffffff" # white
+    snowy-rainy: "#ffffff" # white
+    fog: "#d3d3d3" # lightgrey
 
 ##############
 # Automation #
