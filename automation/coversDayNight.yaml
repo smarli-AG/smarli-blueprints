@@ -1,24 +1,22 @@
+# TODO: helpers besser filtern. z.B. für einen lux sensor nicht einfach alle input_numbers, sondern nur die relevanten.
+
 #  Was soll unterstützt werden?
 # Tag/Nacht-Steuerung (Sichtschutz)
 # - Storen automatisch hoch/runter bei sonnenauf-/untergang (Sichtschutz)
 # - Alternativ basierend auf Zeitplan steuern statt sonnenstand
 # - alternativ basierend auf helligkeitssensor steuern (ein select input mit sonnenstand/zeitplan/helligkeit)
-# Wärme-/Heiz-/Klima-Steuerung
-# - Storen automatisch runter wenn Temparatur für die nächste Stunde > x
-# - Storen automatisch wieder runter wenn Termparatur für die nächste Stunde wieder < x vorhergesagt
-# - Storen automatisch runter wenn helligkeit > x
-# - SToren automatisch wieder hoch wenn Helligkeit < x
 # Rahmenbedingungen
 # - Bei Steuerung via Sensorwerte eine Verzögerung einbauen, dass sie nicht ständig wechseln, wenn z.B. eine Wolke vor der Sonne steht
 # - Möglichkeit um offset und grenzwerte via helper im frontend zu setzen, ansonsten wird wert aus automatisierung genommen
-# - Zeiten definieren wo Storen nicht früher öffnen dürfen (z.B. nicht vor 6 Uhr auch wenn Sonne schon da)
-# - spätester Zeitpunkt wann storen aufgehen sollen, auch wenn sonne noch nicht da ist
+# - Zeiten definieren wo Storen nicht früher öffnen dürfen (z.B. nicht vor 6 Uhr auch wenn Sonne schon da) -> in diesem Fall um diese Zeit dann triggern
+# - spätester Zeitpunkt wann storen aufgehen sollen, auch wenn Automatisierung noch nicht getriggert hat
 # - Unterscheidung Wochentage/Werktage
-# - selectable machen, dass Storen hoch wenn in der nächsten Stunde Regen/Hagel/Windgeschwindigkeit>x erwartet wird -> notification wieso
+# - nicht herunterfahren wenn in der nächsten halben Stunde Wind/Regen/Hagel erwartet wird
+# - nicht herunterfahren, wenn es aktuell regnet / stürmt (entweder via weather entitity, falls verfügbar aber via sensor)
 # - helper auf on stellen wenn letzte Storensteuerung von dieser (oder einer) Automatisierung gekommen ist? gewisse Aktionen nur ausführen, wenn der Helper auf on steht oder der letzte Change >1h her ist.
 # - Additional conditions unterscheidung nach öffnen/schliessen
 # - additional actions öffnen/schliessen
-# - additioanl triggers öffnen(schliessen)
+# - additioanl triggers öffnen/schliessen
 
 # alle gegebenen covers "auslisten" falls es gruppen hat. dann durch diese durch loopen und aktionen durchführen, falls z.B. eine noch manuell bewegt wurde und jetzt nicht verändert werden soll.
 
@@ -65,7 +63,7 @@ blueprint:
       input:
         should_suspend_after_manual_interaction:
           name: Suspend After Manual Interaction (optional)
-          description: If covers are controlled manually, suspend this automation for a specified amount of time (see `Suspension Duration`). This will not affect executions triggered by weather events.
+          description: If covers are controlled manually, suspend this automation for a specified amount of time (see `Suspension Duration`).
           selector:
             boolean:
           default: true
@@ -80,7 +78,8 @@ blueprint:
             seconds: 0
         was_triggered_by_automation_helper:
           name: Automation Tracker Helper (optional)
-          description: Select the helper that tracks whether the automation is running or not. Only required if suspension after manual control is active.
+          description: >
+            Select the helper that tracks whether the automation is running or not. Only required if suspension after manual control is active.
           selector:
             entity:
               filter:
@@ -94,25 +93,8 @@ blueprint:
               filter:
                 - integration: input_boolean
           default: input_boolean.cover_automation_suspension
-        lux_sensor_delay:
-          name: Brightness Sensor Stabilizer (optional)
-          description: How long does the brightness sensor need to be above the defined threshold before triggering the automation? This can be done to avoid frequent back-and-forth switching (e.g. if a cloud passes in front of the sun).
-          selector:
-            duration:
-          default:
-            hours: 0
-            minutes: 5
-            seconds: 0
-        temp_sensor_delay:
-          name: Temperature Sensor Stabilizer (optional)
-          description: How long does the temperature sensor need to be above the defined threshold before triggering the automation? This can be done to avoid frequent back-and-forth switching (e.g. while the sensor fluctuates around the threshold).
-          selector:
-            duration:
-          default:
-            hours: 0
-            minutes: 5
-            seconds: 0
-        day_night_cycle_method:
+
+        daynight_cycle_method:
           name: Day-Night Cycle Method
           description: Based on which method should the day-night cycle (opening covers in the morning, closing them at night) operate?
           selector:
@@ -124,316 +106,260 @@ blueprint:
                   value: time
                 - label: Brightness
                   value: brightness
-                - label: Disable Day-Night Cycle
-                  value: disabled
           default: sun
-        daynight_sunrise_offset:
-          name: Sunrise Delay (minutes)
-          description: Delay after sunrise to open covers.
-          default: 0
+
+        sunrise_offset:
+          name: Sunrise Offset (optional)
+          description: If required, offset the sunrise trigger from the actual sunrise time. Time of sunrise is delivered by the sun integration.
           selector:
             number:
-              min: -999
-              max: 999
+              min: -120
+              max: 120
               unit_of_measurement: minutes
-              mode: box
+          default: 0
 
-        daynight_sunrise_offset_helper:
-          name: Sunrise Delay Helper
-          description: Helper entity to override the sunrise delay.
-          default: ""
+        sunrise_offset_helper:
+          name: Sunrise Offset Helper (optional)
+          description: Instead of setting a sunrise offset within this automation, you can use a number helper to set the sunrise offset.
           selector:
             entity:
               domain: input_number
+          default: ""
 
-        daynight_sunset_offset:
-          name: Sunset Delay (minutes)
-          description: Delay after sunset to close covers.
-          default: 0
+        sunset_offset:
+          name: Sunset Offset (optional)
+          description: If required, offset the sunset trigger from the actual sunset time. Time of sunset is delivered by the sun integration.
           selector:
             number:
-              min: -999
-              max: 999
+              min: -120
+              max: 120
               unit_of_measurement: minutes
-              mode: box
+          default: 0
 
-        daynight_sunset_offset_helper:
-          name: Sunset Delay Helper
-          description: Helper entity to override the sunset delay.
-          default: ""
+        sunset_offset_helper:
+          name: Sunset Offset Helper (optional)
+          description: Instead of setting a sunset offset within this automation, you can use a number helper to set the sunset offset.
           selector:
             entity:
               domain: input_number
+          default: ""
 
-        daynight_time_open:
-          name: Open Time
-          description: Time to open covers.
-          default: "07:00:00"
+        time_open:
+          name: Open Time (optional)
+          description: Time to open covers, if `Day-Night Cycle Method` is set to `Time`.
           selector:
             time:
+          default: "06:00:00"
 
-        daynight_time_open_helper:
-          name: Open Time Helper
-          description: Helper entity to override the open time.
-          default: ""
+        time_open_helper:
+          name: Open Time Helper (optional)
+          description: Instead of setting the opening time within this automation, you can use a datetime helper to set the open time.
           selector:
             entity:
               domain: input_datetime
+          default: ""
 
-        daynight_time_close:
-          name: Close Time
-          description: Time to close covers.
-          default: "22:00:00"
+        time_close:
+          name: Close Time (optional)
+          description: Time to close covers, if `Day-Night Cycle Method` is set to `Time`.
           selector:
             time:
+          default: "21:00:00"
 
-        daynight_time_close_helper:
-          name: Close Time Helper
-          description: Helper entity to override the close time.
-          default: ""
+        time_close_helper:
+          name: Close Time Helper (optional)
+          description: Instead of setting the closing time within this automation, you can use a datetime helper to set the close time.
           selector:
             entity:
               domain: input_datetime
-
-        daynight_brightness_open:
-          name: Brightness to Open (lux)
-          description: Brightness level to open covers.
-          default: 300
-          selector:
-            number:
-              min: 0
-              max: 100000
-              unit_of_measurement: lux
-
-        daynight_brightness_open_helper:
-          name: Brightness Open Helper
-          description: Helper entity to override the brightness to open.
           default: ""
-          selector:
-            entity:
-              domain: input_number
 
-        daynight_brightness_close:
-          name: Brightness to Close (lux)
-          description: Brightness level to close covers.
-          default: 10
-          selector:
-            number:
-              min: 0
-              max: 100000
-              unit_of_measurement: lux
-              mode: box
-
-        daynight_brightness_close_helper:
-          name: Brightness Close Helper
-          description: Helper entity to override the brightness to close.
-          default: ""
-          selector:
-            entity:
-              domain: input_number
-
-        daynight_brightness_sensor:
+        brightness_sensor:
           name: Brightness Sensor
           description: Brightness sensor entity.
           selector:
             entity:
               domain: sensor
               device_class: illuminance
-
-        daynight_should_use_latest_open:
-
-        daynight_latest_open_workday:
-          name: Latest Open Time (Workday)
-          description: Latest time to open covers on workdays.
-          default: "09:00:00"
+        lux_sensor_delay:
+          name: Brightness Sensor Stabilizer (optional)
+          description: How long does the brightness sensor need to be above the defined threshold before triggering the automation? This can be done to avoid frequent back-and-forth switching (e.g. if a cloud passes in front of the sun).
           selector:
-            time:
+            duration:
+          default:
+            hours: 0
+            minutes: 5
+            seconds: 0
 
-        daynight_latest_open_workday_helper:
-          name: Latest Open Time Workday Helper
-          description: Helper entity to override the latest open time on workdays.
-          default: ""
+        brightness_open:
+          name: Brightness to Open (optional)
+          description: Brightness level to open covers, if `Day-Night Cycle Method` is set to `Brightness`.
           selector:
-            entity:
-              domain: input_datetime
+            number:
+              min: 0
+              max: 100000
+              unit_of_measurement: lux
+              mode: box
+          default: 500
 
-        daynight_latest_close_workday_tomorrow:
-          name: Latest Close Time (Workday)
-          description: Latest time to close covers on workdays.
-          default: "23:00:00"
-          selector:
-            time:
-
-        daynight_latest_close_workday_tomorrow_helper:
-          name: Latest Close Time Workday Helper
-          description: Helper entity to override the latest close time on workdays.
-          default: ""
+        brightness_open_helper:
+          name: Brightness Open Helper (optional)
+          description: Instead of setting the brightness to open within this automation, you can use a number helper to set the brightness to open.
           selector:
             entity:
-              domain: input_datetime
-
-        daynight_latest_open_non_workday:
-          name: Latest Open Time (Non-Workday)
-          description: Latest time to open covers on non-workdays.
-          default: "10:00:00"
-          selector:
-            time:
-
-        daynight_latest_open_non_workday_helper:
-          name: Latest Open Time Non-Workday Helper
-          description: Helper entity to override the latest open time on non-workdays.
+              domain: input_number
           default: ""
+
+        brightness_close:
+          name: Brightness to Close (optional)
+          description: Brightness level to close covers, if `Day-Night Cycle Method` is set to `Brightness`.
+          selector:
+            number:
+              min: 0
+              max: 100000
+              unit_of_measurement: lux
+              mode: box
+          default: 3500
+
+        brightness_close_helper:
+          name: Brightness Close Helper (optional)
+          description: Instead of setting the brightness to close within this automation, you can use a number helper to set the brightness to close.
           selector:
             entity:
-              domain: input_datetime
-
-        daynight_latest_close_non_workday_tomorrow:
-          name: Latest Close Time (Non-Workday)
-          description: Latest time to close covers on non-workdays.
-          default: "23:00:00"
-          selector:
-            time:
-
-        daynight_latest_close_non_workday_tomorrow_helper:
-          name: Latest Close Time Non-Workday Helper
-          description: Helper entity to override the latest close time on non-workdays.
+              domain: input_number
           default: ""
-          selector:
-            entity:
-              domain: input_datetime
 
-        daynight_differentiate_workdays:
-          name: Differentiate Workdays
-          description: Differentiate between workdays and non-workdays.
+        should_use_latest_open:
+          name: Use Latest Open Time
+          description: Do you want to set a time at which the covers should open at the latest, if they have not been opened before?
           selector:
             boolean:
-
-        climate_temp_close:
-          name: Temperature to Close (°C)
-          description: Temperature threshold to close covers.
-          default: 25
+          default: false
+        latest_open_workday:
+          name: Latest Open Time on Workdays (optional)
+          description: Latest time to open covers on workdays. Only relevant if `Use Latest Open Time` is set to `true`.
           selector:
-            number:
-              min: -50
-              max: 100
-              unit_of_measurement: °C
-
-        climate_temp_close_helper:
-          name: Temperature Close Helper
-          description: Helper entity to override the temperature to close.
-          default: ""
+            time:
+          default: "07:00:00"
+        latest_open_workday_helper:
+          name: Latest Open Time Workday Helper (optional)
+          description: Instead of setting the latest open time on workdays within this automation, you can use a datetime helper to set the latest open time on workdays.
           selector:
             entity:
-              domain: input_number
-
-        climate_temp_open:
-          name: Temperature to Open (°C)
-          description: Temperature threshold to open covers.
-          default: 20
-          selector:
-            number:
-              min: -50
-              max: 100
-              unit_of_measurement: °C
-
-        climate_temp_open_helper:
-          name: Temperature Open Helper
-          description: Helper entity to override the temperature to open.
+              domain: input_datetime
           default: ""
+        latest_open_non_workday:
+          name: Latest Open Time on Non-Workdays (optional)
+          description: Latest time to open covers on non-workdays. Only relevant if `Use Latest Open Time` is set to `true`.
+          selector:
+            time:
+          default: "09:00:00"
+        latest_open_non_workday_helper:
+          name: Latest Open Time Non-Workday Helper (optional)
+          description: Instead of setting the latest open time on non-workdays within this automation, you can use a datetime helper to set the latest open time on non-workdays.
           selector:
             entity:
-              domain: input_number
+              domain: input_datetime
+          default: ""
 
-        climate_temp_sensor:
-          name: Temperature Sensor
-          description: Temperature sensor entity.
+        should_use_latest_close:
+          name: Use Latest Close Time
+          description: Do you want to set a time at which the covers should close at the latest, if they have not been closed before?
+          selector:
+            boolean:
+          default: false
+
+        latest_close_workday_tomorrow:
+          name: Latest Close Time if Tomorrow is a Workday (optional)
+          description: Latest time to close covers on workdays. Only relevant if `Use Latest Close Time` is set to `true`.
+          selector:
+            time:
+          default: "22:00:00"
+        latest_close_workday_tomorrow_helper:
+          name: Latest Close Time Workday Helper (optional)
+          description: Instead of setting the latest close time on workdays within this automation, you can use a datetime helper to set the latest close time on workdays.
+          selector:
+            entity:
+              domain: input_datetime
+          default: ""
+        latest_close_non_workday_tomorrow:
+          name: Latest Close Time if Tomorrow is a Non-Workday (optional)
+          description: Latest time to close covers on non-workdays. Only relevant if `Use Latest Close Time` is set to `true`.
+          selector:
+            time:
+          default: "23:00:00"
+        latest_close_non_workday_tomorrow_helper:
+          name: Latest Close Time Non-Workday Helper (optional)
+          description: Instead of setting the latest close time on non-workdays within this automation, you can use a datetime helper to set the latest close time on non-workdays.
+          selector:
+            entity:
+              domain: input_datetime
+          default: ""
+
+        weather_entity:
+          name: Weather Entity (optional)
+          description: The weather entity to check in order to block the closing of the covers.
+          selector:
+            entity:
+              domain: weather
+          default: ""
+        wind_sensor:
+          name: Wind Sensor (optional)
+          description: If available, specify a separate wind sensor to be used to track current wind speeds.
           selector:
             entity:
               domain: sensor
-              device_class: temperature
-
-        climate_brightness_sensor:
-          name: Brightness Sensor
-          description: Brightness sensor entity.
-          selector:
-            entity:
-              domain: sensor
-              device_class: illuminance
-
-        climate_brightness_close:
-          name: Brightness to Close (lux)
-          description: Brightness level to close covers.
-          default: 500
-          selector:
-            number:
-              min: 0
-              max: 100000
-              unit_of_measurement: lux
-
-        climate_brightness_close_helper:
-          name: Brightness Close Helper
-          description: Helper entity to override the brightness to close.
+              device_class: wind_speed
           default: ""
+        rain_sensor:
+          name: Rain Sensor (optional)
+          description: If available, specify a separate moisture sensor to be used to track if it's currently raining.
           selector:
             entity:
-              domain: input_number
-
-        climate_brightness_open:
-          name: Brightness to Open (lux)
-          description: Brightness level to open covers.
-          default: 100
-          selector:
-            number:
-              min: 0
-              max: 100000
-              unit_of_measurement: lux
-
-        climate_brightness_open_helper:
-          name: Brightness Open Helper
-          description: Helper entity to override the brightness to open.
+              domain: binary_sensor
+              device_class: moisture
           default: ""
-          selector:
-            entity:
-              domain: input_number
-
         weather_events:
-          name: Weather Events
-          description: Select weather events to open covers.
+          name: Weather Events to Prevent Closing (optional)
+          description: Which weather events should prevent the covers from closing?
           selector:
             select:
               multiple: true
               options:
+                - label: High Wind Speeds
+                  value: "windy"
+                - label: Rainy
+                  value: "rainy"
+                - label: Pouring
+                  value: "pouring"
+                - label: Lightning
+                  value: "lightning"
+                - label: Lightning, rainy
+                  value: "lightning-rainy"
                 - label: Hail
-                  value: hail
-                - label: Rain
-                  value: rain
-                - label: Wind
-                  value: wind
-
+                  value: "hail"
+                - label: Snowy
+                  value: "snowy"
+                - label: Snowy, rainy
+                  value: "snowy-rainy"
+                - label: Fog
+                  value: "fog"
         wind_speed_threshold:
-          name: Wind Speed Threshold (m/s)
-          description: Wind speed threshold to open covers.
-          default: 10
+          name: Wind Speed Threshold to Prevent Closing (optional)
+          description: At what wind speed should the covers be prevented from closing?
           selector:
             number:
               min: 0
               max: 100
-              unit_of_measurement: m/s
-
+              unit_of_measurement: km/h
+          default: 35
         wind_speed_threshold_helper:
-          name: Wind Speed Threshold Helper
-          description: Helper entity to override the wind speed threshold.
-          default: ""
+          name: Wind Speed Threshold Helper (optional)
+          description: Instead of setting the wind speed threshold within this automation, you can use a number helper to set the wind speed threshold.
           selector:
             entity:
               domain: input_number
-
-        weather_sensor:
-          name: Weather Sensor
-          description: Weather sensor entity.
-          selector:
-            entity:
-              domain: weather
+          default: ""
 
     condition_inputs:
       name: Condition Inputs
@@ -477,7 +403,7 @@ blueprint:
       input:
         cover_entity:
           name: Cover
-          description: The cover entity to automate.
+          description: The cover entities to automate. Please beware that covers might close while people are outside (balcony/garden). It is advised to leave certain covers open to ensure nobody gets locked out.
           selector:
             entity:
               domain: cover
