@@ -508,7 +508,7 @@ variables:
     {% else %}
       {{ wind_speed_threshold }}
     {% endif %}
-  # weather_sensor: !input weather_sensor
+  weather_entity: !input weather_entity
   manual_interaction_helper: !input manual_interaction_helper
   manual_interaction_timer: !input manual_interaction_timer
 
@@ -548,15 +548,15 @@ trigger:
     at: "{{ latest_close_non_workday_tomorrow }}"
     id: latest_close_non_workday_tomorrow
   - platform: state
-    entity_id: !input weather_sensor
+    entity_id: !input weather_entity
     to: "hail"
     id: weather_hail
   - platform: state
-    entity_id: !input weather_sensor
+    entity_id: !input weather_entity
     to: "rainy"
     id: weather_rain
   - platform: numeric_state
-    entity_id: !input weather_sensor
+    entity_id: !input weather_entity
     attribute: wind_speed
     above: "{{ wind_speed_threshold }}"
     id: weather_wind
