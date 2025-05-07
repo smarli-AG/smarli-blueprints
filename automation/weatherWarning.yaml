@@ -371,7 +371,7 @@ actions:
       - choose:
           - conditions:
               - condition: template
-                value_template: "{{ notification_scope == specific and notify_recipients is not [] }}"
+                value_template: "{{ notification_scope == specific and notify_recipients|length > 0 }}"
             sequence:
               - repeat:
                   for_each: notify_recipients
