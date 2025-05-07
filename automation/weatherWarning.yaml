@@ -119,10 +119,10 @@ blueprint:
             select:
               options:
                 - label: All Devices
-                  value: all
+                  value: "all"
                 - label: Specific Notify Devices
-                  value: specific
-          default: all
+                  value: "specific"
+          default: "all"
         notify_recipients:
           name: Devices to Notify (optional)
           description: If the scope is set to `specific`, which devices should be notified?
@@ -386,7 +386,7 @@ actions:
       - choose:
           - conditions:
               - condition: template
-                value_template: "{{ notification_scope == specific and notify_recipients | length > 0 }}"
+                value_template: "{{ notification_scope == 'specific' and notify_recipients | length > 0 }}"
             sequence:
               - repeat:
                   for_each: "{{ notify_recipients }}"
