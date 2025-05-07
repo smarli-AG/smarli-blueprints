@@ -10,6 +10,13 @@
 #   notifications to iOS and android. maybe similar to this repeat function: https://gist.github.com/milperks/3a2cce4805735ebcadab701162257139
 # - Language support by creating dictionaries with non-editable texts and tying them into the language entity
 
+# ! RELEASE NOTES
+## 1.3.0 | 2025-05-07
+## - Add option to send notification to specific devices instead of all devices
+## - Set different colors for different kinds of weather conditions
+## 1.2.0 | 2025-02-27
+## - Initial live release
+
 blueprint:
   ############
   # Metadata #
