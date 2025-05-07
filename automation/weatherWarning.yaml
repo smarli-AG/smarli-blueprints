@@ -21,7 +21,7 @@ blueprint:
 
     This automation will warn users about upcoming weather events so that they can leave their homes fully prepared.
 
-    *Version 1.2.0 | 2025-02-27*
+    *Version 1.3.0 | 2025-05-07*
 
     <details>
     <summary><b>How to set it up</b></summary>
@@ -32,9 +32,11 @@ blueprint:
 
       3. Select which weather conditions you'd like to be informed about
 
-      4. If you like, update the texts that will be sent with the notification
+      4. Select if you'd like to inform all notification devices or just specific companion apps.
 
-      5. Add additional triggers, conditions, or actions manually - this is for experienced users only.
+      5. If you like, update the texts that will be sent with the notification
+
+      6. Add additional triggers, conditions, or actions manually - this is for experienced users only.
     </details>
 
 
@@ -103,6 +105,26 @@ blueprint:
       icon: mdi:play-box-multiple
       description: These inputs are used to set the actions
       input:
+        notification_scope:
+          name: Notification Scope
+          description: Who should be notified? It's easiest to just inform all notify devices, as this works even when customers change their mobile devices. But you can also specify specific devices. When notifying all devices (`notify.notify` action) this could also target other notify integrations such as Microsoft Teams. Still, this is the best option for most circumstances.
+          selector:
+            select:
+              options:
+                - label: All Devices
+                  value: all
+                - label: Specific Notify Devices
+                  value: specific
+          default: all
+        notify_recipients:
+          name: Devices to Notify (optional)
+          description: If the scope is set to `specific`, which devices should be notified?
+          selector:
+            device:
+              filter:
+                - integration: mobile_app
+              multiple: true
+          default: []
         notification_title_rainy:
           name: Notification Title "Rainy"
           description: Set the title of the notification that should be sent on rainy weather conditions.
@@ -250,6 +272,9 @@ variables:
   weather_entity: !input weather_entity
   weather_events: !input weather_events
 
+  notification_scope: !input notification_scope
+  notify_recipients: !input notify_recipients
+
   custom_actions: !input custom_actions
 
   # Put all messages, notification titles and icons into dictionaries that
@@ -282,6 +307,29 @@ variables:
     snowy: mdi:weather-snowy
     snowy-rainy: mdi:weather-snowy-rainy
     fog: mdi:weather-fog
+
+  # add additional notify data so that they can be reused
+  notify_data:
+    actions:
+      - action: thanks # setting an action that does nothing, but it clears the notification
+        title: Danke smarli.!
+      - action: "URI"
+        title: "Öffnen"
+        uri: "entityId:{{weather_entity}}" #
+
+    # android-only options
+    ttl: 0
+    priority: hight
+    visibility: public
+    notification_icon: "{{icons[forecast_today]}}"
+    color: blue
+    clickAction: noAction
+
+    # ios-only options
+    url: # used as url for iOS, nothing defined here
+    data:
+      push:
+        interruption-level: time-sensitive
 
 ##############
 # Automation #
@@ -320,33 +368,24 @@ actions:
         value_template: "{{ forecast_today in weather_events }}"
     # if so, send the notification
     then:
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ notification_scope == specific and notify_recipients is not [] }}"
+            sequence:
+              - repeat:
+                  for_each: notify_recipients
+                  sequence:
+                    - action: "notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}"
+                      data:
+                        message: "{{messages[forecast_today]}}"
+                        title: "{{titles[forecast_today]}}"
+                        data: "{{ notify_data }}"
       - action: notify.notify
         data:
           message: "{{messages[forecast_today]}}"
           title: "{{titles[forecast_today]}}"
-          data:
-            # platform-independent options
-            actions:
-              - action: thanks # setting an action that does nothing, but it clears the notification
-                title: Danke smarli.!
-              - action: "URI"
-                title: "Öffnen"
-                uri: "entityId:{{weather_entity}}" # opening the more info dialogue is only supported on Android, iOS will just open the starting screen (where the weather entity is also located)
-
-            # android-only options
-            ttl: 0
-            priority: high
-            visibility: public
-            notification_icon: "{{icons[forecast_today]}}"
-            color: blue
-            clickAction: noAction
-
-            # ios-only options
-            url: # used as url for iOS, nothing defined here
-            data:
-              push:
-                interruption-level: time-sensitive
-        metadata: {}
+          data: "{{ notify_data }}"
 
   ## Custom actions
   - if:
