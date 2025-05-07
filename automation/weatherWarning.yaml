@@ -371,7 +371,7 @@ actions:
       - choose:
           - conditions:
               - condition: template
-                value_template: "{{ notification_scope == 'specific' and notify_recipients | length > 0 }}"
+                value_template: "{{ notification_scope == specific and notify_recipients | length > 0 }}"
             sequence:
               - repeat:
                   for_each: "{{ notify_recipients }}"
@@ -381,11 +381,12 @@ actions:
                         message: "{{messages[forecast_today]}}"
                         title: "{{titles[forecast_today]}}"
                         data: "{{ notify_data }}"
-      - action: notify.notify
-        data:
-          message: "{{messages[forecast_today]}}"
-          title: "{{titles[forecast_today]}}"
-          data: "{{ notify_data }}"
+        default:
+          - action: notify.notify
+            data:
+              message: "{{messages[forecast_today]}}"
+              title: "{{titles[forecast_today]}}"
+              data: "{{ notify_data }}"
 
   ## Custom actions
   - if:
