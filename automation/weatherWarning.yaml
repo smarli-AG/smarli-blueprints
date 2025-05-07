@@ -301,12 +301,21 @@ variables:
   icons:
     rainy: "mdi:weather-rainy"
     pouring: "mdi:weather-pouring"
-    lightning: mdi:weather-lightning
-    lightning-rainy: mdi:weather-lightning # take same icon as for lightning
-    hail: mdi:weather-hail
-    snowy: mdi:weather-snowy
-    snowy-rainy: mdi:weather-snowy-rainy
-    fog: mdi:weather-fog
+    lightning: "mdi:weather-lightning"
+    lightning-rainy: "mdi:weather-lightning" # take same icon as for lightning
+    hail: "mdi:weather-hail"
+    snowy: "mdi:weather-snowy"
+    snowy-rainy: "mdi:weather-snowy-rainy"
+    fog: "mdi:weather-fog"
+  colors: # see colors here: https://www.w3.org/TR/2010/PR-css3-color-20101028/#html4
+    rainy: "#3f43ac" # smarli. blue
+    pouring: "#3f43ac" # smarli. blue
+    lightning: "gold"
+    lightning-rainy: "gold" # take same icon as for lightning
+    hail: "lightcyan"
+    snowy: "white"
+    snowy-rainy: "white"
+    fog: "lightgray"
 
 ##############
 # Automation #
@@ -353,7 +362,7 @@ actions:
         priority: high
         visibility: public
         notification_icon: "{{icons[forecast_today]}}"
-        color: blue
+        color: "{{colors[forecast_today]}}"
         clickAction: noAction
 
         # ios-only options
