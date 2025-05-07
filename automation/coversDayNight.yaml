@@ -426,68 +426,68 @@ blueprint:
 
 variables:
   day_night_cycle_method: !input day_night_cycle_method
-  daynight_sunrise_offset: >
-    {% if daynight_sunrise_offset_helper != "" %}
-      {{ states(daynight_sunrise_offset_helper) | int }}
+  sunrise_offset: >
+    {% if sunrise_offset_helper != "" %}
+      {{ states(sunrise_offset_helper) | int }}
     {% else %}
-      {{ daynight_sunrise_offset }}
+      {{ sunrise_offset }}
     {% endif %}
-  daynight_sunset_offset: >
-    {% if daynight_sunset_offset_helper != "" %}
-      {{ states(daynight_sunset_offset_helper) | int }}
+  sunset_offset: >
+    {% if sunset_offset_helper != "" %}
+      {{ states(sunset_offset_helper) | int }}
     {% else %}
-      {{ daynight_sunset_offset }}
+      {{ sunset_offset }}
     {% endif %}
-  daynight_time_open: >
-    {% if daynight_time_open_helper != "" %}
-      {{ states(daynight_time_open_helper) }}
+  time_open: >
+    {% if time_open_helper != "" %}
+      {{ states(time_open_helper) }}
     {% else %}
-      {{ daynight_time_open }}
+      {{ time_open }}
     {% endif %}
-  daynight_time_close: >
-    {% if daynight_time_close_helper != "" %}
-      {{ states(daynight_time_close_helper) }}
+  time_close: >
+    {% if time_close_helper != "" %}
+      {{ states(time_close_helper) }}
     {% else %}
-      {{ daynight_time_close }}
+      {{ time_close }}
     {% endif %}
-  daynight_brightness_open: >
-    {% if daynight_brightness_open_helper != "" %}
-      {{ states(daynight_brightness_open_helper) | int }}
+  brightness_open: >
+    {% if brightness_open_helper != "" %}
+      {{ states(brightness_open_helper) | int }}
     {% else %}
-      {{ daynight_brightness_open }}
+      {{ brightness_open }}
     {% endif %}
-  daynight_brightness_close: >
-    {% if daynight_brightness_close_helper != "" %}
-      {{ states(daynight_brightness_close_helper) | int }}
+  brightness_close: >
+    {% if brightness_close_helper != "" %}
+      {{ states(brightness_close_helper) | int }}
     {% else %}
-      {{ daynight_brightness_close }}
+      {{ brightness_close }}
     {% endif %}
-  daynight_brightness_sensor: !input daynight_brightness_sensor
-  daynight_latest_open_workday: >
-    {% if daynight_latest_open_workday_helper != "" %}
-      {{ states(daynight_latest_open_workday_helper) }}
+  brightness_sensor: !input brightness_sensor
+  latest_open_workday: >
+    {% if latest_open_workday_helper != "" %}
+      {{ states(latest_open_workday_helper) }}
     {% else %}
-      {{ daynight_latest_open_workday }}
+      {{ latest_open_workday }}
     {% endif %}
-  daynight_latest_close_workday_tomorrow: >
-    {% if daynight_latest_close_workday_tomorrow_helper != "" %}
-      {{ states(daynight_latest_close_workday_tomorrow_helper) }}
+  latest_close_workday_tomorrow: >
+    {% if latest_close_workday_tomorrow_helper != "" %}
+      {{ states(latest_close_workday_tomorrow_helper) }}
     {% else %}
-      {{ daynight_latest_close_workday_tomorrow }}
+      {{ latest_close_workday_tomorrow }}
     {% endif %}
-  daynight_latest_open_non_workday: >
-    {% if daynight_latest_open_non_workday_helper != "" %}
-      {{ states(daynight_latest_open_non_workday_helper) }}
+  latest_open_non_workday: >
+    {% if latest_open_non_workday_helper != "" %}
+      {{ states(latest_open_non_workday_helper) }}
     {% else %}
-      {{ daynight_latest_open_non_workday }}
+      {{ latest_open_non_workday }}
     {% endif %}
-  daynight_latest_close_non_workday_tomorrow: >
-    {% if daynight_latest_close_non_workday_tomorrow_helper != "" %}
-      {{ states(daynight_latest_close_non_workday_tomorrow_helper) }}
+  latest_close_non_workday_tomorrow: >
+    {% if latest_close_non_workday_tomorrow_helper != "" %}
+      {{ states(latest_close_non_workday_tomorrow_helper) }}
     {% else %}
-      {{ daynight_latest_close_non_workday_tomorrow }}
+      {{ latest_close_non_workday_tomorrow }}
     {% endif %}
-  daynight_differentiate_workdays: !input daynight_differentiate_workdays
+  differentiate_workdays: !input differentiate_workdays
   time_from: >
     {% if time_from_helper != "" %}
       {{ states(time_from_helper) }}
@@ -533,45 +533,45 @@ variables:
     {% else %}
       {{ wind_speed_threshold }}
     {% endif %}
-  weather_sensor: !input weather_sensor
+  # weather_sensor: !input weather_sensor
   manual_interaction_helper: !input manual_interaction_helper
   manual_interaction_timer: !input manual_interaction_timer
 
 trigger:
   - platform: time
-    at: "{{ daynight_time_open }}"
-    id: daynight_time_open
+    at: "{{ time_open }}"
+    id: time_open
   - platform: time
-    at: "{{ daynight_time_close }}"
-    id: daynight_time_close
+    at: "{{ time_close }}"
+    id: time_close
   - platform: sun
     event: sunrise
-    offset: "{{ daynight_sunrise_offset }}"
+    offset: "{{ sunrise_offset }}"
     id: sun_open
   - platform: sun
     event: sunset
-    offset: "{{ daynight_sunset_offset }}"
+    offset: "{{ sunset_offset }}"
     id: sun_close
   - platform: numeric_state
-    entity_id: !input daynight_brightness_sensor
-    above: "{{ daynight_brightness_open }}"
-    id: daynight_brightness_open
+    entity_id: !input brightness_sensor
+    above: "{{ brightness_open }}"
+    id: brightness_open
   - platform: numeric_state
-    entity_id: !input daynight_brightness_sensor
-    below: "{{ daynight_brightness_close }}"
-    id: daynight_brightness_close
+    entity_id: !input brightness_sensor
+    below: "{{ brightness_close }}"
+    id: brightness_close
   - platform: time
-    at: "{{ daynight_latest_open_workday }}"
-    id: daynight_latest_open_workday
+    at: "{{ latest_open_workday }}"
+    id: latest_open_workday
   - platform: time
-    at: "{{ daynight_latest_close_workday_tomorrow }}"
-    id: daynight_latest_close_workday_tomorrow
+    at: "{{ latest_close_workday_tomorrow }}"
+    id: latest_close_workday_tomorrow
   - platform: time
-    at: "{{ daynight_latest_open_non_workday }}"
-    id: daynight_latest_open_non_workday
+    at: "{{ latest_open_non_workday }}"
+    id: latest_open_non_workday
   - platform: time
-    at: "{{ daynight_latest_close_non_workday_tomorrow }}"
-    id: daynight_latest_close_non_workday_tomorrow
+    at: "{{ latest_close_non_workday_tomorrow }}"
+    id: latest_close_non_workday_tomorrow
   - platform: numeric_state
     entity_id: !input climate_temp_sensor
     above: "{{ climate_temp_close }}"
@@ -637,9 +637,9 @@ action:
           - condition: or
             conditions:
               - condition: trigger
-                id: daynight_time_open
+                id: time_open
               - condition: trigger
-                id: daynight_time_close
+                id: time_close
         sequence:
           - service: cover.open_cover
             target:
@@ -652,9 +652,9 @@ action:
           - condition: or
             conditions:
               - condition: trigger
-                id: daynight_brightness_open
+                id: brightness_open
               - condition: trigger
-                id: daynight_brightness_close
+                id: brightness_close
         sequence:
           - service: cover.open_cover
             target:
@@ -663,17 +663,17 @@ action:
 
       - conditions:
           - condition: template
-            value_template: "{{ daynight_differentiate_workdays }}"
+            value_template: "{{ differentiate_workdays }}"
           - condition: or
             conditions:
               - condition: trigger
-                id: daynight_latest_open_workday
+                id: latest_open_workday
               - condition: trigger
-                id: daynight_latest_close_workday_tomorrow
+                id: latest_close_workday_tomorrow
               - condition: trigger
-                id: daynight_latest_open_non_workday
+                id: latest_open_non_workday
               - condition: trigger
-                id: daynight_latest_close_non_workday_tomorrow
+                id: latest_close_non_workday_tomorrow
         sequence:
           - service: cover.open_cover
             target:
