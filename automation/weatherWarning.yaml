@@ -11,6 +11,8 @@
 # - Language support by creating dictionaries with non-editable texts and tying them into the language entity
 
 # ! RELEASE NOTES
+## 1.4.0 | 2025-06-30
+## - fix interruption level for iOS notifications interruption-level
 ## 1.3.0 | 2025-05-07
 ## - Add option to send notification to specific devices instead of all devices
 ## - Set different colors for different kinds of weather conditions
