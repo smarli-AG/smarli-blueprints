@@ -373,10 +373,9 @@ actions:
         clickAction: noAction
 
         # ios-only options
-        url: # used as url for iOS, nothing defined here
-        data:
-          push:
-            interruption-level: time-sensitive
+        url: # used as url for iOS, nothing defined here, same as clickAction for Android
+        push:
+          interruption-level: time-sensitive # Use only for actually time-sensitive notifications, otherwise remove the interruption-level (and push) to fallback to "active"
   # check if the forecast condition is part of the tracked weather_events or not
   - if:
       - condition: template
@@ -406,5 +405,5 @@ actions:
   ## Custom actions
   - if:
       - condition: template
-        value_template: "{{custom_actions is not none }}"
+        value_template: "{{ custom_actions is not none }}"
     then: !input custom_actions
