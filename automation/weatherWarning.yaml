@@ -91,7 +91,11 @@ blueprint:
       input:
         trigger_time:
           name: Time of notification
+          # name_en: Time of notification
+          # name_de: Benachrichtigungszeit
           description: The time to send the notification
+          # description_en: The time to send the notification
+          # description_de: Die Zeit, an der die Benachrichtigung gesendet wird
           selector:
             time:
           default: "06:30:00"
@@ -103,32 +107,56 @@ blueprint:
       input:
         weather_entity:
           name: Weather Entity
+          # name_en: Weather Prediction
+          # name_de: Wettervorhersage
           description: The weather entity to check
+          # description_en: The weather prediction to check
+          # description_de: Die Wettervorhersage, die überprüft werden soll
           selector:
             entity:
               filter:
                 domain: weather
         weather_events:
           name: Weather Events
+          # name_en: Weather Events
+          # name_de: Wetterereignisse
           description: Which predicted weather events should trigger a notification?
+          # description_en: Which predicted weather events should trigger a notification?
+          # description_de: Welche vorhergesagten Wetterereignisse sollen eine Benachrichtigung auslösen?
           selector:
             select:
               options:
                 - label: Rainy
+                  # label_en: Rainy
+                  # label_de: Regen
                   value: "rainy"
                 - label: Pouring
+                  # label_en: Pouring
+                  # label_de: Starkregen
                   value: "pouring"
                 - label: Lightning
+                  # label_en: Lightning
+                  # label_de: Blitzschlag
                   value: "lightning"
                 - label: Lightning, rainy
+                  # label_en: Lightning and rainy
+                  # label_de: Blitzschlag mit Regen
                   value: "lightning-rainy"
                 - label: Hail
+                  # label_en: Hail
+                  # label_de: Hagel
                   value: "hail"
                 - label: Snowy
+                  # label_en: Snowy
+                  # label_de: Schnee
                   value: "snowy"
                 - label: Snowy, rainy
+                  # label_en: Snowy and rainy
+                  # label_de: Schneeregen
                   value: "snowy-rainy"
                 - label: Fog
+                  # label_en: Fog
+                  # label_de: Nebel
                   value: "fog"
               multiple: true
               mode: list
@@ -139,19 +167,31 @@ blueprint:
       description: These inputs are used to set the actions
       input:
         notification_scope:
-          name: Notification Scope
+          name: Notification
+          # name_en: Notification
+          # name_de: Benachrichtigung
           description: Who should be notified? It's easiest to just inform all notify devices, as this works even when customers change their mobile devices. But you can also specify specific devices. When notifying all devices (`notify.notify` action) this could also target other notify integrations such as Microsoft Teams. Still, this is the best option for most circumstances.
+          # description_en: Do you want to notify all devices or only specific ones?
+          # description_de: Möchtest du alle Geräte benachrichtigen oder nur bestimmte?
           selector:
             select:
               options:
                 - label: All Devices
+                  # label_en: All Devices
+                  # label_de: Alle Geräte
                   value: "all"
                 - label: Specific Notify Devices
+                  # label_en: Specific Devices
+                  # label_de: Bestimmte Geräte
                   value: "specific"
           default: "all"
         notify_recipients:
           name: Devices to Notify (optional)
+          # name_en: Devices to Notify (optional)
+          # name_de: Zu benachrichtigende Geräte (optional)
           description: If the scope is set to `specific`, which devices should be notified?
+          # description_en: If you set the scope to `Specific Devices`, which devices should be notified?
+          # description_de: Wenn du `Bestimmte Geräte` gewählt hast, welche Geräte sollen benachrichtigt werden?
           selector:
             device:
               filter:
@@ -160,107 +200,191 @@ blueprint:
           default: []
         notification_title_rainy:
           name: Notification Title "Rainy"
+          # name_en: Notification Title "Rainy"
+          # name_de: Benachrichtigungstitel "Regen"
           description: Set the title of the notification that should be sent on rainy weather conditions.
+          # description_en: Set the title of the notification that should be sent on rainy weather conditions.
+          # description_de: Setze den Titel der Benachrichtigung, die bei Regenwetter gesendet werden soll.
           selector:
             text:
           default: ☔ Regenwarnung
+          # default_en: ☔ Rain Warning
+          # default_de: ☔ Regenwarnung
         message_rainy:
           name: Message "Rainy"
+          # name_en: Message "Rainy"
+          # name_de: Nachricht "Regen"
           description: Set the message that should be sent on rainy weather conditions.
+          # description_en: Set the message that should be sent on rainy weather conditions.
+          # description_de: Bestimme die Nachricht, die bei Regenwetter gesendet werden soll.
           selector:
             text:
               multiline: true
           default: Heute wird in deiner Umgebung Regen erwartet. Nimm sicherheitshalber einen Schirm mit!
+          # default_en: Rain is expected in your area today. Just to be safe, take an umbrella with you!
+          # default_de: Heute wird in deiner Umgebung Regen erwartet. Nimm sicherheitshalber einen Schirm mit!
 
         notification_title_pouring:
           name: Notification Title "Pouring"
+          # name_en: Notification Title "Pouring"
+          # name_de: Benachrichtigungstitel "Starkregen"
           description: Set the title of the notification that should be sent on pouring weather conditions.
+          # description_en: Set the title of the notification that should be sent on pouring weather conditions.
+          # description_de: Setze den Titel der Benachrichtigung, die bei Starkregen gesendet werden soll.
           selector:
             text:
           default: 🌧️ Starkregenwarnung
+          # default_en: 🌧️ Heavy Rain Warning
+          # default_de: 🌧️ Starkregenwarnung
 
         message_pouring:
           name: Message "Pouring"
+          # name_en: Message "Pouring"
+          # name_de: Nachricht "Starkregen"
           description: Set the message that should be sent on pouring weather conditions.
+          # description_en: Set the message that should be sent on pouring weather conditions.
+          # description_de: Bestimme die Nachricht, die bei Starkregen gesendet werden soll.
           selector:
             text:
               multiline: true
           default: Heute wird in deiner Umgebung starker Regen erwartet. Du solltest unbedingt einen Schirm mitnehmen!
+          # default_en: Heavy rain is expected in your area today. You should definitely take an umbrella with you!
+          # default_de: Heute wird in deiner Umgebung starker Regen erwartet. Du solltest unbedingt einen Schirm mitnehmen!
 
         notification_title_lightning:
           name: Notification Title "Lightning" and "Lightning, Rainy"
+          # name_en: Notification Title "Lightning" and "Lightning, Rainy"
+          # name_de: Benachrichtigungstitel "Blitz" und "Blitz, Regen"
           description: Set the title of the notification that should be sent when there is lightning.
+          # description_en: Set the title of the notification that should be sent when there is lightning.
+          # description_de: Setze den Titel der Benachrichtigung, die bei Blitzaktivität gesendet werden soll.
           selector:
             text:
           default: ⚡ Blitzwarnung
+          # default_en: ⚡ Lightning Warning
+          # default_de: ⚡ Blitzwarnung
 
         message_lightning:
           name: Message "Lightning" and "Lightning, Rainy"
+          # name_en: Message "Lightning" and "Lightning, Rainy"
+          # name_de: Nachricht "Blitz" und "Blitz, Regen"
           description: Set the message that should be sent when there is lightning.
+          # description_en: Set the message that should be sent when there is lightning.
+          # description_de: Bestimme die Nachricht, die bei Blitzaktivität gesendet werden soll.
           selector:
             text:
               multiline: true
           default: In deiner Umgebung wurden Gewitter mit Blitzaktivität gemeldet. Sei vorsichtig und bleibe nach Möglichkeit im Gebäude!
+          # default_en: Thunderstorms with lightning activity have been reported in your area. Be careful and stay indoors if possible!
+          # default_de: In deiner Umgebung wurden Gewitter mit Blitzaktivität gemeldet. Sei vorsichtig und bleibe nach Möglichkeit im Gebäude!
 
         notification_title_hail:
           name: Notification Title "Hail"
+          # name_en: Notification Title "Hail"
+          # name_de: Benachrichtigungstitel "Hagel"
           description: Set the title of the notification that should be sent when it hails.
+          # description_en: Set the title of the notification that should be sent when it hails.
+          # description_de: Setze den Titel der Benachrichtigung, die bei Hagelschlag gesendet werden soll.
           selector:
             text:
           default: 🧊 Hagelschlag
+          # default_en: 🧊 Hail Warning
+          # default_de: 🧊 Hagelschlag
 
         message_hail:
           name: Message "Hail"
+          # name_en: Message "Hail"
+          # name_de: Nachricht "Hagel"
           description: Set the message that should be sent when it hails.
+          # description_en: Set the message that should be sent when it hails.
+          # description_de: Bestimme die Nachricht, die bei Hagelschlag gesendet werden soll.
           selector:
             text:
               multiline: true
           default: In deiner Umgebung wird Hagelschlag erwartet. Schütze wenn nötig dein Auto und bleibe nach Möglichkeit im Gebäude!
+          # default_en: Hail is expected in your area. Protect your car if necessary and stay indoors if possible!
+          # default_de: In deiner Umgebung wird Hagelschlag erwartet. Schütze wenn nötig dein Auto und bleibe nach Möglichkeit im Gebäude!
 
         notification_title_snowy:
           name: Notification Title "Snowy"
+          # name_en: Notification Title "Snowy"
+          # name_de: Benachrichtigungstitel "Schnee"
           description: Set the title of the notification that should be sent when it snows.
+          # description_en: Set the title of the notification that should be sent when it snows.
+          # description_de: Setze den Titel der Benachrichtigung, die bei Schneefall gesendet werden soll.
           selector:
             text:
           default: ❄️ Schneefall
+          # default_en: ❄️ Snow Warning
+          # default_de: ❄️ Schneefall
 
         message_snowy:
           name: Message "Snowy"
+          # name_en: Message "Snowy"
+          # name_de: Nachricht "Schnee"
           description: Set the message that should be sent when it snows.
+          # description_en: Set the message that should be sent when it snows.
+          # description_de: Bestimme die Nachricht, die bei Schneefall gesendet werden soll.
           selector:
             text:
               multiline: true
           default: Es wird in deiner Umgebung Schneefall erwartet. Sei vorsichtig auf den Strassen und zieh dich warm an!
+          # default_en: Snowfall is expected in your area. Be careful on the roads and dress warmly!
+          # default_de: Es wird in deiner Umgebung Schneefall erwartet. Sei vorsichtig auf den Strassen und zieh dich warm an!
 
         notification_title_snowy-rainy:
           name: Notification Title "Snowy, Rainy"
+          # name_en: Notification Title "Snowy, Rainy"
+          # name_de: Benachrichtigungstitel "Schneeregen"
           description: Set the title of the notification that should be sent when there is snow and rain at the same time.
+          # description_en: Set the title of the notification that should be sent when there is snow and rain at the same time.
+          # description_de: Setze den Titel der Benachrichtigung, die bei Schneeregen gesendet werden soll.
           selector:
             text:
           default: 🌨️ Schneeregen
+          # default_en: 🌨️ Sleet Warning
+          # default_de: 🌨️ Schneeregen
 
         message_snowy-rainy:
           name: Message "Snowy, Rainy"
+          # name_en: Message "Snowy, Rainy"
+          # name_de: Nachricht "Schneeregen"
           description: Set the message that should be sent when there is snow and rain at the same time.
+          # description_en: Set the message that should be sent when there is snow and rain at the same time.
+          # description_de: Bestimme die Nachricht, die bei Schneeregen gesendet werden soll.
           selector:
             text:
               multiline: true
           default: In deiner Umgebung wird Schneeregen erwartet. Strassen können rutschig sein, sei heute besonders vorsichtig!
+          # default_en: Sleet is expected in your area. Roads can be slippery, be extra careful today!
+          # default_de: In deiner Umgebung wird Schneeregen erwartet. Strassen können rutschig sein, sei heute besonders vorsichtig!
 
         notification_title_fog:
           name: Notification Title "Fog"
+          # name_en: Notification Title "Fog"
+          # name_de: Benachrichtigungstitel "Nebel"
           description: Set the title of the notification that should be sent when there is fog.
+          # description_en: Set the title of the notification that should be sent when there is fog.
+          # description_de: Setze den Titel der Benachrichtigung, die bei Nebel gesendet werden soll.
           selector:
             text:
           default: 🌁 Nebelwarnung
+          # default_en: 🌁 Fog Warning
+          # default_de: 🌁 Nebelwarnung
 
         message_fog:
           name: Message "Fog"
+          # name_en: Message "Fog"
+          # name_de: Nachricht "Nebel"
           description: Set the message that should be sent when there is fog.
+          # description_en: Set the message that should be sent when there is fog.
+          # description_de: Bestimme die Nachricht, die bei Nebel gesendet werden soll.
           selector:
             text:
               multiline: true
           default: In deiner Umgebung wurde Nebel angekündigt. Sei entsprechend vorsichtig.
+          # default_en: Fog has been announced in your area. Be careful accordingly.
+          # default_de: In deiner Umgebung wurde Nebel angekündigt. Sei entsprechend vorsichtig.
 
     custom_inputs:
       name: "DANGER ZONE: Additional Custom Inputs"
