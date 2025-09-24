@@ -11,6 +11,8 @@
 # - Language support by creating dictionaries with non-editable texts and tying them into the language entity
 
 # ! RELEASE NOTES
+## 1.5.0 | 2025-09-24
+## - Add Partner Engine data
 ## 1.4.0 | 2025-06-30
 ## - fix interruption level for iOS notifications interruption-level
 ## 1.3.0 | 2025-05-07
@@ -18,6 +20,28 @@
 ## - Set different colors for different kinds of weather conditions
 ## 1.2.0 | 2025-02-27
 ## - Initial live release
+
+# ================
+# Partner Engine
+# ================
+# icon: "weather-lightning-rainy"
+#
+# name_en: "Weather Warning"
+# name_de: "Wetterwarnung"
+# subtitle_en: "Phone Notification"
+# subtitle_de: "Handy-Benachrichtigung"
+#
+# short_description_en: "Get notified about upcoming weather events such as rain, storms, snow, and more."
+# short_description_de: "Erhalte Benachrichtigungen über bevorstehende Wetterereignisse wie Regen, Gewitter, Schnee und mehr."
+# long_description_en: "Every morning, smarli. checks the weather forecast in your area and notifies you about any upcoming weather events so that you can leave your home fully prepared."
+# long_description_de: "Jeden Morgen prüft smarli. die Wettervorhersage in deiner Umgebung und benachrichtigt dich über bevorstehende Wetterereignisse, damit du dein Zuhause stets bestens vorbereitet verlassen kannst."
+#
+# purpose_en: "Comfort"
+# purpose_de: "Komfort"
+#
+# keywords: [weather, warning, notification, rain, snow, hail, lightning, fog, storm]
+# events: [weather forecast]
+# highlight: true
 
 blueprint:
   ############
