@@ -1,0 +1,192 @@
+#  Was soll unterstützt werden?
+# Tag/Nacht-Steuerung (Sichtschutz)
+# - Storen automatisch hoch/runter bei sonnenauf-/untergang (Sichtschutz)
+# - Alternativ basierend auf Zeitplan steuern statt sonnenstand
+# - alternativ basierend auf helligkeitssensor steuern (ein select input mit sonnenstand/zeitplan/helligkeit)
+# Wärme-/Heiz-/Klima-Steuerung
+# - Storen automatisch runter wenn Temparatur für die nächste Stunde > x
+# - Storen automatisch wieder runter wenn Termparatur für die nächste Stunde wieder < x vorhergesagt
+# - Storen automatisch runter wenn helligkeit > x
+# - SToren automatisch wieder hoch wenn Helligkeit < x
+# Rahmenbedingungen
+# - Bei Steuerung via Sensorwerte eine Verzögerung einbauen, dass sie nicht ständig wechseln, wenn z.B. eine Wolke vor der Sonne steht
+# - Möglichkeit um offset und grenzwerte via helper im frontend zu setzen, ansonsten wird wert aus automatisierung genommen
+# - Zeiten definieren wo Storen nicht früher öffnen dürfen (z.B. nicht vor 6 Uhr auch wenn Sonne schon da)
+# - spätester Zeitpunkt wann storen aufgehen sollen, auch wenn sonne noch nicht da ist
+# - Unterscheidung Wochentage/Werktage
+# - selectable machen, dass Storen hoch wenn in der nächsten Stunde Regen/Hagel/Windgeschwindigkeit>x erwartet wird -> notification wieso
+# - helper auf on stellen wenn letzte Storensteuerung von dieser (oder einer) Automatisierung gekommen ist? gewisse Aktionen nur ausführen, wenn der Helper auf on steht oder der letzte Change >1h her ist.
+# - Additional conditions unterscheidung nach öffnen/schliessen
+# - additional actions öffnen/schliessen
+# - additioanl triggers öffnen(schliessen)
+
+# alle gegebenen covers "auslisten" falls es gruppen hat. dann durch diese durch loopen und aktionen durchführen, falls z.B. eine noch manuell bewegt wurde und jetzt nicht verändert werden soll.
+
+# siehe auch blueprint in sandbox: https://github.com/hvorragend/ha-blueprints/blob/main/blueprints/automation/cover_control_automation.yaml
+
+blueprint:
+  ############
+  # Metadata #
+  ############
+  name: smarli. Cover Control Sunrise and Sunset
+  description: >
+    # 🌞 smarli. Cover Control Sunrise and Sunset
+
+    Control covers based on the times of sunrise and sunset
+
+    *Version 1.0.0 | 2025-04-23*
+
+    <details>
+    <summary><b>How to set it up</b></summary>
+
+      1. Here add a couple of steps that need to be followed when setting up the automation based on this blueprint.
+    </details>
+
+
+    All input fields are required unless they are marked as ` (optional) `.
+  domain: automation
+  author: loocd [smarli. AG]
+  source_url: https://github.com/smarli-AG/smarli-blueprints/blob/main/automation/coversSunriseSunset.yaml
+  homeassistant:
+    min_version: 2024.10.0
+
+  ###############
+  # User Inputs #
+  ###############
+  input:
+    trigger_inputs:
+      name: Trigger Inputs
+      icon: mdi:star-box-multiple
+      description: These inputs are used to set the automation triggers
+      input:
+        should_differentiate_workdays:
+        lux_sensor_entity:
+        sensor_duration_lux:
+        temp_sensor_entity:
+        sensor_duration_temp:
+
+        daynight_sunrise_delay:
+        daynight_sunrise_delay_helper:
+        daynight_sunset_delay: # can this also be negative to use an advance instead of a delay?
+        daynight_sunset_delay_helper:
+        daynight_time_based_open:
+        daynight_time_based_open_helper:
+        daynight_time_based_close:
+        daynight_time_based_close_helper:
+        daynight_lux_open:
+        daynight_lux_open_helper:
+        daynight_lux_close:
+        daynight_lux_close_helper:
+
+        daynight_should_use_latest_open:
+        daynight_should_use_latest_close:
+        daynight_latest_open_workday:
+        daynight_latest_open_workday_helper:
+        daynight_latest_open_non-workday:
+        daynight_latest_open_non-workday_helper:
+        daynight_latest_close_workday-tomorrow:
+        daynight_latest_close_workday-tomorrow_helper:
+        daynight_latest_close_non-workday-tomorrow:
+        daynight_latest_close_non-workday-tomorrow_helper:
+
+        climate_temp_threshold_close:
+        climate_temp_threshold_close_helper:
+        climate_temp_threashold_close:
+        climate_temp_threashold_close_helper:
+        climate_lux_close:
+        climate_lux_close_helper:
+        climate_lux_open:
+        climate_lux_open_helper:
+
+        weather_events:
+        weather_events_helper:
+        weather_entity:
+
+    condition_inputs:
+      name: Condition Inputs
+      icon: mdi:help-box-multiple
+      description: These inputs are used to set the automation conditions
+      input:
+        from_time:
+        to_time:
+        time_since_last_change:
+
+    action_inputs:
+      name: Action Inputs
+      icon: mdi:play-box-multiple
+      description: These inputs are used to set the actions
+      input:
+        cover_entity:
+        close_position_daynight:
+        close_position_daynight_helper:
+        close_position_climate:
+        close_position_climate_helper:
+        tilt_position_daynight: #horizontal vs vertical
+        tilt_position_climate: #horizontal vs vertical
+
+    custom_inputs: # leave these as is - should be present in any blueprint
+      name: "DANGER ZONE: Additional Custom Inputs"
+      icon: mdi:alert
+      description: >-
+        **WATCH OUT!**  
+
+        This is advanced functionality and should only be used if you know what you're doing!  
+
+
+        Use this section to define custom triggers and conditions, as well as actions that will run at the end of the automation.
+      collapsed: true
+      input:
+        custom_triggers:
+          name: Custom triggers (optional)
+          description: >-
+            Use this to define custom triggers in addition to the default triggers.
+          selector:
+            trigger:
+          default: []
+        custom_conditions:
+          name: Custom conditions (optional)
+          description: >-
+            Use this to define custom conditions in addition to the default conditions.
+          selector:
+            condition:
+          default: []
+        custom_actions:
+          name: Custom actions (optional)
+          description: >-
+            Use this to define custom actions that should be executed at the end of this automation.
+          selector:
+            action:
+          default: []
+
+#########################
+# Variables Translation #
+#########################
+
+# this is required in order to use inputs as variables within templates
+variables:
+
+##############
+# Automation #
+##############
+
+mode: single
+max_exceeded: silent
+
+triggers:
+  - trigger: add your trigger here
+  ## Custom triggers
+  - triggers: !input custom_triggers
+
+conditions: # by default, conditions follow an AND logic
+  - condition: add your condition here
+  ## Custom conditions
+  - condition: and
+    conditions: !input custom_conditions
+
+actions:
+  - action: add your actions here
+  ## Custom actions
+  - if:
+      - condition: template
+        value_template: "{{custom_actions is not none }}"
+    then: !input custom_actions

@@ -1,0 +1,661 @@
+# devices:
+# - smarli. relay
+# - hue button
+# - aqara button
+# - feller hue button
+
+blueprint:
+  ############
+  # Metadata #
+  ############
+  name: smarli. Scene Activation With Smart Button
+  description: >
+    # ▶️ smarli. Scene Activation With Smart Button
+
+    Activate scenes with a smart button. 
+
+    *Version 1.0.0 | 2025-09-05*
+
+    <details>
+    <summary><b>How to set it up</b></summary>
+
+      1. Select smart button(s) you want to use to activate your scene. Clicking on any of them will activate the scene.
+      2. Select the scene that should be activated
+
+    </details>
+
+
+    All input fields are required unless they are marked as ` (optional) `.
+  domain: automation
+  author: loocd [smarli. AG]
+  source_url: https://github.com/smarli-AG/smarli-blueprints/blob/main/automation/activateSceneSmartButton.yaml
+  homeassistant:
+    min_version: 2024.10.0
+
+  ###############
+  # User Inputs #
+  ###############
+  input:
+    trigger_inputs:
+      name: Trigger Inputs
+      icon: mdi:star-box-multiple
+      description: These inputs are used to set the automation triggers
+      input:
+        smart_buttons:
+          name: Smart Button(s)
+          description: Select the smart button(s) that should activate the scene.
+          selector: define the selector for this input -> https://www.home-assistant.io/docs/blueprint/selectors/
+          default: add default value if you wish (needed to allow for optional fields)
+
+    condition_inputs_suspension:
+      name: Conditon Inputs SUSPENSION AFTER MANUAL INTERACTION
+      icon: mdi:cancel
+      description: >
+        These inputs are used to set the automation conditions related to the suspension after manual control.
+
+      input:
+        should_suspend_after_manual_interaction:
+          name: Suspend After Manual Interaction
+          description: >
+            If covers are controlled manually, suspend this automation for
+            a specified amount of time (see `Suspension Duration`).
+
+            How this works: when the automation is triggered, a helper gets switched on.
+            Every time that covers move (automatic or manual), it checks if the helper is
+            turned on or not. If not, then this is considered a manual interaction not triggered
+            by the automation. This in turn turns on the suspension timer.
+          selector:
+            boolean:
+          default: true
+        suspension_duration:
+          name: Suspension Duration (optional)
+          description: If suspension after manual interaction is turned on, this setting specifies how long the suspension should last.
+          selector:
+            time:
+          default: "00:30:00"
+        was_triggered_by_automation_helper:
+          name: Automation Tracker Helper (optional)
+          description: >
+            Select the helper that tracks whether the automation is running or not. Only required if suspension after manual control is active.
+          selector:
+            entity:
+              filter:
+                - integration: input_boolean
+          default: input_boolean.cover_automation_tracker
+
+    condition_inputs_weather:
+      name: Conditon Inputs WEATHER EVENTS
+      icon: mdi:weather-lightning
+      description: >
+        These inputs are used to set the automation conditions related to weather events.
+
+      input:
+        weather_events:
+          name: Weather Events to Prevent Closing (optional)
+          description: Which weather events should prevent the covers from closing?
+          selector:
+            select:
+              multiple: true
+              mode: list
+              options:
+                - label: High Wind Speeds
+                  value: "windy"
+                - label: Rainy
+                  value: "rainy"
+                - label: Pouring
+                  value: "pouring"
+                - label: Lightning
+                  value: "lightning"
+                - label: Lightning, rainy
+                  value: "lightning-rainy"
+                - label: Hail
+                  value: "hail"
+                - label: Snowy
+                  value: "snowy"
+                - label: Snowy, rainy
+                  value: "snowy-rainy"
+                - label: Fog
+                  value: "fog"
+          default: []
+
+        weather_entity:
+          name: Weather Entity (optional)
+          description: The weather entity to check in order to block the closing of the covers. This is required if you want to block the closing of the covers based on weather forecasts.
+          selector:
+            entity:
+              filter:
+                - domain: weather
+          default: ""
+        rain_sensor:
+          name: Rain Sensor (optional)
+          description: If available, specify a separate moisture sensor to be used to track if it's currently raining. This is required if you want to block the closing of the covers based on current rain conditions. Must be of device_class `moisture`.
+          selector:
+            entity:
+              filter:
+                - domain: binary_sensor
+                  device_class: moisture
+          default: ""
+        wind_sensor:
+          name: Wind Sensor (optional)
+          description: If available, specify a separate wind sensor to be used to track current wind speeds. This is required if you want to block the closing of the covers based on current wind conditions. Must be of device_class `wind_speed`.
+          selector:
+            entity:
+              filter:
+                - domain: sensor
+                  device_class: wind_speed
+          default: ""
+        wind_speed_threshold:
+          name: Wind Speed Threshold to Prevent Closing (optional)
+          description: At what wind speed should the covers be prevented from closing?
+          selector:
+            number:
+              min: 0
+              max: 100
+              unit_of_measurement: km/h
+          default: 35
+        wind_speed_threshold_helper:
+          name: Wind Speed Threshold Helper (optional)
+          description: Instead of setting the wind speed threshold within this automation, you can use a number helper to set the wind speed threshold.
+          selector:
+            entity:
+              filter:
+                - domain: input_number
+          default: ""
+
+    action_inputs:
+      name: Action Inputs
+      icon: mdi:play-box-multiple
+      description: These inputs are used to set the actions.
+      input:
+        cover_entity:
+          name: Cover(s)
+          description: The cover entities to automate. Please beware that covers might close while people are outside (balcony/garden). It is advised to leave certain covers open to ensure nobody gets locked out.
+          selector:
+            entity:
+              filter:
+                - domain: cover
+              multiple: true
+
+    custom_inputs:
+      name: "DANGER ZONE: Additional Custom Inputs"
+      icon: mdi:alert
+      description: >-
+        **WATCH OUT!**  
+
+        This is advanced functionality and should only be used if you know what you're doing!  
+
+
+        Use this section to define custom triggers and conditions, as well as actions that will run at the end of the automation.
+      collapsed: true
+      input:
+        custom_opening_triggers:
+          name: Custom Opening Triggers (optional)
+          description: >-
+            Use this to define custom opening triggers in addition to the default triggers. Make sure each one of them has the trigger id `custom_open`.
+          selector:
+            trigger:
+          default: []
+        custom_closing_triggers:
+          name: Custom Closing Triggers (optional)
+          description: >-
+            Use this to define custom closing triggers in addition to the default triggers. Make sure each one of them has the trigger id `custom_close`.
+          selector:
+            trigger:
+          default: []
+        custom_conditions:
+          name: Custom conditions (optional)
+          description: >-
+            Use this to define custom conditions in addition to the default conditions.
+          selector:
+            condition:
+          default: []
+        custom_opening_actions:
+          name: Custom Opening Actions (optional)
+          description: >-
+            Use this to define custom actions that should be executed after covers have been opened by this automation.
+          selector:
+            action:
+          default: []
+        custom_closing_actions:
+          name: Custom Closing Actions (optional)
+          description: >-
+            Use this to define custom actions that should be executed after covers have been closed by this automation.
+          selector:
+            action:
+          default: []
+
+variables:
+  should_suspend_after_manual_interaction: !input should_suspend_after_manual_interaction
+  suspension_duration: !input suspension_duration
+  was_triggered_by_automation_helper: !input was_triggered_by_automation_helper
+
+  # the suspension tracker is not an input but hardcoded here:
+  suspension_tracker: sensor.suspension_tracker_for_covers
+
+  daynight_cycle_method: !input daynight_cycle_method
+
+  sunrise_offset_input: !input sunrise_offset
+  sunrise_offset_helper: !input sunrise_offset_helper
+  sunrise_offset: >
+    {% if sunrise_offset_input and sunrise_offset_helper %}
+      {% if sunrise_offset_helper != "" %}
+        {{ states(sunrise_offset_helper) | int * 60 }}
+      {% else %}
+        {{ sunrise_offset_input * 60 }}
+      {% endif %}
+    {% else %}
+      0
+    {% endif %}
+  sunrise: >
+    {% set sun_available = states('sun.sun') not in ['unavailable', 'unknown'] %}
+    {% if sun_available %}
+      {{as_timestamp(state_attr('sun.sun', 'next_rising')) }}
+    {% endif %}
+  sunset_offset_input: !input sunset_offset
+  sunset_offset_helper: !input sunset_offset_helper
+  sunset_offset: >
+    {% if sunset_offset_input and sunset_offset_helper %}
+      {% if sunset_offset_helper != "" %}
+        {{ states(sunset_offset_helper) | int * 60 }}
+      {% else %}
+        {{ sunset_offset_input * 60 }}
+      {% endif %}
+    {% else %}
+      0
+    {% endif %}
+  sunset: >
+    {% set sun_available = states('sun.sun') not in ['unavailable', 'unknown'] %}
+    {% if sun_available %}
+      {{as_timestamp(state_attr('sun.sun', 'next_setting')) }}
+    {% endif %}
+  workday_tracker: !input workday_tracker
+  workday_tomorrow_tracker: !input workday_tomorrow_tracker
+  time_open_workday: !input time_open_workday
+  time_open_workday_helper: !input time_open_workday_helper
+  time_open_non_workday: !input time_open_non_workday
+  time_open_non_workday_helper: !input time_open_non_workday_helper
+  time_open: >
+    {% if workday_tracker %}
+      {% set time_open = time_open_workday %}
+      {% set time_open_helper = time_open_workday_helper %}
+    {% else %}
+      {% set time_open = time_open_non_workday %}
+      {% set time_open_helper = time_open_non_workday_helper %}
+    {% endif %}
+    {% if time_open_helper != "" %}
+      {{ states(time_open_helper) }}
+    {% else %}
+      {{ time_open }}
+    {% endif %}
+  time_close_workday_tomorrow: !input time_close_workday_tomorrow
+  time_close_workday_tomorrow_helper: !input time_close_workday_tomorrow_helper
+  time_close_non_workday_tomorrow: !input time_close_non_workday_tomorrow
+  time_close_non_workday_tomorrow_helper: !input time_close_non_workday_tomorrow_helper
+  time_close: >
+    {% if workday_tomorrow_tracker %}
+      {% set time_close = time_close_workday_tomorrow %}
+      {% set time_close_helper = time_close_workday_tomorrow_helper %}
+    {% else %}
+      {% set time_close = time_close_non_workday_tomorrow %}
+      {% set time_close_helper = time_close_non_workday_tomorrow_helper %}
+    {% endif %}
+    {% if time_close_helper != "" %}
+      {{ states(time_close_helper) }}
+    {% else %}
+      {{ time_close }}
+    {% endif %}
+
+  brightness_sensor: !input brightness_sensor
+  lux_sensor_delay: !input lux_sensor_delay
+  brightness_open_input: !input brightness_open
+  brightness_open_helper: !input brightness_open_helper
+  brightness_open: >
+    {% if brightness_open_helper != "" %}
+      {{ states(brightness_open_helper) | int }}
+    {% else %}
+      {{ brightness_open_input }}
+    {% endif %}
+  brightness_close_input: !input brightness_close
+  brightness_close_helper: !input brightness_close_helper
+  brightness_close: >
+    {% if brightness_close_helper != "" %}
+      {{ states(brightness_close_helper) | int }}
+    {% else %}
+      {{ brightness_close_input }}
+    {% endif %}
+
+  should_use_earliest_open: !input should_use_earliest_open
+  earliest_open_workday: !input earliest_open_workday
+  earliest_open_workday_helper: !input earliest_open_workday_helper
+  earliest_open_non_workday: !input earliest_open_non_workday
+  earliest_open_non_workday_helper: !input earliest_open_non_workday_helper
+  earliest_open: >
+    {% if workday_tracker %}
+      {% set earliest_open = earliest_open_workday %}
+      {% set earliest_open_helper = earliest_open_workday_helper %}
+    {% else %}
+      {% set earliest_open = earliest_open_non_workday %}
+      {% set earliest_open_helper = earliest_open_non_workday_helper %}
+    {% endif %}
+
+    {% if earliest_open_helper != "" %}
+      {{ states(earliest_open_helper) }}
+    {% else %}
+      {{ earliest_open }}
+    {% endif %}
+  should_use_earliest_close: !input should_use_earliest_close
+  earliest_close_workday_tomorrow: !input earliest_close_workday_tomorrow
+  earliest_close_workday_tomorrow_helper: !input earliest_close_workday_tomorrow_helper
+  earliest_close_non_workday_tomorrow: !input earliest_close_non_workday_tomorrow
+  earliest_close_non_workday_tomorrow_helper: !input earliest_close_non_workday_tomorrow_helper
+  earliest_close: >
+    {% if workday_tomorrow_tracker %}
+      {% set earliest_close = earliest_close_workday_tomorrow %}
+      {% set earliest_close_helper = earliest_close_workday_tomorrow_helper %}
+    {% else %}
+      {% set earliest_close = earliest_close_non_workday_tomorrow %}
+      {% set earliest_close_helper = earliest_close_non_workday_tomorrow_helper %}
+    {% endif %}
+
+    {% if earliest_close_helper != "" %}
+      {{ states(earliest_close_helper) }}
+    {% else %}
+      {{ earliest_close }}
+    {% endif %}
+
+  should_use_latest_open: !input should_use_latest_open
+  latest_open_workday: !input latest_open_workday
+  latest_open_workday_helper: !input latest_open_workday_helper
+  latest_open_non_workday: !input latest_open_non_workday
+  latest_open_non_workday_helper: !input latest_open_non_workday_helper
+  latest_open: >
+    {% if workday_tracker %}
+      {% set latest_open = latest_open_workday %}
+      {% set latest_open_helper = latest_open_workday_helper %}
+    {% else %}
+      {% set latest_open = latest_open_non_workday %}
+      {% set latest_open_helper = latest_open_non_workday_helper %}
+    {% endif %}
+    {% if latest_open_helper != "" %}
+      {{ states(latest_open_helper) }}
+    {% else %}
+      {{ latest_open }}
+    {% endif %}
+  should_use_latest_close: !input should_use_latest_close
+  latest_close_workday_tomorrow: !input latest_close_workday_tomorrow
+  latest_close_workday_tomorrow_helper: !input latest_close_workday_tomorrow_helper
+  latest_close_non_workday_tomorrow: !input latest_close_non_workday_tomorrow
+  latest_close_non_workday_tomorrow_helper: !input latest_close_non_workday_tomorrow_helper
+  latest_close: >
+    {% if workday_tomorrow_tracker %}
+      {% set latest_close = latest_close_workday_tomorrow %}
+      {% set latest_close_helper = latest_close_workday_tomorrow_helper %}
+    {% else %}
+      {% set latest_close = latest_close_non_workday_tomorrow %}
+      {% set latest_close_helper = latest_close_non_workday_tomorrow_helper %}
+    {% endif %}
+
+    {% if latest_close_helper != "" %}
+      {{ states(latest_close_helper) }}
+    {% else %}
+      {{ latest_close }}
+    {% endif %}
+
+  weather_events: !input weather_events
+  weather_entity: !input weather_entity
+  rain_sensor: !input rain_sensor
+  wind_sensor: !input wind_sensor
+  wind_speed_threshold_input: !input wind_speed_threshold
+  wind_speed_threshold_helper: !input wind_speed_threshold_helper
+  wind_speed_threshold: >
+    {% if wind_speed_threshold_helper != "" %}
+      {{ states(wind_speed_threshold_helper) | float }}
+    {% else %}
+      {{ wind_speed_threshold_input }}
+    {% endif %}
+
+  cover_entity: !input cover_entity
+  cover_entities: >
+    {% set individual_covers = [] %}
+    {% if cover_entity is string %}
+      {% set cover_entity = [cover_entity] %}
+    {% endif %}
+
+    {% for entity in cover_entity %}
+      {% if entity in integration_entities('group') %}
+        {% for member in entity.attributes.entity_id %}
+          {% set individual_covers = individual_covers + [member] %}
+        {% endfor %}
+      {% else %}
+        {% set individual_covers = individual_covers + [entity] %}
+      {% endif %}
+    {% endfor %}
+
+    {{ individual_covers }}
+
+  #! WATCH OUT
+  # when actions need to be delayed due to an earliest_open or
+  # earliest_close time, then covers_without_suspension needs
+  # to be recomputed after the delay. this is done in the
+  # actions section of the automation.
+  # The variable _covers_without_suspension will only be used for
+  # actions that happen without a delay.
+  # In case of a delay, covers_without_suspension_updated will be used
+  covers_without_suspension: >
+    {% set suspension_dictionary = sensor.suspension_tracker_for_covers.attributes.trackers %}
+    {% set now = as_timestamp(now()) %}
+    {% set covers_without_suspension = [] %}
+    {% for entity in cover_entities %}
+      {% if entity not in suspension_dictionary or suspension_dictionary[entity].suspension_end <= now %}
+        {% set covers_without_suspension = covers_without_suspension + [entity] %}
+      {% endif %}
+    {% endfor %}
+    {{ covers_without_suspension }}
+
+  custom_opening_triggers: !input custom_opening_triggers
+  custom_closing_triggers: !input custom_closing_triggers
+  custom_opening_actions: !input custom_opening_actions
+  custom_closing_actions: !input custom_closing_actions
+
+triggers:
+  - alias: Triggered by Sunrise
+    id: sun_open
+    trigger: template
+    value_template: >-
+      {% if sunrise %}
+        {{
+          daynight_cycle_method == "sun"
+          and (sunrise + sunrise_offset | int <= as_timestamp(now()) | int )
+        }}
+      {% else %}
+        false
+      {% endif %}
+  - alias: Triggered by Sunset
+    id: sun_close
+    trigger: template
+    value_template: >-
+      {% if sunset %}
+        {{
+          daynight_cycle_method == "sun"
+          and (sunset + sunset_offset | int <= as_timestamp(now()) | int )
+        }}
+      {% else %}
+        false
+      {% endif %}
+
+  - alias: Triggered by Opening Time
+    id: time_open
+    trigger: template
+    value_template: >-
+      {{
+        daynight_cycle_method == "time"
+        and ( time_open | int <= as_timestamp(now()) | int )
+      }}
+  - alias: Triggered by Closing Time
+    id: time_close
+    trigger: template
+    value_template: >-
+      {{
+        daynight_cycle_method == "time"
+        and ( time_close | int <= as_timestamp(now()) | int )
+      }}
+
+  - alias: Triggered by Opening Brightness
+    id: brightness_open
+    trigger: template
+    value_template: >-
+      {{ 
+        daynight_cycle_method == "brightness"
+        and ( brightness_open | int <= states(brightness_sensor) | int )
+      }}
+    for: "{{ lux_sensor_delay }}"
+  - alias: Triggered by Closing Brightness
+    id: brightness_close
+    trigger: template
+    value_template: >-
+      {{
+        daynight_cycle_method == "brightness"
+        and ( brightness_close | int >= states(brightness_sensor) | int )
+      }}
+    for: "{{ lux_sensor_delay }}"
+
+  - alias: Triggered by Latest Open
+    id: latest_open
+    trigger: template
+    value_template: >-
+      {{
+        should_use_latest_open
+        and latest_open | int <= as_timestamp(now()) | int 
+      }}
+  - alias: Triggered by Latest Close
+    id: latest_close
+    trigger: template
+    value_template: >-
+      {{
+        should_use_latest_close
+        and latest_close | int <= as_timestamp(now()) | int 
+      }}
+
+  - alias: Triggered by Cover State Change
+    id: cover_state_changed
+    trigger: state
+    to: null
+    entity_id: "{{cover_entities}}"
+    # because this has to be !input cover_entity and !input cover_entity, maybe set a new variable that, if cover_entity is a group, sorts the group by last changed and takes this cover as the triggering entity.
+
+conditions: []
+
+actions:
+  - variables:
+      debug: "{{cover_entity}}"
+# actions:
+# - alias: Turn on `was_triggered_by_automation_helper` unless triggered by cover_state_changed
+#   if:
+#     - condition: not
+#       conditions:
+#         - condition: trigger
+#           id: cover_state_changed
+#   then:
+#     - alias: turn on helper to indicate that the automation has started running and any state changes are not manual interventions.
+#       action: input_boolean.turn_on
+#       target:
+#         entity_id: "{{ was_triggered_by_automation_helper }}"
+
+# - alias: Choose which action to take
+#   choose:
+#     ######
+#     # If triggered by cover state change
+#     ######
+#     - alias: If triggered by a cover state change, check if it was manual or not
+#       conditions:
+#         - condition: trigger
+#           id: cover_state_changed
+#       sequence:
+#         - alias: Assume manual intervention if `was_triggered_by_automation_helper` is off and check if it should be suspended
+#           if:
+#             - condition: state
+#               entity_id: "{{ was_triggered_by_automation_helper }}"
+#               state: "off"
+#             - condition: template
+#               value_template: "{{ should_suspend_after_manual_interaction }}"
+#           then:
+#             - alias: set cover suspension for affected cover
+#               event: set_cover_suspension
+#               event_data:
+#                 cover: trigger.entity_id
+#                 suspension_end: >
+#                   {% set now = as_timestamp(now()) %}
+#                   {% set suspension_duration = as_timestamp(suspension_duration) %}
+#                   {{ now + suspension_duration }}
+#     ######
+#     # If triggered by any opening trigger
+#     ######
+#     - alias: If triggered by an opening trigger
+#       conditions:
+#         - condition: trigger
+#           id:
+#             - sun_open
+#             - time_open
+#             - brightness_open
+#             - latest_open
+#             - custom_open
+#       sequence:
+#         - alias: Only open covers if Earliest Open Time has passed
+#           if:
+#             - condition: template
+#               value_template: >
+#                 {% set now = as_timestamp(now()) %}
+#                 {% set earliest_open = as_timestamp( now().strftime('%Y-%m-%d') + ' ' + earliest_open) %}
+#                 {{ not should_use_earliest_open or now >= earliest_open }}
+#           then:
+#             - alias: open covers without suspension
+#               action: cover.open_cover
+#               target:
+#                 entity_id: "{{ covers_without_suspension }}"
+#           else:
+#             - alias: temporarily reset automation tracker in case manual interaction happens in the meantime
+#               action: input_boolean.turn_off
+#               target:
+#                 entity_id: "{{ was_triggered_by_automation_helper }}"
+#             - alias: delay opening of covers until Earliest Open Time
+#               delay: "{{ as_timestamp( earliest_open ) - as_timestamp(now()) }}"
+#             - alias: turn on helper to indicate that the automation has started running and any state changes are not manual interventions.
+#               action: input_boolean.turn_on
+#               target:
+#                 entity_id: "{{ was_triggered_by_automation_helper }}"
+#             - alias: Update list of covers without suspension after delay
+#               variables:
+#                 covers_without_suspension_updated: >
+#                   {% set suspension_dictionary = sensor.suspension_tracker_for_covers.attributes.trackers %}
+#                   {% set now = as_timestamp(now()) %}
+#                   {% set covers_without_suspension = [] %}
+#                   {% for entity in cover_entities %}
+#                     {% if entity not in suspension_dictionary or suspension_dictionary[entity].suspension_end <= now %}
+#                       {% set covers_without_suspension = covers_without_suspension + [entity] %}
+#                     {% endif %}
+#                   {% endfor %}
+#                   {{ covers_without_suspension }}
+#             - alias: open covers without suspension_updated
+#               action: cover.open_cover
+#               target:
+#                 entity_id: "{{ covers_without_suspension_updated }}"
+#         ## Custom actions
+#         - alias: reset automation tracker
+#           action: input_boolean.turn_off
+#           target:
+#             entity_id: "{{ was_triggered_by_automation_helper }}"
+#         - alias: Run custom opening actions
+#           if:
+#             - condition: template
+#               value_template: "{{ custom_opening_actions is not none }}"
+#           then: !input custom_opening_actions
+#     ######
+#     # If triggered by any closing trigger
+#     ######
+#     - alias: If triggered by a closing trigger
+#       conditions:
+
+##############################################################################
+
+mode: parallel
+max: 3

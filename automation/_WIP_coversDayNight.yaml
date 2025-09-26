@@ -29,7 +29,7 @@ blueprint:
   ############
   # Metadata #
   ############
-  name: smarli. Cover Control Sunrise and Sunset
+  name: smarli. Cover Control Day-Night-Cycle
   description: >
     # 🌞 smarli. Cover Control Day-Night-Cycle
 
@@ -910,7 +910,6 @@ triggers:
           daynight_cycle_method == "sun"
           and (sunset + sunset_offset | int <= as_timestamp(now()) | int )
         }}
-        {% endif %}
       {% else %}
         false
       {% endif %}
@@ -971,118 +970,123 @@ triggers:
   - alias: Triggered by Cover State Change
     id: cover_state_changed
     trigger: state
-    entity_id: "{{ cover_entities }}"
+    to: null
+    entity_id: "{{cover_entities}}"
+    # because this has to be !input cover_entity and !input cover_entity, maybe set a new variable that, if cover_entity is a group, sorts the group by last changed and takes this cover as the triggering entity.
 
 conditions: []
 
 actions:
-  - alias: Turn on `was_triggered_by_automation_helper` unless triggered by cover_state_changed
-    if:
-      - condition: not
-        conditions:
-          - condition: trigger
-            id: cover_state_changed
-    then:
-      - alias: turn on helper to indicate that the automation has started running and any state changes are not manual interventions.
-        action: input_boolean.turn_on
-        target:
-          entity_id: "{{ was_triggered_by_automation_helper }}"
+  - variables:
+      debug: "{{cover_entity}}"
+# actions:
+# - alias: Turn on `was_triggered_by_automation_helper` unless triggered by cover_state_changed
+#   if:
+#     - condition: not
+#       conditions:
+#         - condition: trigger
+#           id: cover_state_changed
+#   then:
+#     - alias: turn on helper to indicate that the automation has started running and any state changes are not manual interventions.
+#       action: input_boolean.turn_on
+#       target:
+#         entity_id: "{{ was_triggered_by_automation_helper }}"
 
-  - alias: Choose which action to take
-    choose:
-      ######
-      # If triggered by cover state change
-      ######
-      - alias: If triggered by a cover state change, check if it was manual or not
-        conditions:
-          - condition: trigger
-            id: cover_state_changed
-        sequence:
-          - alias: Assume manual intervention if `was_triggered_by_automation_helper` is off and check if it should be suspended
-            if:
-              - condition: state
-                entity_id: "{{ was_triggered_by_automation_helper }}"
-                state: "off"
-              - condition: template
-                value_template: "{{ should_suspend_after_manual_interaction }}"
-            then:
-              - alias: set cover suspension for affected cover
-                event: set_cover_suspension
-                event_data:
-                  cover: trigger.entity_id
-                  suspension_end: >
-                    {% set now = as_timestamp(now()) %}
-                    {% set suspension_duration = as_timestamp(suspension_duration) %}
-                    {{ now + suspension_duration }}
-      ######
-      # If triggered by any opening trigger
-      ######
-      - alias: If triggered by an opening trigger
-        conditions:
-          - condition: trigger
-            id:
-              - sun_open
-              - time_open
-              - brightness_open
-              - latest_open
-              - custom_open
-        sequence:
-          - alias: Only open covers if Earliest Open Time has passed
-            if:
-              - condition: template
-                value_template: >
-                  {% set now = as_timestamp(now()) %}
-                  {% set earliest_open = as_timestamp( now().strftime('%Y-%m-%d') + ' ' + earliest_open) %}
-                  {{ not should_use_earliest_open or now >= earliest_open }}
-            then:
-              - alias: open covers without suspension
-                action: cover.open_cover
-                target:
-                  entity_id: "{{ covers_without_suspension }}"
-            else:
-              - alias: temporarily reset automation tracker in case manual interaction happens in the meantime
-                action: input_boolean.turn_off
-                target:
-                  entity_id: "{{ was_triggered_by_automation_helper }}"
-              - alias: delay opening of covers until Earliest Open Time
-                delay: "{{ as_timestamp( earliest_open ) - as_timestamp(now()) }}"
-              - alias: turn on helper to indicate that the automation has started running and any state changes are not manual interventions.
-                action: input_boolean.turn_on
-                target:
-                  entity_id: "{{ was_triggered_by_automation_helper }}"
-              - alias: Update list of covers without suspension after delay
-                variables:
-                  covers_without_suspension_updated: >
-                    {% set suspension_dictionary = sensor.suspension_tracker_for_covers.attributes.trackers %}
-                    {% set now = as_timestamp(now()) %}
-                    {% set covers_without_suspension = [] %}
-                    {% for entity in cover_entities %}
-                      {% if entity not in suspension_dictionary or suspension_dictionary[entity].suspension_end <= now %}
-                        {% set covers_without_suspension = covers_without_suspension + [entity] %}
-                      {% endif %}
-                    {% endfor %}
-                    {{ covers_without_suspension }}
-              - alias: open covers without suspension_updated
-                action: cover.open_cover
-                target:
-                  entity_id: "{{ covers_without_suspension_updated }}"
-          ## Custom actions
-          - alias: reset automation tracker
-            action: input_boolean.turn_off
-            target:
-              entity_id: "{{ was_triggered_by_automation_helper }}"
-          - alias: Run custom opening actions
-            if:
-              - condition: template
-                value_template: "{{ custom_opening_actions is not none }}"
-            then: !input custom_opening_actions
-      ######
-      # If triggered by any closing trigger
-      ######
-      - alias: If triggered by a closing trigger
-        conditions:
+# - alias: Choose which action to take
+#   choose:
+#     ######
+#     # If triggered by cover state change
+#     ######
+#     - alias: If triggered by a cover state change, check if it was manual or not
+#       conditions:
+#         - condition: trigger
+#           id: cover_state_changed
+#       sequence:
+#         - alias: Assume manual intervention if `was_triggered_by_automation_helper` is off and check if it should be suspended
+#           if:
+#             - condition: state
+#               entity_id: "{{ was_triggered_by_automation_helper }}"
+#               state: "off"
+#             - condition: template
+#               value_template: "{{ should_suspend_after_manual_interaction }}"
+#           then:
+#             - alias: set cover suspension for affected cover
+#               event: set_cover_suspension
+#               event_data:
+#                 cover: trigger.entity_id
+#                 suspension_end: >
+#                   {% set now = as_timestamp(now()) %}
+#                   {% set suspension_duration = as_timestamp(suspension_duration) %}
+#                   {{ now + suspension_duration }}
+#     ######
+#     # If triggered by any opening trigger
+#     ######
+#     - alias: If triggered by an opening trigger
+#       conditions:
+#         - condition: trigger
+#           id:
+#             - sun_open
+#             - time_open
+#             - brightness_open
+#             - latest_open
+#             - custom_open
+#       sequence:
+#         - alias: Only open covers if Earliest Open Time has passed
+#           if:
+#             - condition: template
+#               value_template: >
+#                 {% set now = as_timestamp(now()) %}
+#                 {% set earliest_open = as_timestamp( now().strftime('%Y-%m-%d') + ' ' + earliest_open) %}
+#                 {{ not should_use_earliest_open or now >= earliest_open }}
+#           then:
+#             - alias: open covers without suspension
+#               action: cover.open_cover
+#               target:
+#                 entity_id: "{{ covers_without_suspension }}"
+#           else:
+#             - alias: temporarily reset automation tracker in case manual interaction happens in the meantime
+#               action: input_boolean.turn_off
+#               target:
+#                 entity_id: "{{ was_triggered_by_automation_helper }}"
+#             - alias: delay opening of covers until Earliest Open Time
+#               delay: "{{ as_timestamp( earliest_open ) - as_timestamp(now()) }}"
+#             - alias: turn on helper to indicate that the automation has started running and any state changes are not manual interventions.
+#               action: input_boolean.turn_on
+#               target:
+#                 entity_id: "{{ was_triggered_by_automation_helper }}"
+#             - alias: Update list of covers without suspension after delay
+#               variables:
+#                 covers_without_suspension_updated: >
+#                   {% set suspension_dictionary = sensor.suspension_tracker_for_covers.attributes.trackers %}
+#                   {% set now = as_timestamp(now()) %}
+#                   {% set covers_without_suspension = [] %}
+#                   {% for entity in cover_entities %}
+#                     {% if entity not in suspension_dictionary or suspension_dictionary[entity].suspension_end <= now %}
+#                       {% set covers_without_suspension = covers_without_suspension + [entity] %}
+#                     {% endif %}
+#                   {% endfor %}
+#                   {{ covers_without_suspension }}
+#             - alias: open covers without suspension_updated
+#               action: cover.open_cover
+#               target:
+#                 entity_id: "{{ covers_without_suspension_updated }}"
+#         ## Custom actions
+#         - alias: reset automation tracker
+#           action: input_boolean.turn_off
+#           target:
+#             entity_id: "{{ was_triggered_by_automation_helper }}"
+#         - alias: Run custom opening actions
+#           if:
+#             - condition: template
+#               value_template: "{{ custom_opening_actions is not none }}"
+#           then: !input custom_opening_actions
+#     ######
+#     # If triggered by any closing trigger
+#     ######
+#     - alias: If triggered by a closing trigger
+#       conditions:
 
-  ##############################################################################
+##############################################################################
 
 mode: parallel
 max: 3
