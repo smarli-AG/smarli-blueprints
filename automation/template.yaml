@@ -2,6 +2,29 @@
 ## 1.0.0 | YYYY-MM-DD
 ## - add release notes here
 
+# ================
+# Partner Engine
+# ================
+# icon: "weather-lightning-rainy"
+#
+# name_en: "Weather Warning"
+# name_de: "Wetterwarnung"
+# subtitle_en: "Phone Notification"
+# subtitle_de: "Handy-Benachrichtigung"
+#
+# short_description_en: "Get notified about upcoming weather events such as rain, storms, snow, and more."
+# short_description_de: "Erhalte Benachrichtigungen über bevorstehende Wetterereignisse wie Regen, Gewitter, Schnee und mehr."
+# long_description_en: "Every morning, smarli. checks the weather forecast in your area and notifies you about any upcoming weather events so that you can leave your home fully prepared."
+# long_description_de: "Jeden Morgen prüft smarli. die Wettervorhersage in deiner Umgebung und benachrichtigt dich über bevorstehende Wetterereignisse, damit du dein Zuhause stets bestens vorbereitet verlassen kannst."
+#
+# purpose_en: "Comfort" -> Options are (select one): Comfort, Security, Sustainability
+# purpose_de: "Komfort"
+#
+# keywords: [weather, warning, notification, rain, snow, hail, lightning, fog, storm]
+# events: [weather forecast]
+# highlight: true
+# deploy: false
+
 blueprint:
   ############
   # Metadata #
@@ -38,6 +61,16 @@ blueprint:
       description: These inputs are used to set the automation triggers
       input:
         myinput-for-triggers:
+          # translation:
+          #   name:
+          #     en: Lorem Ipsum
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
           name: add short name
           description: add short description
           selector: define the selector for this input -> https://www.home-assistant.io/docs/blueprint/selectors/
@@ -49,6 +82,16 @@ blueprint:
       description: These inputs are used to set the automation conditions
       input:
         myinput-for-triggers:
+          # translation:
+          #   name:
+          #     en: Lorem Ipsum
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
           name: add short name
           description: add short description
           selector: define the selector for this input -> https://www.home-assistant.io/docs/blueprint/selectors/
@@ -60,6 +103,16 @@ blueprint:
       description: These inputs are used to set the actions
       input:
         myinput-for-actions:
+          # translation:
+          #   name:
+          #     en: Lorem Ipsum
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
           name: add short name
           description: add short description
           selector: define the selector for this input -> https://www.home-assistant.io/docs/blueprint/selectors/
