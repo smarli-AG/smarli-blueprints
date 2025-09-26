@@ -42,6 +42,7 @@
 # keywords: [weather, warning, notification, rain, snow, hail, lightning, fog, storm]
 # events: [weather forecast]
 # highlight: true
+# deploy: true
 
 blueprint:
   ############
