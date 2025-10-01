@@ -154,6 +154,19 @@ blueprint:
                 - domain: media_player
               multiple: true
           default: []
+        delay:
+          # translation:
+          #   name:
+          #     en: Delay (optional)
+          #     de: Verzögerung (optional)
+          #   description:
+          #     en: Add a delay before turning off the selected devices.
+          #     de: Füge eine Verzögerung hinzu, bevor die ausgewahlten Geraete ausgeschaltet werden.
+          name: Delay (optional)
+          description: Add a delay before turning off the selected devices.
+          selector:
+            duration:
+          default: "00:00:00"
 
     custom_inputs: # leave these as is - should be present in any blueprint
       name: "DANGER ZONE: Additional Custom Inputs"
