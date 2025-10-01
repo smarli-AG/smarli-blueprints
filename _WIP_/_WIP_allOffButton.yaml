@@ -209,7 +209,7 @@ variables:
       | rejectattr('entity_id', 'in', excluded_lights_safe)
       | map(attribute='entity_id') | list
     }}
-    media_players_all_off: |-
+  media_players_all_off: |-
     {% set excluded_media_players_safe = excluded_media_players | default([], true) %}
     {{
       states.media_player
@@ -255,7 +255,7 @@ actions:
             metadata: {}
             data: {}
             target:
-              entity_id: "{{lights_all_off}"
+              entity_id: "{{ lights_all_off }}"
         alias: Turn Off Lights if there are any that are on
       - if:
           - condition: template
