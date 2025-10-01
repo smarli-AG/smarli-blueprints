@@ -182,5 +182,5 @@ actions:
   ## Custom actions
   - if:
       - condition: template
-        value_template: "{{custom_actions is not none }}"
+        value_template: "{{ custom_actions is not none }}"
     then: !input custom_actions
