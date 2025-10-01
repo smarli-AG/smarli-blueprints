@@ -233,7 +233,7 @@ variables:
     {% set excluded_media_players_expanded = expand(excluded_media_players) | map(attribute='entity_id') | list | default([], true) %}
     {{
       states.media_player
-      | selectattr('state', 'eq', 'playing')
+      | selectattr('state', 'in', ['on', 'playing', 'paused', 'idle', 'buffering'])
       | rejectattr('entity_id', 'in', label_entities('exclude'))
       | rejectattr('entity_id', 'in', area_entities('System'))
       | rejectattr('entity_id', 'in', integration_entities('group'))
@@ -284,16 +284,27 @@ actions:
           - condition: template
             value_template: "{{ 'media_players' in selected_domains and media_players_all_off | length > 0 }}"
         then:
-          - action: media_player.media_pause
-            metadata: {}
-            data: {}
-            target:
-              entity_id: "{{ media_players_all_off }}"
-          - action: media_player.turn_off
-            metadata: {}
-            data: {}
-            target:
-              entity_id: "{{ media_players_all_off }}"
+          - repeat:
+              for_each: "{{ media_players_all_off }}"
+              sequence:
+                - action: media_player.media_pause
+                  metadata: {}
+                  data: {}
+                  target:
+                    entity_id: "{{ repeat.item }}"
+                  continue_on_error: true
+                - action: media_player.media_stop
+                  metadata: {}
+                  data: {}
+                  target:
+                    entity_id: "{{ repeat.item }}"
+                  continue_on_error: true
+                - action: media_player.turn_off
+                  metadata: {}
+                  data: {}
+                  target:
+                    entity_id: "{{ repeat.item }}"
+                  continue_on_error: true
         alias: Turn Off Media Players if there are any that are on
 
   ## Custom actions
