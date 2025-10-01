@@ -147,7 +147,7 @@ blueprint:
           #     en: Select media players that should NOT be turned off when the button is pressed. This only applies if media players are selected to be turned off at all.
           #     de: Wähle die Medienplayer aus, die NICHT ausgeschaltet werden sollen, wenn der Button gedrückt wird. Das gilt nur wenn überhaupt ausgewählt wurde wie dass Medienplayer ausgeschaltet werden sollen.
           name: Excluded Media Players (optional)
-          description: Select the light(s) that should NOT be turned off when the button is pressed
+          description: Select media players that should NOT be turned off when the button is pressed. This only applies if media players are selected to be turned off at all.
           selector:
             entity:
               filter:
