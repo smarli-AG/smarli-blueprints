@@ -87,7 +87,7 @@ blueprint:
       name: Condition Inputs
       icon: mdi:help-box-multiple
       description: These inputs are used to set the automation conditions
-      input:
+
     action_inputs:
       name: Action Inputs
       icon: mdi:play-box-multiple
