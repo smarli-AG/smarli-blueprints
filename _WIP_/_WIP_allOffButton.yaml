@@ -211,6 +211,7 @@ variables:
   selected_domains: !input selected_domains
   excluded_lights: !input excluded_lights
   excluded_media_players: !input excluded_media_players
+  delay: !input delay
 
   # first expand all excluded lights to have individual entities instead of group entities
   # then reject group entities so turning off a group does not also turn of a light that
@@ -268,13 +269,11 @@ conditions: # by default, conditions follow an AND logic
     conditions: !input custom_conditions
 
 actions:
-  - delay: !input delay
+  - delay: "{{ delay }}"
   - parallel:
       - if:
           - condition: template
-            value_template: "{{ 'lights' in selected_domains }}"
-          - condition: template
-            value_template: "{{ lights_all_off | length > 0}}"
+            value_template: "{{ 'lights' in selected_domains and lights_all_off | length > 0 }}"
         then:
           - action: light.turn_off
             metadata: {}
@@ -284,11 +283,14 @@ actions:
         alias: Turn Off Lights if there are any that are on
       - if:
           - condition: template
-            value_template: "{{ 'media_players' in selected_domains }}"
-          - condition: template
-            value_template: "{{ media_players_all_off | length > 0}}"
+            value_template: "{{ 'media_players' in selected_domains and media_players_all_off | length > 0 }}"
         then:
           - action: media_player.media_pause
+            metadata: {}
+            data: {}
+            target:
+              entity_id: "{{ media_players_all_off }}"
+          - action: media_player.turn_off
             metadata: {}
             data: {}
             target:
@@ -298,5 +300,5 @@ actions:
   ## Custom actions
   - if:
       - condition: template
-        value_template: "{{custom_actions is not none }}"
+        value_template: "{{ custom_actions is not none }}"
     then: !input custom_actions
