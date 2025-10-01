@@ -211,7 +211,6 @@ variables:
   selected_domains: !input selected_domains
   excluded_lights: !input excluded_lights
   excluded_media_players: !input excluded_media_players
-  delay: !input delay
 
   # first expand all excluded lights to have individual entities instead of group entities
   # then reject group entities so turning off a group does not also turn of a light that
@@ -269,7 +268,7 @@ conditions: # by default, conditions follow an AND logic
     conditions: !input custom_conditions
 
 actions:
-  - delay: "{{ delay }}"
+  - delay: !input delay
   - parallel:
       - if:
           - condition: template
