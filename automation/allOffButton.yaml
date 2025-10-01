@@ -1,5 +1,5 @@
 # ! RELEASE NOTES
-## 1.0.0 | 2025-09-27
+## 1.0.0 | 2025-10-01
 ## - initial release
 
 # ================
@@ -25,7 +25,7 @@
 # events_en: [leaving home, going to bed]
 # events_de: [Zuhause verlassen, ins Bett gehen]
 # highlight: true
-# deploy: false
+# deploy: true
 
 blueprint:
   ############
