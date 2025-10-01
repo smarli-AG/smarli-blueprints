@@ -271,6 +271,8 @@ actions:
   - parallel:
       - if:
           - condition: template
+            value_template: "{{ 'lights' in selected_domains }}"
+          - condition: template
             value_template: "{{ lights_all_off | length > 0}}"
         then:
           - action: light.turn_off
@@ -280,6 +282,8 @@ actions:
               entity_id: "{{ lights_all_off }}"
         alias: Turn Off Lights if there are any that are on
       - if:
+          - condition: template
+            value_template: "{{ 'media_players' in selected_domains }}"
           - condition: template
             value_template: "{{ media_players_all_off | length > 0}}"
         then:
