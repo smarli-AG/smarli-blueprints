@@ -199,25 +199,34 @@ variables:
   excluded_lights: !input excluded_lights
   excluded_media_players: !input excluded_media_players
 
+  # first expand all excluded lights to have individual entities instead of group entities
+  # then reject group entities so turning off a group does not also turn of a light that
+  # might be excluded.
   lights_all_off: |-
-    {% set excluded_lights_safe = excluded_lights | default([], true) %}
+    {% set excluded_lights_expanded = expand(excluded_lights) | map(attribute='entity_id') | list | default([], true) %} 
     {{
       states.light
       | selectattr('state', 'eq', 'on')
       | rejectattr('entity_id', 'in', label_entities('exclude'))
       | rejectattr('entity_id', 'in', area_entities('System'))
-      | rejectattr('entity_id', 'in', excluded_lights_safe)
-      | map(attribute='entity_id') | list
+      | rejectattr('entity_id', 'in', integration_entities('group'))
+      | rejectattr('entity_id', 'in', excluded_lights_expanded)
+      | map(attribute='entity_id')
+      | list
     }}
+
+  # same logic as for lights above
   media_players_all_off: |-
-    {% set excluded_media_players_safe = excluded_media_players | default([], true) %}
+    {% set excluded_media_players_expanded = expand(excluded_media_players) | map(attribute='entity_id') | list | default([], true) %}
     {{
       states.media_player
       | selectattr('state', 'eq', 'playing')
       | rejectattr('entity_id', 'in', label_entities('exclude'))
       | rejectattr('entity_id', 'in', area_entities('System'))
-      | rejectattr('entity_id', 'in', excluded_media_players_safe)
-      | map(attribute='entity_id') | list
+      | rejectattr('entity_id', 'in', integration_entities('group'))
+      | rejectattr('entity_id', 'in', excluded_media_players_expanded)
+      | map(attribute='entity_id')
+      | list
     }}
 
 ##############
