@@ -69,17 +69,19 @@ blueprint:
         smart_buttons:
           # translation:
           #   name:
-          #     en: Smart Button(s)
-          #     de: Smart Button(s)
+          #     en: Smart Buttons
+          #     de: Smart Buttons
           #   description:
-          #     en: Select the button(s) that will trigger the all off automation
+          #     en: Select the buttons that will trigger the all off automation
           #     de: Wähle die Smart Buttons aus, welche die "Alles aus" Automation auslösen sollen
-          name: Smart Button(s)
-          description: Select the button(s) that will trigger the all off automation
+          name: Smart Buttons
+          description: Select the buttons that will trigger the all off automation
           selector:
             entity:
               filter:
                 - integration: mqtt
+                  domain: light
+                - integration: zha
                   domain: light
               multiple: true
 
@@ -99,10 +101,10 @@ blueprint:
           #     en: What should get turned off?
           #     de: Was soll ausgeschaltet werden?
           #   description:
-          #     en: Select if the all off button should turn off lights, media players or both.
+          #     en: Select if the "all off" button should turn off lights, media players or both.
           #     de: Wähle ob der "Alles aus" Button Lichter, Medienplayer oder beides ausschalten soll.
-          name: What
-          description: Select if the all off button should turn off lights, media players or both.
+          name: What should get turned off?
+          description: Select if the "all off" button should turn off lights, media players or both.
           selector:
             select:
               options:
