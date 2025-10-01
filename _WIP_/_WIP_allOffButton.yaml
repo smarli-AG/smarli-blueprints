@@ -293,12 +293,6 @@ actions:
                   target:
                     entity_id: "{{ repeat.item }}"
                   continue_on_error: true
-                - action: media_player.media_stop
-                  metadata: {}
-                  data: {}
-                  target:
-                    entity_id: "{{ repeat.item }}"
-                  continue_on_error: true
                 - action: media_player.turn_off
                   metadata: {}
                   data: {}
