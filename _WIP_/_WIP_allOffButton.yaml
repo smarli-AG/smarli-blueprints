@@ -101,10 +101,10 @@ blueprint:
           #     en: What should get turned off?
           #     de: Was soll ausgeschaltet werden?
           #   description:
-          #     en: Select if the "all off" button should turn off lights, media players or both.
+          #     en: Select if the "all off" button should turn off lights, media players, or both.
           #     de: Wähle ob der "Alles aus" Button Lichter, Medienplayer oder beides ausschalten soll.
           name: What should get turned off?
-          description: Select if the "all off" button should turn off lights, media players or both.
+          description: Select if the "all off" button should turn off lights, media players, or both.
           selector:
             select:
               options:
@@ -240,7 +240,7 @@ triggers:
   - triggers: !input custom_triggers
 
 conditions: # by default, conditions follow an AND logic
-  - condition: add your condition here
+  - condition: []
   ## Custom conditions
   - condition: and
     conditions: !input custom_conditions
