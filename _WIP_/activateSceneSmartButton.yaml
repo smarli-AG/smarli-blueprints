@@ -25,7 +25,7 @@
 # events_en: [button press]
 # events_de: [Knopfdruck]
 # highlight: true
-# deploy: true
+# deploy: false
 
 blueprint:
   ############
