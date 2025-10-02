@@ -1,0 +1,217 @@
+# ! RELEASE NOTES
+## 1.0.0 | 2025-10-02
+## - initial release
+
+# ================
+# Partner Engine
+# ================
+# icon: "lightbulb-on"
+#
+# name_en: "Scene Activation"
+# name_de: "Szene aktivieren"
+# subtitle_en: "Smart Button"
+# subtitle_de: "Smart Button"
+#
+# short_description_en: "Activate a scene with a single button press from any of your smart buttons."
+# short_description_de: "Aktiviere eine Szene mit nur einem Knopfdruck von einem deiner Smart Buttons."
+# long_description_en: "The Scene Activation automation allows you to activate any scene in your home with a button press. This works with various smart button types including smarli. relays, Aqara switches, Philips Hue buttons, and Feller controls."
+# long_description_de: "Die Szenenaktivierungs-Automatisierung ermöglicht es dir, jede Szene in deinem Zuhause per Knopfdruck zu aktivieren. Dies funktioniert mit verschiedenen Smart-Button-Typen einschliesslich smarli. Relais, Aqara-Schaltern, Philips Hue-Tasten und Feller-Bedienelementen."
+#
+# purpose_en: "Comfort" -> Options are (select one): Comfort, Security, Sustainability
+# purpose_de: "Komfort"
+#
+# keywords_en: [scene, button, activate]
+# keywords_de: [szene, button, aktivieren]
+# events_en: [button press]
+# events_de: [Knopfdruck]
+# highlight: true
+# deploy: true
+
+blueprint:
+  ############
+  # Metadata #
+  ############
+  name: smarli. Scene Activation Button
+  description: >
+    # 💡 smarli. Scene Activation Button
+
+    This automation will activate a selected scene when any of your configured smart buttons are pressed. It supports multiple button types including smarli. relays, Aqara switches, Philips Hue buttons, Hue Tap Dials, and Feller Hue controls.
+
+    *Version 1.0.0 | 2025-10-02*
+
+    <details>
+    <summary><b>How to set it up</b></summary>
+
+    This blueprint supports various smart button types:
+
+      1. Select the scene you want to activate
+      2. Select one or more smart buttons (supports smarli. relays, Aqara, Hue buttons, Hue Tap Dial, and Feller controls)
+      3. (Optional) Add a delay before activating the scene
+    </details>
+
+
+    All input fields are required unless they are marked as ` (optional) `.
+  domain: automation
+  author: loocd [smarli. AG]
+  source_url: https://github.com/smarli-AG/smarli-blueprints/blob/main/automation/activateSceneSmartButton.yaml
+  homeassistant:
+    min_version: 2024.10.0
+
+  ###############
+  # User Inputs #
+  ###############
+  input:
+    trigger_inputs:
+      name: Trigger Inputs
+      icon: mdi:star-box-multiple
+      description: These inputs are used to set the automation triggers
+      input:
+        smart_buttons:
+          # translation:
+          #   name:
+          #     en: Smart Buttons
+          #     de: Smart Buttons
+          #   description:
+          #     en: Select the smart buttons that should trigger the scene. Supports smarli. relays (light entities), Aqara switches, Philips Hue buttons, and Hue Tap Dials (action sensors).
+          #     de: Wähle die Smart Buttons aus, die die Szene auslösen sollen. Unterstützt smarli. Relais (Lichtentitäten), Aqara-Schalter, Philips Hue-Tasten und Hue Tap Dials (Action-Sensoren).
+          name: Smart Buttons
+          description: Select the smart buttons that should trigger the scene. Supports smarli. relays (light entities), Aqara switches, Philips Hue buttons, and Hue Tap Dials (action sensors).
+          selector:
+            entity:
+              filter:
+                - integration: mqtt
+                  domain:
+                    - light
+                    - sensor
+                - integration: zha
+                  domain:
+                    - light
+                    - sensor
+              multiple: true
+
+    condition_inputs:
+      name: Condition Inputs
+      icon: mdi:help-box-multiple
+      description: These inputs are used to set the automation conditions
+
+    action_inputs:
+      name: Action Inputs
+      icon: mdi:play-box-multiple
+      description: These inputs are used to set the actions
+      input:
+        target_scene:
+          # translation:
+          #   name:
+          #     en: Scene to Activate
+          #     de: Zu aktivierende Szene
+          #   description:
+          #     en: Select the scene that should be activated when a button is pressed.
+          #     de: Wähle die Szene aus, die aktiviert werden soll, wenn ein Button gedrückt wird.
+          name: Scene to Activate
+          description: Select the scene that should be activated when a button is pressed.
+          selector:
+            entity:
+              filter:
+                - domain: scene
+
+        delay:
+          # translation:
+          #   name:
+          #     en: Delay (optional)
+          #     de: Verzögerung (optional)
+          #   description:
+          #     en: Add a delay before activating the scene.
+          #     de: Füge eine Verzögerung hinzu, bevor die Szene aktiviert wird.
+          name: Delay (optional)
+          description: Add a delay before activating the scene.
+          selector:
+            duration:
+          default: "00:00:00"
+
+    custom_inputs: # leave these as is - should be present in any blueprint
+      name: "DANGER ZONE: Additional Custom Inputs"
+      icon: mdi:alert
+      description: >-
+        **WATCH OUT!**
+
+        This is advanced functionality and should only be used if you know what you're doing!
+
+
+        Use this section to define custom triggers and conditions, as well as actions that will run at the end of the automation.
+      collapsed: true
+      input:
+        custom_triggers:
+          name: Custom triggers (optional)
+          description: >-
+            Use this to define custom triggers in addition to the default triggers.
+          selector:
+            trigger:
+          default: []
+        custom_conditions:
+          name: Custom conditions (optional)
+          description: >-
+            Use this to define custom conditions in addition to the default conditions.
+          selector:
+            condition:
+          default: []
+        custom_actions:
+          name: Custom actions (optional)
+          description: >-
+            Use this to define custom actions that should be executed at the end of this automation.
+          selector:
+            action:
+          default: []
+
+#########################
+# Variables Translation #
+#########################
+
+# this is required in order to use inputs as variables within templates
+variables:
+  smart_buttons: !input smart_buttons
+
+##############
+# Automation #
+##############
+
+mode: single
+max_exceeded: silent
+
+triggers:
+  # State change triggers for light entities (smarli. relays)
+  - trigger: state
+    entity_id: !input smart_buttons
+    from: "off"
+    to: "on"
+  - trigger: state
+    entity_id: !input smart_buttons
+    from: "on"
+    to: "off"
+
+  # State change triggers for sensor entities (Aqara, Hue buttons, Hue Tap Dial action sensors)
+  - trigger: state
+    entity_id: !input smart_buttons
+
+  ## Custom triggers
+  - triggers: !input custom_triggers
+
+conditions: # by default, conditions follow an AND logic
+  - condition: []
+  ## Custom conditions
+  - condition: and
+    conditions: !input custom_conditions
+
+actions:
+  - delay: !input delay
+  - action: scene.turn_on
+    metadata: {}
+    target:
+      entity_id: !input target_scene
+    data:
+      transition: 0
+
+  ## Custom actions
+  - if:
+      - condition: template
+        value_template: "{{ custom_actions is not none }}"
+    then: !input custom_actions
