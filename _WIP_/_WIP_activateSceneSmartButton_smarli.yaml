@@ -82,7 +82,10 @@ blueprint:
                   domain: light
               multiple: true
 
-    condition_inputs: []
+    condition_inputs:
+      name: Condition Inputs
+      icon: mdi:help-box-multiple
+      description: These inputs are used to set the automation conditions
 
     action_inputs:
       name: Action Inputs
