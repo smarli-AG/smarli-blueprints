@@ -141,13 +141,6 @@ blueprint:
             action:
           default: []
 
-#########################
-# Variables Translation #
-#########################
-
-# this is required in order to use inputs as variables within templates
-variables:
-
 ##############
 # Automation #
 ##############
