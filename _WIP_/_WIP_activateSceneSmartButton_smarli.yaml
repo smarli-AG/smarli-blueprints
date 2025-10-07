@@ -31,9 +31,9 @@ blueprint:
   ############
   # Metadata #
   ############
-  name: smarli. Scene Activation (Relay)
+  name: smarli. Scene Activation with smarli. relay
   description: >
-    # 💡 smarli. Scene Activation (Relay)
+    # 🎨 smarli. Scene Activation with smarli. relay
 
     This automation will activate a selected scene when any of your configured smarli. relays are pressed. The scene activates on any state change of the relay (on→off or off→on).
 
@@ -63,6 +63,24 @@ blueprint:
       icon: mdi:star-box-multiple
       description: These inputs are used to set the automation triggers
       input:
+        # smart_buttons:
+        #   # translation:
+        #   #   name:
+        #   #     en: smarli. relay
+        #   #     de: smarli. relay
+        #   #   description:
+        #   #     en: Select the smarli. devices that should activate the scene.
+        #   #     de: Wähle die smarli. Geräte aus, die die Szene aktivieren sollen.
+        #   name: smarli. relay
+        #   description: Select the smarli. devices that should activate the scene.
+        #   selector:
+        #     entity:
+        #       filter:
+        #         - integration: mqtt
+        #           domain: light
+        #         - integration: zha
+        #           domain: light
+        #       multiple: true
         smart_buttons:
           # translation:
           #   name:
@@ -74,12 +92,14 @@ blueprint:
           name: smarli. relay
           description: Select the smarli. devices that should activate the scene.
           selector:
-            entity:
+            device:
               filter:
                 - integration: mqtt
-                  domain: light
+                  manufacturer: smarli.
+                  model: S-ZB-PDM1-R251
                 - integration: zha
-                  domain: light
+                  manufacturer: smarli.
+                  model: S-ZB-PDM1-R251
               multiple: true
 
     condition_inputs:
@@ -141,6 +161,24 @@ blueprint:
             action:
           default: []
 
+#########################
+# Variables Translation #
+#########################
+
+trigger_variables:
+  smart_buttons: !input smart_buttons
+  smart_buttons_entities: >
+    {{
+      smart_buttons 
+      | map('device_entities')
+      | sum(start=[])
+      | select('match', '^light\.')
+      | list
+    }}
+
+# this is required in order to use inputs as variables within templates
+variables:
+
 ##############
 # Automation #
 ##############
@@ -150,11 +188,11 @@ max_exceeded: silent
 
 triggers:
   - trigger: state
-    entity_id: !input smart_buttons
+    entity_id: "{{smart_buttons_entities}}"
     from: "on"
     to: "off"
   - trigger: state
-    entity_id: !input smart_buttons
+    entity_id: "{{smart_buttons_entities}}"
     from: "off"
     to: "on"
   ## Custom triggers

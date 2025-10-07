@@ -5,7 +5,7 @@
 # ================
 # Partner Engine
 # ================
-# icon: "lightbulb-on"
+# icon: "palette"
 #
 # name_en: "Scene Activation"
 # name_de: "Szene aktivieren"
@@ -35,18 +35,21 @@ blueprint:
   description: >
     # 💡 smarli. Scene Activation Button
 
-    This automation will activate a selected scene when any of your configured smart buttons are pressed. It supports multiple button types including smarli. relays, Aqara switches, Philips Hue buttons, Hue Tap Dials, and Feller Hue controls.
+    This automation will activate a selected scene when any of your configured smart buttons are pressed. It supports smarli. relays, Aqara mini switches, and Philips Hue buttons.
 
     *Version 1.0.0 | 2025-10-02*
 
     <details>
     <summary><b>How to set it up</b></summary>
 
-    This blueprint supports various smart button types:
+    This blueprint supports multiple button types through a simple entity selector:
 
       1. Select the scene you want to activate
-      2. Select one or more smart buttons (supports smarli. relays, Aqara, Hue buttons, Hue Tap Dial, and Feller controls)
-      3. (Optional) Add a delay before activating the scene
+      2. Select your smart buttons:
+         - For **smarli. Relays**: Select the light entity (triggers on any state change)
+         - For **Aqara/Hue buttons**: Select the battery sensor (triggers on button press)
+      3. (Optional) For Aqara devices, choose which press types trigger the scene (single, double, triple)
+      4. (Optional) Add a delay before activating the scene
     </details>
 
 
@@ -72,22 +75,55 @@ blueprint:
           #     en: Smart Buttons
           #     de: Smart Buttons
           #   description:
-          #     en: Select the smart buttons that should trigger the scene. Supports smarli. relays (light entities), Aqara switches, Philips Hue buttons, and Hue Tap Dials (action sensors).
-          #     de: Wähle die Smart Buttons aus, die die Szene auslösen sollen. Unterstützt smarli. Relais (Lichtentitäten), Aqara-Schalter, Philips Hue-Tasten und Hue Tap Dials (Action-Sensoren).
+          #     en: Select your smart buttons as entities OR devices. You can mix both types.
+          #     de: Wähle deine Smart Buttons als Entitäten ODER Geräte aus. Du kannst beide Typen mischen.
           name: Smart Buttons
-          description: Select the smart buttons that should trigger the scene. Supports smarli. relays (light entities), Aqara switches, Philips Hue buttons, and Hue Tap Dials (action sensors).
+          description: Select your smart buttons as entities OR devices. You can mix both types.
           selector:
-            entity:
-              filter:
+            target:
+              entity:
                 - integration: mqtt
-                  domain:
-                    - light
-                    - sensor
+                  domain: light
                 - integration: zha
-                  domain:
-                    - light
-                    - sensor
+                  domain: light
+              device:
+                - integration: mqtt
+                - integration: zha
+
+        aqara_actions:
+          # translation:
+          #   name:
+          #     en: Aqara Actions (optional)
+          #     de: Aqara-Aktionen (optional)
+          #   description:
+          #     en: Which Aqara button press types should activate the scene?
+          #     de: Welche Aqara-Tastendrucktypen sollen die Szene aktivieren?
+          name: Aqara Actions (optional)
+          description: Which Aqara button press types should activate the scene?
+          selector:
+            select:
+              options:
+                - label: Single Press
+                  # translation:
+                  #   label:
+                  #     en: Single Press
+                  #     de: Einfacher Druck
+                  value: "single"
+                - label: Double Press
+                  # translation:
+                  #   label:
+                  #     en: Double Press
+                  #     de: Doppelter Druck
+                  value: "double"
+                - label: Triple Press
+                  # translation:
+                  #   label:
+                  #     en: Triple Press
+                  #     de: Dreifacher Druck
+                  value: "triple"
               multiple: true
+              mode: list
+          default: ["single"]
 
     condition_inputs:
       name: Condition Inputs
@@ -169,6 +205,11 @@ blueprint:
 # this is required in order to use inputs as variables within templates
 variables:
   smart_buttons: !input smart_buttons
+  aqara_actions: !input aqara_actions
+
+  # Extract entities and devices from target selector
+  button_entities: "{{ smart_buttons.entity_id | default([]) }}"
+  button_devices: "{{ smart_buttons.device_id | default([]) }}"
 
 ##############
 # Automation #
@@ -178,25 +219,49 @@ mode: single
 max_exceeded: silent
 
 triggers:
-  # State change triggers for light entities (smarli. relays)
+  # Light entity triggers (smarli. relays) - any state change (on→off or off→on)
   - trigger: state
     entity_id: !input smart_buttons
     from: "off"
     to: "on"
+    id: "light_toggle"
   - trigger: state
     entity_id: !input smart_buttons
     from: "on"
     to: "off"
+    id: "light_toggle"
 
-  # State change triggers for sensor entities (Aqara, Hue buttons, Hue Tap Dial action sensors)
-  - trigger: state
-    entity_id: !input smart_buttons
+  # Event triggers for button devices (Aqara, Hue)
+  - trigger: event
+    event_type:
+      - zha_event
+    id: "button_press"
 
   ## Custom triggers
   - triggers: !input custom_triggers
 
 conditions: # by default, conditions follow an AND logic
-  - condition: []
+  - condition: or
+    conditions:
+      # Allow all light entity triggers
+      - condition: trigger
+        id: "light_toggle"
+
+      # For button press events, check if device is in our selected devices
+      - condition: and
+        conditions:
+          - condition: trigger
+            id: "button_press"
+          - condition: template
+            value_template: >
+              {% set device = trigger.event.data.device_id | default('') %}
+              {{ device in button_devices }}
+          # Check if action matches selected Aqara actions (for Aqara devices)
+          - condition: template
+            value_template: >
+              {% set action = trigger.event.data.command | default('') %}
+              {{ action in aqara_actions or action not in ['single', 'double', 'triple'] }}
+
   ## Custom conditions
   - condition: and
     conditions: !input custom_conditions
