@@ -126,6 +126,19 @@ blueprint:
             entity:
               filter:
                 - domain: script
+        delay:
+          # translation:
+          #   name:
+          #     en: Delay (optional)
+          #     de: Verzögerung (optional)
+          #   description:
+          #     en: Add a delay before activating the scene.
+          #     de: Füge eine Verzögerung hinzu, bevor die Szene aktiviert wird.
+          name: Delay (optional)
+          description: Add a delay before activating the scene.
+          selector:
+            duration:
+          default: "00:00:00"
 
     custom_inputs: # leave these as is - should be present in any blueprint
       name: "DANGER ZONE: Additional Custom Inputs"
@@ -213,6 +226,7 @@ conditions: # by default, conditions follow an AND logic
     conditions: !input custom_conditions
 
 actions:
+  - delay: !input delay
   - action: script.turn_on
     target:
       entity_id: !input scene_to_activate
