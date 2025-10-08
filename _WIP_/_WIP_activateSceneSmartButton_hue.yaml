@@ -1,0 +1,226 @@
+# ! RELEASE NOTES
+## 1.0.0 | 2025-01-10
+## - initial release
+
+# ================
+# Partner Engine
+# ================
+# icon: "palette"
+#
+# name_en: "Scene Activation"
+# name_de: "Szene aktivieren"
+# subtitle_en: "Philips Hue Button"
+# subtitle_de: "Philips Hue Button"
+#
+# short_description_en: "Activate a scene with a single press of your Philips Hue smart button."
+# short_description_de: "Aktiviere eine Szene durch das einfache Drücken deines Philips Hue Smart Buttons."
+# long_description_en: "The Scene Activation automation allows you to activate any scene in your home with a button press. This works with Philips Hue smart buttons."
+# long_description_de: "Die Automation zur Szenenaktivierung ermöglicht es dir, jede Szene in deinem Zuhause per Knopfdruck zu aktivieren. Dies funktioniert mit Philips Hue Smart Buttons."
+#
+# purpose_en: "Comfort" -> Options are (select one): Comfort, Security, Sustainability
+# purpose_de: "Komfort"
+#
+# keywords_en: [scene, button, activate]
+# keywords_de: [szene, button, aktivieren]
+# events_en: [button press]
+# events_de: [Knopfdruck]
+# highlight: true
+# deploy: false
+
+blueprint:
+  ############
+  # Metadata #
+  ############
+  name: Philips Hue Scene Activation with Smart Button
+  description: >
+    # 🎨 Philips Hue Scene Activation with Smart Button
+
+    This automation will activate a selected scene when your Philips Hue smart button is pressed.
+
+    *Version 1.0.0 | 2025-01-10*
+
+    <details>
+    <summary><b>How to set it up</b></summary>
+
+      1. Select one or more Philips Hue smart button devices that should trigger the scene
+      2. Choose which button action should activate the scene (press, hold, or release)
+      3. Select the scene you want to activate
+    </details>
+
+
+    All input fields are required unless they are marked as ` (optional) `.
+  domain: automation
+  author: loocd [smarli. AG]
+  source_url: https://github.com/smarli-AG/smarli-blueprints/blob/main/automation/activateSceneHueButton.yaml
+  homeassistant:
+    min_version: 2024.10.0
+
+  ###############
+  # User Inputs #
+  ###############
+  input:
+    trigger_inputs:
+      name: Trigger Inputs
+      icon: mdi:star-box-multiple
+      description: These inputs are used to set the automation triggers
+      input:
+        hue_buttons:
+          # translation:
+          #   name:
+          #     en: Philips Hue Button
+          #     de: Philips Hue Button
+          #   description:
+          #     en: Select the Philips Hue smart button devices that should activate the scene.
+          #     de: Wähle die Philips Hue Smart Button Geräte aus, die die Szene aktivieren sollen.
+          name: Philips Hue Button
+          description: Select the Philips Hue smart button devices that should activate the scene.
+          selector:
+            device:
+              filter:
+                - integration: mqtt
+                  manufacturer: Philips
+                  model: Hue smart button (8718699693985)
+                - integration: zha
+                  manufacturer: Philips
+                  model: Hue smart button (8718699693985)
+              multiple: true
+        button_action:
+          # translation:
+          #   name:
+          #     en: Button Action
+          #     de: Button-Aktion
+          #   description:
+          #     en: Select which button action should activate the scene.
+          #     de: Wähle aus, welche Button-Aktion die Szene aktivieren soll.
+          name: Button Action
+          description: Select which button action should activate the scene (press, hold, or release).
+          selector:
+            select:
+              options:
+                - label: "Press"
+                  value: "press"
+                - label: "Hold"
+                  value: "hold"
+                - label: "Release"
+                  value: "release"
+          default: "press"
+
+    condition_inputs:
+      name: Condition Inputs
+      icon: mdi:help-box-multiple
+      description: These inputs are used to set the automation conditions
+
+    action_inputs:
+      name: Action Inputs
+      icon: mdi:play-box-multiple
+      description: These inputs are used to set the actions
+      input:
+        scene_to_activate:
+          # translation:
+          #   name:
+          #     en: Scene to Activate
+          #     de: Zu aktivierende Szene
+          #   description:
+          #     en: Select the scene that should be activated when the button is pressed.
+          #     de: Wähle die Szene aus, die aktiviert werden soll, wenn der Button gedrückt wird.
+          name: Scene to Activate
+          description: Select the scene that should be activated when the button is pressed.
+          selector:
+            entity:
+              filter:
+                - domain: script
+        delay:
+          # translation:
+          #   name:
+          #     en: Delay (optional)
+          #     de: Verzögerung (optional)
+          #   description:
+          #     en: Add a delay before activating the scene.
+          #     de: Füge eine Verzögerung hinzu, bevor die Szene aktiviert wird.
+          name: Delay (optional)
+          description: Add a delay before activating the scene.
+          selector:
+            duration:
+          default: "00:00:00"
+
+    custom_inputs: # leave these as is - should be present in any blueprint
+      name: "DANGER ZONE: Additional Custom Inputs"
+      icon: mdi:alert
+      description: >-
+        **WATCH OUT!**
+
+        This is advanced functionality and should only be used if you know what you're doing!
+
+
+        Use this section to define custom triggers and conditions, as well as actions that will run at the end of the automation.
+      collapsed: true
+      input:
+        custom_triggers:
+          name: Custom triggers (optional)
+          description: >-
+            Use this to define custom triggers in addition to the default triggers.
+          selector:
+            trigger:
+          default: []
+        custom_conditions:
+          name: Custom conditions (optional)
+          description: >-
+            Use this to define custom conditions in addition to the default conditions.
+          selector:
+            condition:
+          default: []
+        custom_actions:
+          name: Custom actions (optional)
+          description: >-
+            Use this to define custom actions that should be executed at the end of this automation.
+          selector:
+            action:
+          default: []
+
+#########################
+# Variables Translation #
+#########################
+
+trigger_variables:
+  hue_buttons: !input hue_buttons
+  button_action: !input button_action
+
+# this is required in order to use inputs as variables within templates
+variables: {}
+
+##############
+# Automation #
+##############
+
+mode: single
+max_exceeded: silent
+
+triggers:
+  - trigger: event
+    event_type:
+      - zha_event
+      - mqtt_event
+    event_data:
+      command: "{{ button_action }}"
+  ## Custom triggers
+  - triggers: !input custom_triggers
+
+conditions: # by default, conditions follow an AND logic
+  - condition: template
+    value_template: >
+      {% set device_id = trigger.event.data.device_id | default('') %}
+      {{ device_id in hue_buttons }}
+  ## Custom conditions
+  - condition: and
+    conditions: !input custom_conditions
+
+actions:
+  - delay: !input delay
+  - action: script.turn_on
+    target:
+      entity_id: !input scene_to_activate
+  ## Custom actions
+  - if:
+      - condition: template
+        value_template: "{{ custom_actions is not none }}"
+    then: !input custom_actions
