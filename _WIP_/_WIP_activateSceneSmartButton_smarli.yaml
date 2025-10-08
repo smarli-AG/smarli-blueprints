@@ -177,7 +177,7 @@ trigger_variables:
     }}
 
 # this is required in order to use inputs as variables within templates
-variables:
+variables: {}
 
 ##############
 # Automation #
