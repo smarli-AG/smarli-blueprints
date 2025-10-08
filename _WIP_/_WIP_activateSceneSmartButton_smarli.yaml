@@ -189,10 +189,12 @@ max_exceeded: silent
 triggers:
   - trigger: template
     value_template: >
-      {{ smart_buttons_entities | select('is_state', 'on') | list | join(',') }}
+      {% set count_on = smart_buttons_entities | select('is_state', 'on') | list | count %}
+      {{ count_on % 2 == 0 }}
   - trigger: template
     value_template: >
-      {{ smart_buttons_entities | select('is_state', 'off') | list | join(',') }}
+      {% set count_on = smart_buttons_entities | select('is_state', 'on') | list | count %}
+      {{ count_on % 2 == 1 }}
   ## Custom triggers
   - triggers: !input custom_triggers
 
@@ -200,9 +202,12 @@ conditions: # by default, conditions follow an AND logic
   - condition: or
     conditions:
       - condition: template
-        value_template: "{{ trigger.from_state.state == 'on' and trigger.to_state.state == 'off' }}"
+        value_template: "{{ trigger.platform != 'template' }}"
       - condition: template
-        value_template: "{{ trigger.from_state.state == 'off' and trigger.to_state.state == 'on' }}"
+        value_template: >
+          {{ trigger.from_state.state in ['on', 'off']
+             and trigger.to_state.state in ['on', 'off']
+             and trigger.from_state.state != trigger.to_state.state }}
   ## Custom conditions
   - condition: and
     conditions: !input custom_conditions
