@@ -187,19 +187,22 @@ mode: single
 max_exceeded: silent
 
 triggers:
-  - trigger: state
-    entity_id: "{{smart_buttons_entities}}"
-    from: "on"
-    to: "off"
-  - trigger: state
-    entity_id: "{{smart_buttons_entities}}"
-    from: "off"
-    to: "on"
+  - trigger: template
+    value_template: >
+      {{ expand(smart_buttons_entities) | selectattr('state', 'eq', 'on') | map(attribute='entity_id') | list | join(',') }}
+  - trigger: template
+    value_template: >
+      {{ expand(smart_buttons_entities) | selectattr('state', 'eq', 'off') | map(attribute='entity_id') | list | join(',') }}
   ## Custom triggers
   - triggers: !input custom_triggers
 
 conditions: # by default, conditions follow an AND logic
-  - condition: []
+  - condition: or
+    conditions:
+      - condition: template
+        value_template: "{{ trigger.from_state.state == 'on' and trigger.to_state.state == 'off' }}"
+      - condition: template
+        value_template: "{{ trigger.from_state.state == 'off' and trigger.to_state.state == 'on' }}"
   ## Custom conditions
   - condition: and
     conditions: !input custom_conditions
