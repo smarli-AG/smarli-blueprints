@@ -20,8 +20,10 @@
 # purpose_en: "Comfort" -> Options are (select one): Comfort, Security, Sustainability
 # purpose_de: "Komfort"
 #
-# keywords: [weather, warning, notification, rain, snow, hail, lightning, fog, storm]
-# events: [weather forecast]
+# keywords_en: [weather, warning, notification, rain, snow, hail, lightning, fog, storm]
+# keywords_de: [wetter, warnung, benachrichtigung, regen, schnee, hagel, blitz, nebel, sturm]
+# events_en: [weather forecast]
+# events_de: [wettervorhersage]
 # highlight: true
 # deploy: false
 
