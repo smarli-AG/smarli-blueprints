@@ -189,10 +189,10 @@ max_exceeded: silent
 triggers:
   - trigger: template
     value_template: >
-      {{ expand(smart_buttons_entities) | selectattr('state', 'eq', 'on') | map(attribute='entity_id') | list | join(',') }}
+      {{ smart_buttons_entities | select('is_state', 'on') | list | join(',') }}
   - trigger: template
     value_template: >
-      {{ expand(smart_buttons_entities) | selectattr('state', 'eq', 'off') | map(attribute='entity_id') | list | join(',') }}
+      {{ smart_buttons_entities | select('is_state', 'off') | list | join(',') }}
   ## Custom triggers
   - triggers: !input custom_triggers
 
