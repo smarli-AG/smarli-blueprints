@@ -1,0 +1,613 @@
+# ! RELEASE NOTES
+## 1.0.0 | YYYY-MM-DD
+## - add release notes here
+
+# ================
+# Partner Engine
+# ================
+# icon: "weather-lightning-rainy"
+#
+# name_en: "Weather Warning"
+# name_de: "Wetterwarnung"
+# subtitle_en: "Phone Notification"
+# subtitle_de: "Handy-Benachrichtigung"
+#
+# short_description_en: "Get notified about upcoming weather events such as rain, storms, snow, and more."
+# short_description_de: "Erhalte Benachrichtigungen über bevorstehende Wetterereignisse wie Regen, Gewitter, Schnee und mehr."
+# long_description_en: "Every morning, smarli. checks the weather forecast in your area and notifies you about any upcoming weather events so that you can leave your home fully prepared."
+# long_description_de: "Jeden Morgen prüft smarli. die Wettervorhersage in deiner Umgebung und benachrichtigt dich über bevorstehende Wetterereignisse, damit du dein Zuhause stets bestens vorbereitet verlassen kannst."
+#
+# purpose_en: "Comfort" -> Options are (select one): Comfort, Security, Sustainability
+# purpose_de: "Komfort"
+#
+# keywords_en: [weather, warning, notification, rain, snow, hail, lightning, fog, storm]
+# keywords_de: [wetter, warnung, benachrichtigung, regen, schnee, hagel, blitz, nebel, sturm]
+# events_en: [weather forecast]
+# events_de: [wettervorhersage]
+# highlight: true
+# deploy: false
+
+blueprint:
+  ############
+  # Metadata #
+  ############
+  name: Name of blueprint, usually 'smarli.' followed by the purpose of the automation (e.g. smarli. Weather Warning)
+  description: >
+    # This is the H1, repeat the name, but add an emoji at the beginning (e.g. 🔔 smarli. Weather Warning)
+
+    Add a short description of what the automation will achieve.
+
+    *Version x.x.x | YYYY-MM-DD*
+
+    <details>
+    <summary><b>How to set it up</b></summary>
+
+      1. Here add a couple of steps that need to be followed when setting up the automation based on this blueprint.
+    </details>
+
+
+    All input fields are required unless they are marked as ` (optional) `.
+  domain: automation
+  author: your-github-user [smarli. AG]
+  source_url: url to the blueprint
+  homeassistant:
+    min_version: minimum required HA core version depending on the functionality of the blueprint (e.g. 2024.11.3). [At minimum, 2024.10.0 is required](https://www.home-assistant.io/docs/automation/trigger/#merging-lists-of-triggers)
+
+  ###############
+  # User Inputs #
+  ###############
+  input:
+    trigger_inputs:
+      name: Trigger Inputs
+      icon: mdi:star-box-multiple
+      description: These inputs are used to set the automation triggers
+      input:
+        area:
+          # translation:
+          #   name:
+          #     en: area
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: add short name
+          description: add short description
+          selector:
+            area:
+              multiple: false
+        area2:
+          # translation:
+          #   name:
+          #     en: area with device filter and multiple
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: add short name
+          description: add short description
+          selector:
+            area:
+              device:
+                - integration: mqtt
+                  manufacturer: smarli.
+                  model: S-ZB-PDM1-R251
+              multiple: true
+        boolean:
+          # translation:
+          #   name:
+          #     en: boolean
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: add short name
+          description: add short description
+          selector:
+            boolean:
+        color_temp:
+          # translation:
+          #   name:
+          #     en: color temperature
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: add short name
+          description: add short description
+          selector:
+            color_temp:
+              unit: kelvin
+              min: 2700
+              max: 6500
+        date:
+          # translation:
+          #   name:
+          #     en: date
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: add short name
+          description: add short description
+          selector:
+            date:
+        device:
+          # translation:
+          #   name:
+          #     en: device
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: add short name
+          description: add short description
+          selector:
+            device:
+              multiple: false
+        device2:
+          # translation:
+          #   name:
+          #     en: device with entity filter and multiple
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: add short name
+          description: add short description
+          selector:
+            device:
+              entity:
+                - domain: light
+              multiple: true
+        duration:
+          # translation:
+          #   name:
+          #     en: duration
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: add short name
+          description: add short description
+          selector:
+            duration:
+              enable_days: false
+        duration2:
+          # translation:
+          #   name:
+          #     en: duration with days
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: add short name
+          description: add short description
+          selector:
+            duration:
+              enable_days: true
+        entity:
+          # translation:
+          #   name:
+          #     en: entity
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: add short name
+          description: add short description
+          selector:
+            entity:
+              multiple: false
+        entity2:
+          # translation:
+          #   name:
+          #     en: entity with filter
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: add short name
+          description: add short description
+          selector:
+            entity:
+              filter:
+                - integration: mqtt
+                  domain: sensor
+                  device_class: power
+        language:
+          # translation:
+          #   name:
+          #     en: language
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: add short name
+          description: add short description
+          selector:
+            language:
+              languages:
+                - de-CH
+                - en-GB
+              native_name: true
+        location:
+          # translation:
+          #   name:
+          #     en: location
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: add short name
+          description: add short description
+          selector:
+            location:
+              radius: true
+        number:
+          # translation:
+          #   name:
+          #     en: number box
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: add short name
+          description: add short description
+          selector:
+            number:
+              mode: box
+        number2:
+          # translation:
+          #   name:
+          #     en: number with min/max/step/slider/unit
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: add short name
+          description: add short description
+          selector:
+            number:
+              mode: slider
+              min: 12
+              max: 89
+              step: 7
+              unit_of_measurement: "%"
+        color_rgb:
+          # translation:
+          #   name:
+          #     en: color_rgb
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: add short name
+          description: add short description
+          selector:
+            color_rgb:
+        select:
+          # translation:
+          #   name:
+          #     en: select list
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: add short name
+          description: add short description
+          selector:
+            select:
+              options:
+                - label: Option 1
+                  value: option_1
+                - label: Option 2
+                  value: option_2
+                - label: Option 3
+                  value: option_3
+              custom: false
+              multiple: false
+              mode: dropdown
+              sort: false
+        select2:
+          # translation:
+          #   name:
+          #     en: select list with multiple
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: add short name
+          description: add short description
+          selector:
+            select:
+              options:
+                - label: Option 1
+                  value: option_1
+                - label: Option 2
+                  value: option_2
+                - label: Option 3
+                  value: option_3
+              custom: false
+              multiple: true
+              mode: list
+              sort: false
+        select3:
+          # translation:
+          #   name:
+          #     en: select with multiple/list
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: add short name
+          description: add short description
+          selector:
+            select:
+              options:
+                - label: Option 1
+                  value: option_1
+                - label: Option 2
+                  value: option_2
+                - label: Option 3
+                  value: option_3
+              custom: true
+              multiple: true
+              mode: dropdown
+              sort: false
+        text:
+          # translation:
+          #   name:
+          #     en: text with street address autocomplete
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: add short name
+          description: add short description
+          selector:
+            text:
+              multiline: false
+              type: text
+              autocomplete: address-line1
+        text2:
+          # translation:
+          #   name:
+          #     en: text with email/autocomplete/
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: add short name
+          description: add short description
+          selector:
+            text:
+              multiline: false
+              type: email
+              autocomplete: email
+        text3:
+          # translation:
+          #   name:
+          #     en: text with multiline address
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: add short name
+          description: add short description
+          selector:
+            text:
+              multiline: true
+              type: text
+              autocomplete: street-address
+        text4:
+          # translation:
+          #   name:
+          #     en: text prefix/suffix
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: add short name
+          description: add short description
+          selector:
+            text:
+              multiline: true
+              type: text
+              prefix: abc
+              suffix: xyz
+        text4:
+          # translation:
+          #   name:
+          #     en: text color
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: add short name
+          description: add short description
+          selector:
+            text:
+              multiline: true
+              type: color
+        text5:
+          # translation:
+          #   name:
+          #     en: text date
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: add short name
+          description: add short description
+          selector:
+            text:
+              multiple: true
+              type: date
+        time:
+          # translation:
+          #   name:
+          #     en: time
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: add short name
+          description: add short description
+          selector:
+            time:
+
+
+    condition_inputs:
+      name: Condition Inputs
+      icon: mdi:help-box-multiple
+      description: These inputs are used to set the automation conditions
+
+    action_inputs:
+      name: Action Inputs
+      icon: mdi:play-box-multiple
+      description: These inputs are used to set the actions
+
+    custom_inputs: # leave these as is - should be present in any blueprint
+      name: "DANGER ZONE: Additional Custom Inputs"
+      icon: mdi:alert
+      description: >-
+        **WATCH OUT!**  
+
+        This is advanced functionality and should only be used if you know what you're doing!  
+
+
+        Use this section to define custom triggers and conditions, as well as actions that will run at the end of the automation.
+      collapsed: true
+      input:
+        custom_triggers:
+          name: Custom triggers (optional)
+          description: >-
+            Use this to define custom triggers in addition to the default triggers.
+          selector:
+            trigger:
+          default: []
+        custom_conditions:
+          name: Custom conditions (optional)
+          description: >-
+            Use this to define custom conditions in addition to the default conditions.
+          selector:
+            condition:
+          default: []
+        custom_actions:
+          name: Custom actions (optional)
+          description: >-
+            Use this to define custom actions that should be executed at the end of this automation.
+          selector:
+            action:
+          default: []
+
+#########################
+# Variables Translation #
+#########################
+
+# this is required in order to use inputs as variables within templates
+variables:
+
+##############
+# Automation #
+##############
+
+mode: single
+max_exceeded: silent
+
+triggers:
+  - trigger: add your trigger here
+  ## Custom triggers
+  - triggers: !input custom_triggers
+
+conditions: # by default, conditions follow an AND logic
+  - condition: add your condition here
+  ## Custom conditions
+  - condition: and
+    conditions: !input custom_conditions
+
+actions:
+  - action: add your actions here
+  ## Custom actions
+  - if:
+      - condition: template
+        value_template: "{{ custom_actions is not none }}"
+    then: !input custom_actions
