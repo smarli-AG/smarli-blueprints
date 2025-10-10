@@ -484,7 +484,7 @@ blueprint:
               type: text
               prefix: abc
               suffix: xyz
-        text4:
+        text5:
           # translation:
           #   name:
           #     en: text color
@@ -501,7 +501,7 @@ blueprint:
             text:
               multiline: true
               type: color
-        text5:
+        text6:
           # translation:
           #   name:
           #     en: text date
@@ -533,7 +533,6 @@ blueprint:
           description: add short description
           selector:
             time:
-
 
     condition_inputs:
       name: Condition Inputs
