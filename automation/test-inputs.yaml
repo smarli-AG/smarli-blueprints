@@ -24,8 +24,8 @@
 # keywords_de: [wetter, warnung, benachrichtigung, regen, schnee, hagel, blitz, nebel, sturm]
 # events_en: [weather forecast]
 # events_de: [wettervorhersage]
-# highlight: true
-# deploy: false
+# highlight: false
+# deploy: true
 
 blueprint:
   ############
