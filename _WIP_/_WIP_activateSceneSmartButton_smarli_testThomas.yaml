@@ -95,7 +95,7 @@ blueprint:
             device:
               filter:
                 - integration: hue
-                  model: Hue ambiance spot
+                  model: Hue ambiance lamp
               multiple: true
 
     condition_inputs:
