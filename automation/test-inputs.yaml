@@ -51,7 +51,7 @@ blueprint:
   author: your-github-user [smarli. AG]
   source_url: url to the blueprint
   homeassistant:
-    min_version: minimum required HA core version depending on the functionality of the blueprint (e.g. 2024.11.3). [At minimum, 2024.10.0 is required](https://www.home-assistant.io/docs/automation/trigger/#merging-lists-of-triggers)
+    min_version: 2024.11.3
 
   ###############
   # User Inputs #
