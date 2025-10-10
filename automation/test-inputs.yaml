@@ -195,7 +195,7 @@ blueprint:
           description: add short description
           selector:
             duration:
-              enable_days: false
+              enable_day: false
         duration2:
           # translation:
           #   name:
@@ -211,7 +211,7 @@ blueprint:
           description: add short description
           selector:
             duration:
-              enable_days: true
+              enable_day: true
         entity:
           # translation:
           #   name:
