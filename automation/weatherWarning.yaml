@@ -44,7 +44,7 @@
 # events_en: [weather forecast]
 # events_de: [Wettervorhersage]
 # highlight: true
-# deploy: true
+# deploy: false
 
 blueprint:
   ############
