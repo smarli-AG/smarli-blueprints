@@ -355,7 +355,7 @@ blueprint:
                   value: option_2
                 - label: Option 3
                   value: option_3
-              custom: false
+              custom_value: false
               multiple: false
               mode: dropdown
               sort: false
@@ -381,7 +381,7 @@ blueprint:
                   value: option_2
                 - label: Option 3
                   value: option_3
-              custom: false
+              custom_value: false
               multiple: true
               mode: list
               sort: false
@@ -407,7 +407,7 @@ blueprint:
                   value: option_2
                 - label: Option 3
                   value: option_3
-              custom: true
+              custom_value: true
               multiple: true
               mode: dropdown
               sort: false
