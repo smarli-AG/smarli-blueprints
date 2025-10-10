@@ -31,7 +31,7 @@ blueprint:
   ############
   # Metadata #
   ############
-  name: Name of blueprint, usually 'smarli.' followed by the purpose of the automation (e.g. smarli. Weather Warning)
+  name: Test Inputs
   description: >
     # This is the H1, repeat the name, but add an emoji at the beginning (e.g. 🔔 smarli. Weather Warning)
 
