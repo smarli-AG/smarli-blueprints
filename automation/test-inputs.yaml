@@ -272,16 +272,17 @@ blueprint:
           #     en: location
           #     de: Lorem Ipsum
           #   description:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
+          #     en: Latitude and Longitude for any address can be discovered here: https://www.latlong.net/
+          #     de: Längen- und Breitengrade für eine beliebige Adresse können hier gefunden werden: https://www.latlong.net/
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
           name: location
-          description: add short description
+          description: "Latitude and Longitude for any address can be discovered here: https://www.latlong.net/
           selector:
             location:
               radius: true
+              
         number:
           # translation:
           #   name:
@@ -466,7 +467,7 @@ blueprint:
         text:
           # translation:
           #   name:
-          #     en: text with street address autocomplete
+          #     en: text with type street address and autocomplete
           #     de: Lorem Ipsum
           #   description:
           #     en: Lorem Ipsum dolor sit amet
@@ -474,7 +475,7 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: text with street address autocomplete
+          name: text with type street address and autocomplete
           description: add short description
           selector:
             text:
@@ -482,10 +483,10 @@ blueprint:
               multiple: false
               type: text
               autocomplete: address-line1
-        text2:
+        textemail:
           # translation:
           #   name:
-          #     en: text with email/autocomplete/
+          #     en: text with type email and autocomplete
           #     de: Lorem Ipsum
           #   description:
           #     en: Lorem Ipsum dolor sit amet
@@ -493,7 +494,26 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: text with email/autocomplete/
+          name: text with type email and autocomplete
+          description: add short description
+          selector:
+            text:
+              multiline: false
+              multiple: false
+              type: email
+              autocomplete: email
+        text2:
+          # translation:
+          #   name:
+          #     en: text with type email and autocomplete and multiple
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: text with type email and autocomplete and multiple
           description: add short description
           selector:
             text:
@@ -539,22 +559,6 @@ blueprint:
               type: text
               prefix: abc
               suffix: xyz
-        text5:
-          # translation:
-          #   name:
-          #     en: text color
-          #     de: Lorem Ipsum
-          #   description:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
-          #   default:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
-          name: text color
-          description: add short description
-          selector:
-            text:
-              type: color
         text6:
           # translation:
           #   name:
@@ -570,8 +574,59 @@ blueprint:
           description: add short description
           selector:
             text:
-              multiple: true
+              multiple: false
               type: date
+        texturl:
+          # translation:
+          #   name:
+          #     en: text url
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: text url
+          description: add short description
+          selector:
+            text:
+              multiple: false
+              type: url
+        textnumber:
+          # translation:
+          #   name:
+          #     en: text url
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: text number
+          description: add short description
+          selector:
+            text:
+              multiple: false
+              type: number
+        texttel:
+          # translation:
+          #   name:
+          #     en: text url
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: text tel
+          description: add short description
+          selector:
+            text:
+              multiple: false
+              type: tel
         time:
           # translation:
           #   name:
