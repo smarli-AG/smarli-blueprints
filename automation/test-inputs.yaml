@@ -336,6 +336,32 @@ blueprint:
         select:
           # translation:
           #   name:
+          #     en: select dropdown
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: select dropdown
+          description: add short description
+          selector:
+            select:
+              options:
+                - label: Option 1
+                  value: option_1
+                - label: Option 2
+                  value: option_2
+                - label: Option 3
+                  value: option_3
+              custom_value: false
+              multiple: false
+              mode: dropdown
+              sort: false
+        select-list:
+          # translation:
+          #   name:
           #     en: select list
           #     de: Lorem Ipsum
           #   description:
@@ -357,7 +383,7 @@ blueprint:
                   value: option_3
               custom_value: false
               multiple: false
-              mode: dropdown
+              mode: list
               sort: false
         select2:
           # translation:
@@ -388,7 +414,7 @@ blueprint:
         select3:
           # translation:
           #   name:
-          #     en: select with multiple as dropdown with custom values
+          #     en: select dropdown with multiple with custom values
           #     de: Lorem Ipsum
           #   description:
           #     en: Lorem Ipsum dolor sit amet
@@ -396,7 +422,33 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: select with multiple as dropdown with custom values
+          name: select dropdown with multiple with custom values
+          description: add short description
+          selector:
+            select:
+              options:
+                - label: Option 1
+                  value: option_1
+                - label: Option 2
+                  value: option_2
+                - label: Option 3
+                  value: option_3
+              custom_value: true
+              multiple: true
+              mode: dropdown
+              sort: false
+        select4:
+          # translation:
+          #   name:
+          #     en: select dropdown with multiple with custom values
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          #   default:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: select list with multiple with custom values
           description: add short description
           selector:
             select:
@@ -427,6 +479,7 @@ blueprint:
           selector:
             text:
               multiline: false
+              multiple: false
               type: text
               autocomplete: address-line1
         text2:
@@ -445,6 +498,7 @@ blueprint:
           selector:
             text:
               multiline: false
+              multiple: true
               type: email
               autocomplete: email
         text3:
@@ -463,6 +517,7 @@ blueprint:
           selector:
             text:
               multiline: true
+              multiple: false
               type: text
               autocomplete: street-address
         text4:
@@ -499,7 +554,6 @@ blueprint:
           description: add short description
           selector:
             text:
-              multiline: true
               type: color
         text6:
           # translation:
