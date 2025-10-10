@@ -1,0 +1,672 @@
+# TODO: potential improvements:
+# - Ability to track multiple weather entities
+#   (change to multiple true, write all forecasts into a list and check if any of the tracked wheather events are in that list.
+#   How do we handle different weather events from different entities, that are all in the list? Maybe with a main entity?)
+#   => Likely makes things unnecessarily complicated
+# - Differentiate notify action between Android and iOS
+#   see for example this approach https://github.com/samuelthng/t-house-blueprints/blob/main/notifications.yaml
+#   uses has an approach to check the platform of the device. maybe this can be integrated as well
+#   -> get all devices, check their manufacturer or os and then put them in different lists. then send different
+#   notifications to iOS and android. maybe similar to this repeat function: https://gist.github.com/milperks/3a2cce4805735ebcadab701162257139
+# - Language support by creating dictionaries with non-editable texts and tying them into the language entity
+
+# ! RELEASE NOTES
+## 1.5.0 | 2025-09-24
+## - Add Partner Engine data
+## 1.4.0 | 2025-06-30
+## - fix interruption level for iOS notifications interruption-level
+## 1.3.0 | 2025-05-07
+## - Add option to send notification to specific devices instead of all devices
+## - Set different colors for different kinds of weather conditions
+## 1.2.0 | 2025-02-27
+## - Initial live release
+
+# ================
+# Partner Engine
+# ================
+# icon: "weather-lightning-rainy"
+#
+# name_en: "Weather Warning Conditional"
+# name_de: "Wetterwarnung Conditional"
+# subtitle_en: "Phone Notification"
+# subtitle_de: "Handy-Benachrichtigung"
+#
+# short_description_en: "Get notified about upcoming weather events such as rain, storms, snow, and more."
+# short_description_de: "Erhalte Benachrichtigungen über bevorstehende Wetterereignisse wie Regen, Gewitter, Schnee und mehr."
+# long_description_en: "Every morning, smarli. checks the weather forecast in your area and notifies you about any upcoming weather events so that you can leave your home fully prepared."
+# long_description_de: "Jeden Morgen prüft smarli. die Wettervorhersage in deiner Umgebung und benachrichtigt dich über bevorstehende Wetterereignisse, damit du dein Zuhause stets bestens vorbereitet verlassen kannst."
+#
+# purpose_en: "Comfort"
+# purpose_de: "Komfort"
+#
+# keywords_en: [weather, warning, notification, rain, snow, hail, lightning, fog, storm]
+# keywords_de: [wetter, warnung, benachrichtigung, regen, schnee, hagel, blitz, nebel, sturm]
+# events_en: [weather forecast]
+# events_de: [Wettervorhersage]
+# highlight: true
+# deploy: true
+
+blueprint:
+  ############
+  # Metadata #
+  ############
+  name: smarli. Weather Warning
+  description: >
+    # 🌩️ smarli. Weather Warning
+
+
+    This automation will warn users about upcoming weather events so that they can leave their homes fully prepared.
+
+    *Version 1.4.0 | 2025-06-30*
+
+    <details>
+    <summary><b>How to set it up</b></summary>
+
+      1. Select at what time the notification should be sent - this is the trigger
+
+      2. Select the weather entity that should be watched
+
+      3. Select which weather conditions you'd like to be informed about
+
+      4. Select if you'd like to inform all notification devices or just specific companion apps.
+
+      5. If you like, update the texts that will be sent with the notification
+
+      6. Add additional triggers, conditions, or actions manually - this is for experienced users only.
+    </details>
+
+
+    All input fields are required unless they are marked as ` (optional) `.
+  domain: automation
+  author: loocd [smarli. AG]
+  source_url: https://github.com/smarli-AG/smarli-blueprints/blob/main/automation/weatherWarning.yaml
+  homeassistant:
+    min_version: 2024.11.3
+
+  ###############
+  # User Inputs #
+  ###############
+  input:
+    trigger_inputs:
+      name: Trigger Inputs
+      icon: mdi:star-box-multiple
+      description: These inputs are used to set the automation triggers
+      input:
+        trigger_time:
+          # translation:
+          #   name:
+          #     en: Time of notification
+          #     de: Benachrichtigungszeit
+          #   description:
+          #     en: The time to send the notification
+          #     de: Die Zeit, an der die Benachrichtigung gesendet wird
+          # display_if: true
+          name: Time of notification
+          description: The time to send the notification
+          selector:
+            time:
+          default: "06:30:00"
+
+    condition_inputs:
+      name: Condition Inputs
+      icon: mdi:help-box-multiple
+      description: These inputs are used to set the automation conditions
+      input:
+        weather_entity:
+          # translation:
+          #   name:
+          #     en: Weather Prediction
+          #     de: Wettervorhersage
+          #   description:
+          #     en: The weather prediction to check
+          #     de: Die Wettervorhersage, die überprüft werden soll
+          # display_if: true
+          name: Weather Entity
+          description: The weather entity to check
+          selector:
+            entity:
+              filter:
+                domain: weather
+        weather_events:
+          # translation:
+          #   name:
+          #     en: Weather Events
+          #     de: Wetterereignisse
+          #   description:
+          #     en: Which predicted weather events should trigger a notification?
+          #     de: Welche vorhergesagten Wetterereignisse sollen eine Benachrichtigung auslösen?
+          # display_if: true
+          name: Weather Events
+          description: Which predicted weather events should trigger a notification?
+          selector:
+            select:
+              options:
+                - label: Rainy
+                  # translation:
+                  #   label:
+                  #     en: Rainy
+                  #     de: Regen
+                  value: "rainy"
+                - label: Pouring
+                  # translation:
+                  #   label:
+                  #     en: Pouring
+                  #     de: Starkregen
+                  value: "pouring"
+                - label: Lightning
+                  # translation:
+                  #   label:
+                  #     en: Lightning
+                  #     de: Blitzschlag
+                  value: "lightning"
+                - label: Lightning, rainy
+                  # translation:
+                  #   label:
+                  #     en: Lightning and rainy
+                  #     de: Blitzschlag mit Regen
+                  value: "lightning-rainy"
+                - label: Hail
+                  # translation:
+                  #   label:
+                  #     en: Hail
+                  #     de: Hagel
+                  value: "hail"
+                - label: Snowy
+                  # translation:
+                  #   label:
+                  #     en: Snowy
+                  #     de: Schnee
+                  value: "snowy"
+                - label: Snowy, rainy
+                  # translation:
+                  #   label:
+                  #     en: Snowy and rainy
+                  #     de: Schneeregen
+                  value: "snowy-rainy"
+                - label: Fog
+                  # translation:
+                  #   label:
+                  #     en: Fog
+                  #     de: Nebel
+                  value: "fog"
+              multiple: true
+              mode: list
+
+    action_inputs:
+      name: Action Inputs
+      icon: mdi:play-box-multiple
+      description: These inputs are used to set the actions
+      input:
+        notification_scope:
+          # translation:
+          #   name:
+          #     en: Notification
+          #     de: Benachrichtigung
+          #   description:
+          #     en: Do you want to notify all devices or only specific ones?
+          #     de: Möchtest du alle Geräte benachrichtigen oder nur bestimmte?
+          # display_if: true
+          name: Notification
+          description: Who should be notified? It's easiest to just inform all notify devices, as this works even when customers change their mobile devices. But you can also specify specific devices. When notifying all devices (`notify.notify` action) this could also target other notify integrations such as Microsoft Teams. Still, this is the best option for most circumstances.
+          selector:
+            select:
+              options:
+                - label: All Devices
+                  # translation:
+                  #   label:
+                  #     en: All Devices
+                  #     de: Alle Geräte
+                  value: "all"
+                - label: Specific Notify Devices
+                  # translation:
+                  #   label:
+                  #     en: Specific Devices
+                  #     de: Bestimmte Geräte
+                  value: "specific"
+          default: "all"
+        notify_recipients:
+          # translation:
+          #   name:
+          #     en: Devices to Notify (optional)
+          #     de: Zu benachrichtigende Geräte (optional)
+          #   description:
+          #     en: If you set the scope to `Specific Devices`, which devices should be notified?
+          #     de: Wenn du `Bestimmte Geräte` gewählt hast, welche Geräte sollen benachrichtigt werden?
+          # display_if: notification_scope == "specific"
+          name: Devices to Notify (optional)
+          description: If the scope is set to `specific`, which devices should be notified?
+          selector:
+            device:
+              filter:
+                - integration: mobile_app
+              multiple: true
+          default: []
+        notification_title_rainy:
+          # translation:
+          #   name:
+          #     en: Notification Title "Rainy"
+          #     de: Benachrichtigungstitel "Regen"
+          #   description:
+          #     en: Set the title of the notification that should be sent on rainy weather conditions.
+          #     de: Setze den Titel der Benachrichtigung, die bei Regenwetter gesendet werden soll.
+          #   default:
+          #     en: ☔ Rain Warning
+          #     de: ☔ Regenwarnung
+          # display_if: 'rainy' in weather_events
+          name: Notification Title "Rainy"
+          description: Set the title of the notification that should be sent on rainy weather conditions.
+          selector:
+            text:
+          default: ☔ Regenwarnung
+        message_rainy:
+          # translation:
+          #   name:
+          #     en: Message "Rainy"
+          #     de: Nachricht "Regen"
+          #   description:
+          #     en: Set the message that should be sent on rainy weather conditions.
+          #     de: Bestimme die Nachricht, die bei Regenwetter gesendet werden soll.
+          #   default:
+          #     en: Rain is expected in your area today. Just to be safe, take an umbrella with you!
+          #     de: Heute wird in deiner Umgebung Regen erwartet. Nimm sicherheitshalber einen Schirm mit!
+          # display_if: 'rainy' in weather_events
+          name: Message "Rainy"
+          description: Set the message that should be sent on rainy weather conditions.
+          selector:
+            text:
+              multiline: true
+          default: Heute wird in deiner Umgebung Regen erwartet. Nimm sicherheitshalber einen Schirm mit!
+
+        notification_title_pouring:
+          # translation:
+          #   name:
+          #     en: Notification Title "Pouring"
+          #     de: Benachrichtigungstitel "Starkregen"
+          #   description:
+          #     en: Set the title of the notification that should be sent on pouring weather conditions.
+          #     de: Setze den Titel der Benachrichtigung, die bei Starkregen gesendet werden soll.
+          #   default:
+          #     en: 🌧️ Heavy Rain Warning
+          #     de: 🌧️ Starkregenwarnung
+          # display_if: 'pouring' in weather_events
+          name: Notification Title "Pouring"
+          description: Set the title of the notification that should be sent on pouring weather conditions.
+          selector:
+            text:
+          default: 🌧️ Starkregenwarnung
+
+        message_pouring:
+          # translation:
+          #   name:
+          #     en: Message "Pouring"
+          #     de: Nachricht "Starkregen"
+          #   description:
+          #     en: Set the message that should be sent on pouring weather conditions.
+          #     de: Bestimme die Nachricht, die bei Starkregen gesendet werden soll.
+          #   default:
+          #     en: Heavy rain is expected in your area today. You should definitely take an umbrella with you!
+          #     de: Heute wird in deiner Umgebung starker Regen erwartet. Du solltest unbedingt einen Schirm mitnehmen!
+          # display_if: 'pouring' in weather_events
+          name: Message "Pouring"
+          description: Set the message that should be sent on pouring weather conditions.
+          selector:
+            text:
+              multiline: true
+          default: Heute wird in deiner Umgebung starker Regen erwartet. Du solltest unbedingt einen Schirm mitnehmen!
+
+        notification_title_lightning:
+          # translation:
+          #   name:
+          #     en: Notification Title "Lightning" and "Lightning, Rainy"
+          #     de: Benachrichtigungstitel "Blitz" und "Blitz, Regen"
+          #   description:
+          #     en: Set the title of the notification that should be sent when there is lightning.
+          #     de: Setze den Titel der Benachrichtigung, die bei Blitzaktivität gesendet werden soll.
+          #   default:
+          #     en: ⚡ Lightning Warning
+          #     de: ⚡ Blitzwarnung
+          # display_if: 'lightning' in weather_events or 'lightning-rainy' in weather_events
+          name: Notification Title "Lightning" and "Lightning, Rainy"
+          description: Set the title of the notification that should be sent when there is lightning.
+          selector:
+            text:
+          default: ⚡ Blitzwarnung
+
+        message_lightning:
+          # translation:
+          #   name:
+          #     en: Message "Lightning" and "Lightning, Rainy"
+          #     de: Nachricht "Blitz" und "Blitz, Regen"
+          #   description:
+          #     en: Set the message that should be sent when there is lightning.
+          #     de: Bestimme die Nachricht, die bei Blitzaktivität gesendet werden soll.
+          #   default:
+          #     en: Thunderstorms with lightning activity have been reported in your area. Be careful and stay indoors if possible!
+          #     de: In deiner Umgebung wurden Gewitter mit Blitzaktivität gemeldet. Sei vorsichtig und bleibe nach Möglichkeit im Gebäude!
+          # display_if: 'lightning' in weather_events or 'lightning-rainy' in weather_events
+          name: Message "Lightning" and "Lightning, Rainy"
+          description: Set the message that should be sent when there is lightning.
+          selector:
+            text:
+              multiline: true
+          default: In deiner Umgebung wurden Gewitter mit Blitzaktivität gemeldet. Sei vorsichtig und bleibe nach Möglichkeit im Gebäude!
+
+        notification_title_hail:
+          # translation:
+          #   name:
+          #     en: Notification Title "Hail"
+          #     de: Benachrichtigungstitel "Hagel"
+          #   description:
+          #     en: Set the title of the notification that should be sent when it hails.
+          #     de: Setze den Titel der Benachrichtigung, die bei Hagelschlag gesendet werden soll.
+          #   default:
+          #     en: 🧊 Hail Warning
+          #     de: 🧊 Hagelschlag
+          # display_if: 'hail' in weather_events
+          name: Notification Title "Hail"
+          description: Set the title of the notification that should be sent when it hails.
+          selector:
+            text:
+          default: 🧊 Hagelschlag
+
+        message_hail:
+          # translation:
+          #   name:
+          #     en: Message "Hail"
+          #     de: Nachricht "Hagel"
+          #   description:
+          #     en: Set the message that should be sent when it hails.
+          #     de: Bestimme die Nachricht, die bei Hagelschlag gesendet werden soll.
+          #   default:
+          #     en: Hail is expected in your area. Protect your car if necessary and stay indoors if possible!
+          #     de: In deiner Umgebung wird Hagelschlag erwartet. Schütze wenn nötig dein Auto und bleibe nach Möglichkeit im Gebäude!
+          # display_if: 'hail' in weather_events
+          name: Message "Hail"
+          description: Set the message that should be sent when it hails.
+          selector:
+            text:
+              multiline: true
+          default: In deiner Umgebung wird Hagelschlag erwartet. Schütze wenn nötig dein Auto und bleibe nach Möglichkeit im Gebäude!
+
+        notification_title_snowy:
+          # translation:
+          #   name:
+          #     en: Notification Title "Snowy"
+          #     de: Benachrichtigungstitel "Schnee"
+          #   description:
+          #     en: Set the title of the notification that should be sent when it snows.
+          #     de: Setze den Titel der Benachrichtigung, die bei Schneefall gesendet werden soll.
+          #   default:
+          #     en: ❄️ Snow Warning
+          #     de: ❄️ Schneefall
+          # display_if: 'snowy' in weather_events or 'snowy-rainy' in weather_events
+          name: Notification Title "Snowy"
+          description: Set the title of the notification that should be sent when it snows.
+          selector:
+            text:
+          default: ❄️ Schneefall
+
+        message_snowy:
+          # translation:
+          #   name:
+          #     en: Message "Snowy"
+          #     de: Nachricht "Schnee"
+          #   description:
+          #     en: Set the message that should be sent when it snows.
+          #     de: Bestimme die Nachricht, die bei Schneefall gesendet werden soll.
+          #   default:
+          #     en: Snowfall is expected in your area. Be careful on the roads and dress warmly!
+          #     de: Es wird in deiner Umgebung Schneefall erwartet. Sei vorsichtig auf den Strassen und zieh dich warm an!
+          # display_if: 'snowy' in weather_events or 'snowy-rainy' in weather_events
+          name: Message "Snowy"
+          description: Set the message that should be sent when it snows.
+          selector:
+            text:
+              multiline: true
+          default: Es wird in deiner Umgebung Schneefall erwartet. Sei vorsichtig auf den Strassen und zieh dich warm an!
+
+        notification_title_snowy-rainy:
+          # translation:
+          #   name:
+          #     en: Notification Title "Snowy, Rainy"
+          #     de: Benachrichtigungstitel "Schneeregen"
+          #   description:
+          #     en: Set the title of the notification that should be sent when there is snow and rain at the same time.
+          #     de: Setze den Titel der Benachrichtigung, die bei Schneeregen gesendet werden soll.
+          #   default:
+          #     en: 🌨️ Sleet Warning
+          #     de: 🌨️ Schneeregen
+          # display_if: 'snowy-rainy' in weather_events
+          name: Notification Title "Snowy, Rainy"
+          description: Set the title of the notification that should be sent when there is snow and rain at the same time.
+          selector:
+            text:
+          default: 🌨️ Schneeregen
+
+        message_snowy-rainy:
+          # translation:
+          #   name:
+          #     en: Message "Snowy, Rainy"
+          #     de: Nachricht "Schneeregen"
+          #   description:
+          #     en: Set the message that should be sent when there is snow and rain at the same time.
+          #     de: Bestimme die Nachricht, die bei Schneeregen gesendet werden soll.
+          #   default:
+          #     en: Sleet is expected in your area. Roads can be slippery, be extra careful today!
+          #     de: In deiner Umgebung wird Schneeregen erwartet. Strassen können rutschig sein, sei heute besonders vorsichtig!
+          # display_if: 'snowy-rainy' in weather_events
+          name: Message "Snowy, Rainy"
+          description: Set the message that should be sent when there is snow and rain at the same time.
+          selector:
+            text:
+              multiline: true
+          default: In deiner Umgebung wird Schneeregen erwartet. Strassen können rutschig sein, sei heute besonders vorsichtig!
+
+        notification_title_fog:
+          # translation:
+          #   name:
+          #     en: Notification Title "Fog"
+          #     de: Benachrichtigungstitel "Nebel"
+          #   description:
+          #     en: Set the title of the notification that should be sent when there is fog.
+          #     de: Setze den Titel der Benachrichtigung, die bei Nebel gesendet werden soll.
+          #   default:
+          #     en: 🌁 Fog Warning
+          #     de: 🌁 Nebelwarnung
+          # display_if: 'fog' in weather_events
+          name: Notification Title "Fog"
+          description: Set the title of the notification that should be sent when there is fog.
+          selector:
+            text:
+          default: 🌁 Nebelwarnung
+
+        message_fog:
+          # translation:
+          #   name:
+          #     en: Message "Fog"
+          #     de: Nachricht "Nebel"
+          #   description:
+          #     en: Set the message that should be sent when there is fog.
+          #     de: Bestimme die Nachricht, die bei Nebel gesendet werden soll.
+          #   default:
+          #     en: Fog has been announced in your area. Be careful accordingly.
+          #     de: In deiner Umgebung wurde Nebel angekündigt. Sei entsprechend vorsichtig.
+          # display_if: 'fog' in weather_events
+          name: Message "Fog"
+          description: Set the message that should be sent when there is fog.
+          selector:
+            text:
+              multiline: true
+          default: In deiner Umgebung wurde Nebel angekündigt. Sei entsprechend vorsichtig.
+
+    custom_inputs:
+      name: "DANGER ZONE: Additional Custom Inputs"
+      icon: mdi:alert
+      description: >-
+        **WATCH OUT!**  
+
+        This is advanced functionality and should only be used if you know what you're doing!  
+
+
+        Use this section to define custom triggers and conditions, as well as actions that will run at the end of the automation.
+      collapsed: true
+      input:
+        custom_triggers:
+          name: Custom triggers (optional)
+          description: >-
+            Use this to define custom triggers in addition to the default triggers.
+          selector:
+            trigger:
+          default: []
+        custom_conditions:
+          name: Custom conditions (optional)
+          description: >-
+            Use this to define custom conditions in addition to the default conditions.
+          selector:
+            condition:
+          default: []
+        custom_actions:
+          name: Custom actions (optional)
+          description: >-
+            Use this to define custom actions that should be executed at the end of this automation.
+          selector:
+            action:
+          default: []
+
+#########################
+# Variables Translation #
+#########################
+
+# this is required in order to use inputs as variables within templates
+variables:
+  weather_entity: !input weather_entity
+  weather_events: !input weather_events
+
+  notification_scope: !input notification_scope
+  notify_recipients: !input notify_recipients
+
+  custom_actions: !input custom_actions
+
+  # Put all messages, notification titles and icons into dictionaries that
+  # can be targeted with the current weather condition.
+  # This way only one notify action is required, instead of one per condition.
+  messages:
+    rainy: !input message_rainy
+    pouring: !input message_pouring
+    lightning: !input message_lightning
+    lightning-rainy: !input message_lightning # take same message as for lightning
+    hail: !input message_hail
+    snowy: !input message_snowy
+    snowy-rainy: !input message_snowy-rainy
+    fog: !input message_fog
+  titles:
+    rainy: !input notification_title_rainy
+    pouring: !input notification_title_pouring
+    lightning: !input notification_title_lightning
+    lightning-rainy: !input notification_title_lightning # take same title as for lightning
+    hail: !input notification_title_hail
+    snowy: !input notification_title_snowy
+    snowy-rainy: !input notification_title_snowy-rainy
+    fog: !input notification_title_fog
+  icons:
+    rainy: "mdi:weather-rainy"
+    pouring: "mdi:weather-pouring"
+    lightning: "mdi:weather-lightning"
+    lightning-rainy: "mdi:weather-lightning" # take same icon as for lightning
+    hail: "mdi:weather-hail"
+    snowy: "mdi:weather-snowy"
+    snowy-rainy: "mdi:weather-snowy-rainy"
+    fog: "mdi:weather-fog"
+  colors: # see colors here: https://www.w3.org/TR/2010/PR-css3-color-20101028/#html4
+    rainy: "#3f43ac" # smarli. blue
+    pouring: "#3f43ac" # smarli. blue
+    lightning: "#ffd700" # gold
+    lightning-rainy: "#ffd700" # gold
+    hail: "#e0ffff" # lightcyan
+    snowy: "#ffffff" # white
+    snowy-rainy: "#ffffff" # white
+    fog: "#d3d3d3" # lightgrey
+
+##############
+# Automation #
+##############
+
+mode: single
+max_exceeded: silent
+
+triggers:
+  - trigger: time
+    at: !input trigger_time
+  ## Custom triggers
+  - triggers: !input custom_triggers
+
+conditions: # by default, conditions follow an AND logic
+  ## Custom conditions
+  - condition: and
+    conditions: !input custom_conditions
+
+actions:
+  # first get the current weather forecast and write it into a variable called 'daily'
+  - action: weather.get_forecasts
+    target:
+      entity_id: !input weather_entity
+    data:
+      type: daily
+    response_variable: daily
+  # grab that variable and extracht the forecast for the weather_entity from it.
+  # then get today's (->0) condition from forecast for that entity.
+  - variables:
+      forecast: "{{ daily[weather_entity].forecast }}"
+      forecast_today: "{{ forecast[0].condition }}"
+      # add additional notify data so that they can be reused
+      notify_data:
+        actions:
+          - action: thanks # setting an action that does nothing, but it clears the notification
+            title: Danke smarli.!
+          - action: "URI"
+            title: "Öffnen"
+            uri: "entityId:{{weather_entity}}"
+
+        # android-only options
+        ttl: 0
+        priority: high
+        visibility: public
+        notification_icon: "{{icons[forecast_today]}}"
+        color: "{{colors[forecast_today]}}"
+        clickAction: noAction
+
+        # ios-only options
+        url: # used as url for iOS, nothing defined here, same as clickAction for Android
+        push:
+          interruption-level: time-sensitive # Use only for actually time-sensitive notifications, otherwise remove the interruption-level (and push) to fallback to "active"
+  # check if the forecast condition is part of the tracked weather_events or not
+  - if:
+      - condition: template
+        value_template: "{{ forecast_today in weather_events }}"
+    # if so, send the notification
+    then:
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ notification_scope == 'specific' and notify_recipients | length > 0 }}"
+            sequence:
+              - repeat:
+                  for_each: "{{ notify_recipients }}"
+                  sequence:
+                    - action: "notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}"
+                      data:
+                        message: "{{messages[forecast_today]}}"
+                        title: "{{titles[forecast_today]}}"
+                        data: "{{ notify_data }}"
+        default:
+          - action: notify.notify
+            data:
+              message: "{{messages[forecast_today]}}"
+              title: "{{titles[forecast_today]}}"
+              data: "{{ notify_data }}"
+
+  ## Custom actions
+  - if:
+      - condition: template
+        value_template: "{{ custom_actions is not none }}"
+    then: !input custom_actions
