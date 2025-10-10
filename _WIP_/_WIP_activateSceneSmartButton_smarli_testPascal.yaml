@@ -95,6 +95,10 @@ blueprint:
             device:
               filter:
                 - integration: shelly
+                - integration: zha
+                  manufacturer: smarli.
+                  model: S-ZB-PDM1-R251
+              multiple: true
               multiple: true
 
     condition_inputs:
