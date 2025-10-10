@@ -480,7 +480,7 @@ blueprint:
           description: add short description
           selector:
             text:
-              multiline: true
+              multiline: false
               type: text
               prefix: abc
               suffix: xyz
