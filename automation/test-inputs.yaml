@@ -73,7 +73,7 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: add short name
+          name: area
           description: add short description
           selector:
             area:
@@ -89,7 +89,7 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: add short name
+          name: area with device filter and multiple
           description: add short description
           selector:
             area:
@@ -109,7 +109,7 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: add short name
+          name: boolean
           description: add short description
           selector:
             boolean:
@@ -124,7 +124,7 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: add short name
+          name: color temperature
           description: add short description
           selector:
             color_temp:
@@ -142,7 +142,7 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: add short name
+          name: date
           description: add short description
           selector:
             date:
@@ -157,7 +157,7 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: add short name
+          name: device
           description: add short description
           selector:
             device:
@@ -173,7 +173,7 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: add short name
+          name: device with entity filter and multiple
           description: add short description
           selector:
             device:
@@ -191,7 +191,7 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: add short name
+          name: duration
           description: add short description
           selector:
             duration:
@@ -207,7 +207,7 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: add short name
+          name: duration with days
           description: add short description
           selector:
             duration:
@@ -223,7 +223,7 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: add short name
+          name: entity
           description: add short description
           selector:
             entity:
@@ -239,7 +239,7 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: add short name
+          name: entity with filter
           description: add short description
           selector:
             entity:
@@ -258,7 +258,7 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: add short name
+          name: language
           description: add short description
           selector:
             language:
@@ -277,7 +277,7 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: add short name
+          name: location
           description: add short description
           selector:
             location:
@@ -293,7 +293,7 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: add short name
+          name: number box
           description: add short description
           selector:
             number:
@@ -309,7 +309,7 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: add short name
+          name: number with min/max/step/slider/unit
           description: add short description
           selector:
             number:
@@ -329,7 +329,7 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: add short name
+          name: color_rgb
           description: add short description
           selector:
             color_rgb:
@@ -344,7 +344,7 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: add short name
+          name: select list
           description: add short description
           selector:
             select:
@@ -370,7 +370,7 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: add short name
+          name: select list with multiple
           description: add short description
           selector:
             select:
@@ -388,7 +388,7 @@ blueprint:
         select3:
           # translation:
           #   name:
-          #     en: select with multiple/list
+          #     en: select with multiple as dropdown with custom values
           #     de: Lorem Ipsum
           #   description:
           #     en: Lorem Ipsum dolor sit amet
@@ -396,7 +396,7 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: add short name
+          name: select with multiple as dropdown with custom values
           description: add short description
           selector:
             select:
@@ -422,7 +422,7 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: add short name
+          name: text with street address autocomplete
           description: add short description
           selector:
             text:
@@ -440,7 +440,7 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: add short name
+          name: text with email/autocomplete/
           description: add short description
           selector:
             text:
@@ -458,7 +458,7 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: add short name
+          name: text with multiline address
           description: add short description
           selector:
             text:
@@ -476,7 +476,7 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: add short name
+          name: text prefix/suffix
           description: add short description
           selector:
             text:
@@ -495,7 +495,7 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: add short name
+          name: text color
           description: add short description
           selector:
             text:
@@ -512,7 +512,7 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: add short name
+          name: text date
           description: add short description
           selector:
             text:
@@ -529,7 +529,7 @@ blueprint:
           #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: add short name
+          name: time
           description: add short description
           selector:
             time:
