@@ -138,6 +138,8 @@ blueprint:
           description: Add a delay before activating the scene.
           selector:
             duration:
+              enable_days: false
+              enable_milliseconds: false
           default: "00:00:00"
 
     custom_inputs: # leave these as is - should be present in any blueprint
