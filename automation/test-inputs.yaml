@@ -196,10 +196,11 @@ blueprint:
           selector:
             duration:
               enable_day: false
+              enable_millisecond: false
         duration2:
           # translation:
           #   name:
-          #     en: duration with days
+          #     en: duration with days and milliseconds
           #     de: Lorem Ipsum
           #   description:
           #     en: Lorem Ipsum dolor sit amet
@@ -212,6 +213,7 @@ blueprint:
           selector:
             duration:
               enable_day: true
+              enable_millisecond: true
         entity:
           # translation:
           #   name:
