@@ -166,6 +166,8 @@ blueprint:
           description: Add a delay before turning off the selected devices.
           selector:
             duration:
+              enable_day: false
+              enable_millisecond: false
           default: "00:00:00"
 
     custom_inputs: # leave these as is - should be present in any blueprint
