@@ -278,7 +278,7 @@ blueprint:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
           name: location
-          description: "Latitude and Longitude for any address can be discovered here: https://www.latlong.net/
+          description: "Latitude and Longitude for any address can be discovered here: https://www.latlong.net/"
           selector:
             location:
               radius: true
