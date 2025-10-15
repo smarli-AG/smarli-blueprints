@@ -98,6 +98,8 @@ blueprint:
                 - integration: zha
                   manufacturer: smarli.
                   model: S-ZB-PDM1-R251
+                - integration: zha
+                  manufacturer: Sunricher
               multiple: true
               multiple: true
 
