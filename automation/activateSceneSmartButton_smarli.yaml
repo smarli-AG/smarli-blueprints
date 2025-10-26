@@ -9,13 +9,13 @@
 #
 # name_en: "Scene Activation"
 # name_de: "Szene aktivieren"
-# subtitle_en: "smarli. dimmer"
-# subtitle_de: "smarli. dimmer"
+# subtitle_en: "smarli. smart button"
+# subtitle_de: "smarli. Smart Button"
 #
-# short_description_en: "Activate a scene with a single press of your preferred smarli. dimmer."
-# short_description_de: "Aktiviere eine Szene durch das einfache Drücken deines bevorzugten smarli. dimmer."
-# long_description_en: "The Scene Activation automation allows you to activate any scene in your home with a button press. This works with any smarli. dimmer."
-# long_description_de: "Die Automation zur Szenenaktivierung ermöglicht es dir, jede Szene in deinem Zuhause per Knopfdruck zu aktivieren. Dies funktioniert mit jedem smarli. dimmer."
+# short_description_en: "Activate a scene with a single press of your preferred smarli. dimmer or relay."
+# short_description_de: "Aktiviere eine Szene durch das einfache Drücken deines bevorzugten smarli. dimmer oder smarli. relay."
+# long_description_en: "The Scene Activation automation allows you to activate any scene in your home with a button press. This works with any smarli. dimmer or relay."
+# long_description_de: "Die Automation zur Szenenaktivierung ermöglicht es dir, jede Szene in deinem Zuhause per Knopfdruck zu aktivieren. Dies funktioniert mit jedem smarli. dimmer oder smarli. relay."
 #
 # purpose_en: "Comfort" -> Options are (select one): Comfort, Security, Sustainability
 # purpose_de: "Komfort"
@@ -31,11 +31,11 @@ blueprint:
   ############
   # Metadata #
   ############
-  name: smarli. Scene Activation with smarli. dimmer
+  name: smarli. Scene Activation with smarli. dimmer or relay
   description: >
-    # 🎨 smarli. Scene Activation with smarli. dimmer
+    # 🎨 smarli. Scene Activation with smarli. dimmer or relay
 
-    This automation will activate a selected scene when any of your configured smarli. dimmers are pressed. The scene activates on any state change of the dimmer (on→off or off→on).
+    This automation will activate a selected scene when any of your configured smarli. dimmers or relays are pressed. The scene activates on any state change of the dimmer or relay (on→off or off→on).
     Please beware that this doesn't use the homeassistant scene functionality, but rather activates a script that you can use to set up your scene as desired. Reason being that scripts support far more features than scenes.
 
     *Version 1.0.0 | 2025-10-05*
@@ -43,7 +43,7 @@ blueprint:
     <details>
     <summary><b>How to set it up</b></summary>
 
-      1. Select one or more smarli. dimmers that should trigger the scene
+      1. Select one or more smarli. dimmers or relays that should trigger the scene
       2. Select the scene you want to activate
     </details>
 
@@ -67,12 +67,12 @@ blueprint:
         smart_buttons:
           # translation:
           #   name:
-          #     en: smarli. dimmer
-          #     de: smarli. dimmer
+          #     en: smarli. dimmer or relay
+          #     de: smarli. dimmer / relay
           #   description:
           #     en: Select the smarli. devices that should activate the scene.
           #     de: Wähle die smarli. Geräte aus, die die Szene aktivieren sollen.
-          name: smarli. dimmer
+          name: smarli. dimmer or relay
           description: Select the smarli. devices that should activate the scene.
           selector:
             device:
@@ -83,6 +83,12 @@ blueprint:
                 - integration: zha
                   manufacturer: smarli.
                   model: S-ZB-PDM1-R251
+                - integration: mqtt
+                  manufacturer: smarli.
+                  model: S-ZB-1RE1-R251
+                - integration: zha
+                  manufacturer: smarli.
+                  model: S-ZB-1RE1-R251
               multiple: true
 
     condition_inputs:
