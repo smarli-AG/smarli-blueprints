@@ -615,7 +615,7 @@ blueprint:
         texttel:
           # translation:
           #   name:
-          #     en: text url
+          #     en: text tel
           #     de: Lorem Ipsum
           #   description:
           #     en: Lorem Ipsum dolor sit amet
