@@ -14,6 +14,14 @@
 #
 # short_description_en: "Turn off all lights and media players in your home with a single button press."
 # short_description_de: "Schalte alle Lichter und Medienplayer in deinem Zuhause mit nur einem Knopfdruck aus."
+# long_description_en: |
+#   # Header
+#
+#   The All Off automation let's you turn off all you lights and media players in your home with a single button press. This is great for quickly turning off everything when leaving the house or going to bed.
+#   
+#   Second paragraph after a blank line.
+#   
+#   Third paragraph continues here.
 # long_description_en: "The All Off automation let's you turn off all you lights and media players in your home with a single button press. This is great for quickly turning off everything when leaving the house or going to bed."
 # long_description_de: "Die 'Alles Aus' Automatisierung ermöglicht es dir, alle Lichter und Medienplayer in deinem Zuhause mit nur einem Knopfdruck auszuschalten. Das ist ideal, um schnell alles auszuschalten, wenn du das Haus verlässt oder ins Bett gehst."
 #
