@@ -14,7 +14,10 @@
 #
 # short_description_en: "Activate a scene with a single press of your preferred smarli. dimmer or relay."
 # short_description_de: "Aktiviere eine Szene durch das einfache Drücken deines bevorzugten smarli. dimmer oder smarli. relay."
-# long_description_en: "The Scene Activation automation allows you to activate any scene in your home with a button press. This works with any smarli. dimmer or relay."
+# long_description_en: 
+# "# My Title
+#
+# The Scene Activation automation allows you to activate any scene in your home with a button press. This works with any smarli. dimmer or relay."
 # long_description_de: "Die Automation zur Szenenaktivierung ermöglicht es dir, jede Szene in deinem Zuhause per Knopfdruck zu aktivieren. Dies funktioniert mit jedem smarli. dimmer oder smarli. relay."
 #
 # purpose_en: "Comfort" -> Options are (select one): Comfort, Security, Sustainability
