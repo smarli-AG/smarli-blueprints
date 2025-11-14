@@ -708,13 +708,11 @@ triggers:
   - triggers: !input custom_triggers
 
 conditions: # by default, conditions follow an AND logic
-  - condition: add your condition here
   ## Custom conditions
   - condition: and
     conditions: !input custom_conditions
 
 actions:
-  - action: add your actions here
   ## Custom actions
   - if:
       - condition: template
