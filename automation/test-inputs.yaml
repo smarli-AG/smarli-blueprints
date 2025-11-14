@@ -703,7 +703,6 @@ mode: single
 max_exceeded: silent
 
 triggers:
-  - trigger: add your trigger here
   ## Custom triggers
   - triggers: !input custom_triggers
 
