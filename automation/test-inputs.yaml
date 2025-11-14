@@ -598,7 +598,7 @@ blueprint:
         textnumber:
           # translation:
           #   name:
-          #     en: text url
+          #     en: text number
           #     de: Lorem Ipsum
           #   description:
           #     en: Lorem Ipsum dolor sit amet
