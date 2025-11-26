@@ -117,6 +117,7 @@ blueprint:
             entity:
               filter:
                 - domain: script
+          multiple: false
         delay:
           # translation:
           #   name:
