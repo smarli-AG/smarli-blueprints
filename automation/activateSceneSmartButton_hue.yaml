@@ -108,7 +108,7 @@ blueprint:
             entity:
               filter:
                 - domain: script
-          multiple: false
+              multiple: false
         delay:
           # translation:
           #   name:
