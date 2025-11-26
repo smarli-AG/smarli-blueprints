@@ -1,0 +1,237 @@
+# ! RELEASE NOTES
+## 1.0.0 | 2025-11-26
+## - initial release
+
+# ================
+# Partner Engine
+# ================
+# icon: "palette"
+#
+# name_en: "Scene Activation"
+# name_de: "Szene aktivieren"
+# subtitle_en: "Aqara Wireless Mini Switch"
+# subtitle_de: "Aqara Wireless Mini Switch"
+#
+# short_description_en: "Activate a scene using the Aqara wireless mini switch."
+# short_description_de: "Aktiviere eine Szene durch mithilfe des Aqara Wireless mini switch."
+# long_description_en: "The Scene Activation automation allows you to activate any scene in your home by using the Aqara wireless mini switch. This automation is made to be used with the T1 model."
+# long_description_de: "Die Automation zur Szenenaktivierung ermöglicht es Dir, jede Szene in Deinem Zuhause mithilfe des Aqara Wireless mini switches zu aktivieren. Dies Autoamtisierung ist für das Modell T1 vorgesehen."
+#
+# purpose_en: "Comfort"
+# purpose_de: "Komfort"
+#
+# keywords_en: [scene, button, activate]
+# keywords_de: [szene, button, aktivieren]
+# events_en: [button press]
+# events_de: [Knopfdruck]
+# highlight: false
+# deploy: true
+
+blueprint:
+  ############
+  # Metadata #
+  ############
+  name: smarli. Scene Activation with Aqara wireless mini swtich
+  description: >
+    # 🎨 smarli. Scene Activation with Aqara wireless mini swtich
+
+    This automation will activate a selected scene when your Aqara Wireless mini switch is pressed.
+
+    *Version 1.0.0 | 2025-11-26*
+
+    <details>
+    <summary><b>How to set it up</b></summary>
+
+      1. Select the Aqara Wireless mini switch that should trigger the scene
+      2. Select the type of button press that should trigger the scene
+      3. Select the scene you want to activate
+    </details>
+
+
+    All input fields are required unless they are marked as ` (optional) `.
+  domain: automation
+  author: loocd [smarli. AG]
+  source_url: https://github.com/smarli-AG/smarli-blueprints/blob/main/automation/activateSceneSmartButton_aqaraWirelessMiniSwitch.yaml
+  homeassistant:
+    min_version: 2024.10.0
+
+  ###############
+  # User Inputs #
+  ###############
+  input:
+    trigger_inputs:
+      name: Trigger Inputs
+      icon: mdi:star-box-multiple
+      description: These inputs are used to set the automation triggers
+      input:
+        smart_button:
+          # translation:
+          #   name:
+          #     en: Aqara Wireless mini switch
+          #     de: Aqara Wireless mini switch
+          #   description:
+          #     en: Select the Aqara Wireless mini switch that should activate the scene.
+          #     de: Wähle den Aqara Wireless mini switch, welcher die Szene aktivieren soll.
+          name: Aqara Wireless mini switch
+          description: Select the Aqara Wireless mini switch that should activate the scene.
+          selector:
+            device:
+              filter:
+                - integration: mqtt
+                  manufacturer: Aqara
+                  model: Wireless mini switch T1
+              multiple: false
+        push_type:
+          # translation:
+          #   name:
+          #     en: Button Press Type
+          #     de: Art des Knopfdrucks
+          #   description:
+          #     en: Select the type of button press that should activate the scene.
+          #     de: Wähle die Art des Knopfdrucks, welcher die Szene aktivieren soll.
+          name: Button Press Type
+          description: Select the type of button press that should activate the scene.
+          selector:
+            select:
+              options:
+                - label: "Single Press"
+                  # translation:
+                  #   label:
+                  #     en: Single Press
+                  #     de: Einzenler Klick
+                  value: "single"
+                - label: "Double Press"
+                  value: "double"
+                  # translation:
+                  #   label:
+                  #     en: Double Press
+                  #     de: Doppelklick
+                - label: "Triple Press"
+                  value: "triple"
+                  # translation:
+                  #   label:
+                  #     en: Triple Press
+                  #     de: Dreifachklick
+                - label: "Long Press"
+                  value: "hold"
+                  # translation:
+                  #   label:
+                  #     en: Long Press
+                  #     de: Klicken und halten
+          default: "single"
+
+    condition_inputs:
+      name: Condition Inputs
+      icon: mdi:help-box-multiple
+      description: These inputs are used to set the automation conditions
+
+    action_inputs:
+      name: Action Inputs
+      icon: mdi:play-box-multiple
+      description: These inputs are used to set the actions
+      input:
+        scene_to_activate:
+          # translation:
+          #   name:
+          #     en: Scene to Activate
+          #     de: Zu aktivierende Szene
+          #   description:
+          #     en: Select the scene that should be activated when the button is pressed.
+          #     de: Wähle die Szene aus, die aktiviert werden soll, wenn der Button gedrückt wird.
+          name: Scene to Activate
+          description: Select the scene that should be activated when the button is pressed.
+          selector:
+            entity:
+              filter:
+                - domain: script
+              multiple: false
+        delay:
+          # translation:
+          #   name:
+          #     en: Delay (optional)
+          #     de: Verzögerung (optional)
+          #   description:
+          #     en: Add a delay before activating the scene.
+          #     de: Füge eine Verzögerung hinzu, bevor die Szene aktiviert wird.
+          name: Delay (optional)
+          description: Add a delay before activating the scene.
+          selector:
+            duration:
+              enable_day: false
+              enable_millisecond: false
+          default: "00:00:00"
+
+    custom_inputs: # leave these as is - should be present in any blueprint
+      name: "DANGER ZONE: Additional Custom Inputs"
+      icon: mdi:alert
+      description: >-
+        **WATCH OUT!**
+
+        This is advanced functionality and should only be used if you know what you're doing!
+
+
+        Use this section to define custom triggers and conditions, as well as actions that will run at the end of the automation.
+      collapsed: true
+      input:
+        custom_triggers:
+          name: Custom triggers (optional)
+          description: >-
+            Use this to define custom triggers in addition to the default triggers.
+          selector:
+            trigger:
+          default: []
+        custom_conditions:
+          name: Custom conditions (optional)
+          description: >-
+            Use this to define custom conditions in addition to the default conditions.
+          selector:
+            condition:
+          default: []
+        custom_actions:
+          name: Custom actions (optional)
+          description: >-
+            Use this to define custom actions that should be executed at the end of this automation.
+          selector:
+            action:
+          default: []
+
+#########################
+# Variables Translation #
+#########################
+
+trigger_variables: {}
+
+# this is required in order to use inputs as variables within templates
+variables: {}
+
+##############
+# Automation #
+##############
+
+mode: single
+max_exceeded: silent
+
+triggers:
+  - domain: mqtt
+    device_id: !input smart_button
+    type: action
+    subtype: !input push_type
+    trigger: device
+  ## Custom triggers
+  - triggers: !input custom_triggers
+
+conditions: # by default, conditions follow an AND logic
+  ## Custom conditions
+  - condition: and
+    conditions: !input custom_conditions
+
+actions:
+  - delay: !input delay
+  - action: script.turn_on
+    target:
+      entity_id: !input scene_to_activate
+  ## Custom actions
+  - if:
+      - condition: template
+        value_template: "{{ custom_actions is not none }}"
+    then: !input custom_actions
