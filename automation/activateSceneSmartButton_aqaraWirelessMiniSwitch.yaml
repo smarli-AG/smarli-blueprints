@@ -31,9 +31,9 @@ blueprint:
   ############
   # Metadata #
   ############
-  name: smarli. Scene Activation with Aqara wireless mini swtich
+  name: smarli. Scene Activation with Aqara wireless mini switch
   description: >
-    # 🎨 smarli. Scene Activation with Aqara wireless mini swtich
+    # 🎨 smarli. Scene Activation with Aqara wireless mini switch
 
     This automation will activate a selected scene when your Aqara Wireless mini switch is pressed.
 
