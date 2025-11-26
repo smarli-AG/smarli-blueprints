@@ -17,7 +17,7 @@
 # long_description_en: "Every morning, smarli. checks the weather forecast in your area and notifies you about any upcoming weather events so that you can leave your home fully prepared."
 # long_description_de: "Jeden Morgen prüft smarli. die Wettervorhersage in deiner Umgebung und benachrichtigt dich über bevorstehende Wetterereignisse, damit du dein Zuhause stets bestens vorbereitet verlassen kannst."
 #
-# purpose_en: "Comfort" -> Options are (select one): Comfort, Security, Sustainability
+# purpose_en: "Comfort" -> Options are (select one): Comfort, Security, Sustainability - partner engine can handle any input (in case we introduce more categories)
 # purpose_de: "Komfort"
 #
 # keywords_en: [weather, warning, notification, rain, snow, hail, lightning, fog, storm]
