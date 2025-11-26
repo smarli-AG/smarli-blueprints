@@ -79,9 +79,6 @@ blueprint:
                 - integration: mqtt
                   manufacturer: Philips
                   model: Hue smart button
-                - integration: zha
-                  manufacturer: Philips
-                  model: ROM001
               multiple: false
 
     condition_inputs:
