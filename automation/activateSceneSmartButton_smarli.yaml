@@ -1,5 +1,5 @@
 # ! RELEASE NOTES
-## 1.0.0 | 2025-10-05
+## 1.0.0 | 2025-11-26
 ## - initial release
 
 # ================
@@ -12,15 +12,18 @@
 # subtitle_en: "smarli. smart button"
 # subtitle_de: "smarli. Smart Button"
 #
-# short_description_en: "Activate a scene with a single press of your preferred smarli. dimmer or relay."
-# short_description_de: "Aktiviere eine Szene durch das einfache Drücken deines bevorzugten smarli. dimmer oder smarli. relay."
+# short_description_en: "Activate a scene with a single press of your preferred smarli. dimmer."
+# short_description_de: "Aktiviere eine Szene durch das einfache Drücken Deines bevorzugten smarli. dimmers."
 # long_description_en: |
-#   **Header**
-#   
-#   Second paragraph after a blank line.
-#   
+#   # Header
+#
+#   Second paragraph **after** a blank line.
+#
 #   Third paragraph continues here.
-# long_description_de: "Die Automation zur Szenenaktivierung ermöglicht es dir, jede Szene in deinem Zuhause per Knopfdruck zu aktivieren. Dies funktioniert mit jedem smarli. dimmer oder smarli. relay."
+#
+#   - bullet
+#   - points
+# long_description_de: "Die Automation zur Szenenaktivierung ermöglicht es Dir, jede Szene in Deinem Zuhause per Knopfdruck zu aktivieren. Dies funktioniert mit jedem smarli. dimmer. Es können beliebig viele smarli. dimmer ausgewählt werden."
 #
 # purpose_en: "Comfort"
 # purpose_de: "Komfort"
@@ -36,19 +39,19 @@ blueprint:
   ############
   # Metadata #
   ############
-  name: smarli. Scene Activation with smarli. dimmer or relay
+  name: smarli. Scene Activation with smarli. smart BUttons
   description: >
-    # 🎨 smarli. Scene Activation with smarli. dimmer or relay
+    # 🎨 smarli. Scene Activation with smarli. smart buttons
 
-    This automation will activate a selected scene when any of your configured smarli. dimmers or relays are pressed. The scene activates on any state change of the dimmer or relay (on→off or off→on).
-    Please beware that this doesn't use the homeassistant scene functionality, but rather activates a script that you can use to set up your scene as desired. Reason being that scripts support far more features than scenes.
+    This automation will activate a selected scene when any of your configured smarli. dimmers are pressed. The scene activates on any state change of the dimmer (on→off or off→on).
+    Please beware that this doesn't use scripts below the hood. Reason being that scripts support far more features than scenes.
 
-    *Version 1.0.0 | 2025-10-05*
+    *Version 1.0.0 | 2025-11-26*
 
     <details>
     <summary><b>How to set it up</b></summary>
 
-      1. Select one or more smarli. dimmers or relays that should trigger the scene
+      1. Select the smarli. dimmers that should trigger the scene
       2. Select the scene you want to activate
     </details>
 
@@ -72,28 +75,22 @@ blueprint:
         smart_buttons:
           # translation:
           #   name:
-          #     en: smarli. dimmer or relay
-          #     de: smarli. dimmer / relay
+          #     en: smarli. smart buttons
+          #     de: smarli. smart buttons
           #   description:
           #     en: Select the smarli. devices that should activate the scene.
-          #     de: Wähle die smarli. Geräte aus, die die Szene aktivieren sollen.
-          name: smarli. dimmer or relay
+          #     de: Wähle das smarli. Geräte aus, welche die Szene aktivieren sollen.
+          name: smarli. smart buttons
           description: Select the smarli. devices that should activate the scene.
           selector:
             device:
               filter:
                 - integration: mqtt
                   manufacturer: smarli.
-                  model: S-ZB-PDM1-R251
+                  model: Phase dimmer gen 1
                 - integration: zha
                   manufacturer: smarli.
-                  model: S-ZB-PDM1-R251
-                - integration: mqtt
-                  manufacturer: smarli.
-                  model: S-ZB-1RE1-R251
-                - integration: zha
-                  manufacturer: smarli.
-                  model: S-ZB-1RE1-R251
+                  model: Phase dimmer gen 1
               multiple: true
 
     condition_inputs:
