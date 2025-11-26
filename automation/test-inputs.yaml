@@ -598,7 +598,7 @@ blueprint:
         textnumber:
           # translation:
           #   name:
-          #     en: text url
+          #     en: text number
           #     de: Lorem Ipsum
           #   description:
           #     en: Lorem Ipsum dolor sit amet
@@ -615,7 +615,7 @@ blueprint:
         texttel:
           # translation:
           #   name:
-          #     en: text url
+          #     en: text tel
           #     de: Lorem Ipsum
           #   description:
           #     en: Lorem Ipsum dolor sit amet
@@ -694,7 +694,6 @@ blueprint:
 #########################
 
 # this is required in order to use inputs as variables within templates
-variables:
 
 ##############
 # Automation #
@@ -704,18 +703,15 @@ mode: single
 max_exceeded: silent
 
 triggers:
-  - trigger: add your trigger here
   ## Custom triggers
   - triggers: !input custom_triggers
 
 conditions: # by default, conditions follow an AND logic
-  - condition: add your condition here
   ## Custom conditions
   - condition: and
     conditions: !input custom_conditions
 
 actions:
-  - action: add your actions here
   ## Custom actions
   - if:
       - condition: template
