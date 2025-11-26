@@ -1,0 +1,226 @@
+# ! RELEASE NOTES
+## 1.0.0 | 2025-10-05
+## - initial release
+
+# ================
+# Partner Engine
+# ================
+# icon: "palette"
+#
+# name_en: "Scene Activation"
+# name_de: "Szene aktivieren"
+# subtitle_en: "smarli. smart button"
+# subtitle_de: "smarli. Smart Button"
+#
+# short_description_en: "Activate a scene with a single press of your preferred smarli. dimmer or relay."
+# short_description_de: "Aktiviere eine Szene durch das einfache Drücken deines bevorzugten smarli. dimmer oder smarli. relay."
+# long_description_en: "The Scene Activation automation allows you to activate any scene in your home with a button press. This works with any smarli. dimmer or relay."
+# long_description_de: "Die Automation zur Szenenaktivierung ermöglicht es dir, jede Szene in deinem Zuhause per Knopfdruck zu aktivieren. Dies funktioniert mit jedem smarli. dimmer oder smarli. relay."
+#
+# purpose_en: "Comfort" -> Options are (select one): Comfort, Security, Sustainability
+# purpose_de: "Komfort"
+#
+# keywords_en: [scene, button, activate]
+# keywords_de: [szene, button, aktivieren]
+# events_en: [button press]
+# events_de: [Knopfdruck]
+# highlight: true
+# deploy: false
+
+blueprint:
+  ############
+  # Metadata #
+  ############
+  name: smarli. Scene Activation with smarli. dimmer or relay
+  description: >
+    # 🎨 smarli. Scene Activation with smarli. dimmer or relay
+
+    This automation will activate a selected scene when any of your configured smarli. dimmers or relays are pressed. The scene activates on any state change of the dimmer or relay (on→off or off→on).
+    Please beware that this doesn't use the homeassistant scene functionality, but rather activates a script that you can use to set up your scene as desired. Reason being that scripts support far more features than scenes.
+
+    *Version 1.0.0 | 2025-10-05*
+
+    <details>
+    <summary><b>How to set it up</b></summary>
+
+      1. Select one or more smarli. dimmers or relays that should trigger the scene
+      2. Select the scene you want to activate
+    </details>
+
+
+    All input fields are required unless they are marked as ` (optional) `.
+  domain: automation
+  author: loocd [smarli. AG]
+  source_url: https://github.com/smarli-AG/smarli-blueprints/blob/main/automation/activateSceneSmartButton_smarli.yaml
+  homeassistant:
+    min_version: 2024.10.0
+
+  ###############
+  # User Inputs #
+  ###############
+  input:
+    trigger_inputs:
+      name: Trigger Inputs
+      icon: mdi:star-box-multiple
+      description: These inputs are used to set the automation triggers
+      input:
+        smart_buttons:
+          # translation:
+          #   name:
+          #     en: smarli. dimmer or relay
+          #     de: smarli. dimmer / relay
+          #   description:
+          #     en: Select the smart buttons that should activate the scene.
+          #     de: Wähle die Smart BUttons aus, welche die Szene aktivieren sollen.
+          name: Smart Buttons
+          description: Select the smart buttons that should activate the scene.
+          selector:
+            device:
+              filter:
+                - integration: mqtt
+                  manufacturer: smarli.
+                  model: Phase dimmer gen 1
+                - integration: mqtt
+                  manufacturer: Philips
+                  model: Hue smart button
+                - integration: mqtt
+                  manufacturer: aqara
+                  model: Wireless mini switch T1
+              multiple: true
+
+    condition_inputs:
+      name: Condition Inputs
+      icon: mdi:help-box-multiple
+      description: These inputs are used to set the automation conditions
+
+    action_inputs:
+      name: Action Inputs
+      icon: mdi:play-box-multiple
+      description: These inputs are used to set the actions
+      input:
+        scene_to_activate:
+          # translation:
+          #   name:
+          #     en: Scene to Activate
+          #     de: Zu aktivierende Szene
+          #   description:
+          #     en: Select the scene that should be activated when the button is pressed.
+          #     de: Wähle die Szene aus, die aktiviert werden soll, wenn der Button gedrückt wird.
+          name: Scene to Activate
+          description: Select the scene that should be activated when the button is pressed.
+          selector:
+            entity:
+              filter:
+                - domain: script
+        delay:
+          # translation:
+          #   name:
+          #     en: Delay (optional)
+          #     de: Verzögerung (optional)
+          #   description:
+          #     en: Add a delay before activating the scene.
+          #     de: Füge eine Verzögerung hinzu, bevor die Szene aktiviert wird.
+          name: Delay (optional)
+          description: Add a delay before activating the scene.
+          selector:
+            duration:
+              enable_day: false
+              enable_millisecond: false
+          default: "00:00:00"
+
+    custom_inputs: # leave these as is - should be present in any blueprint
+      name: "DANGER ZONE: Additional Custom Inputs"
+      icon: mdi:alert
+      description: >-
+        **WATCH OUT!**  
+
+        This is advanced functionality and should only be used if you know what you're doing!  
+
+
+        Use this section to define custom triggers and conditions, as well as actions that will run at the end of the automation.
+      collapsed: true
+      input:
+        custom_triggers:
+          name: Custom triggers (optional)
+          description: >-
+            Use this to define custom triggers in addition to the default triggers.
+          selector:
+            trigger:
+          default: []
+        custom_conditions:
+          name: Custom conditions (optional)
+          description: >-
+            Use this to define custom conditions in addition to the default conditions.
+          selector:
+            condition:
+          default: []
+        custom_actions:
+          name: Custom actions (optional)
+          description: >-
+            Use this to define custom actions that should be executed at the end of this automation.
+          selector:
+            action:
+          default: []
+
+#########################
+# Variables Translation #
+#########################
+
+trigger_variables:
+  light_smart_buttons: !input smart_buttons
+  light_smart_buttons_entities: >
+    {{
+      light_smart_buttons 
+      | map('device_entities')
+      | sum(start=[])
+      | select('match', '^light\.')
+      | list
+    }}
+
+# this is required in order to use inputs as variables within templates
+variables: {}
+
+##############
+# Automation #
+##############
+
+mode: single
+max_exceeded: silent
+
+triggers:
+  - trigger: template
+    value_template: >
+      {% set count_on = light_smart_buttons_entities | select('is_state', 'on') | list | count %}
+      {{ count_on % 2 == 0 }}
+  - trigger: template
+    value_template: >
+      {% set count_on = light_smart_buttons_entities | select('is_state', 'on') | list | count %}
+      {{ count_on % 2 == 1 }}
+  ## Custom triggers
+  - triggers: !input custom_triggers
+
+conditions: # by default, conditions follow an AND logic
+  - condition: or
+    conditions:
+      - condition: template
+        # TODO: change this to checking if the trigger is not a specific trigger_id. using template is too broad and might interfere with other devices that might need a template trigger
+        value_template: "{{ trigger.platform != 'template' }}"
+      - condition: template
+        value_template: >
+          {{ trigger.from_state.state in ['on', 'off']
+             and trigger.to_state.state in ['on', 'off']
+             and trigger.from_state.state != trigger.to_state.state }}
+  ## Custom conditions
+  - condition: and
+    conditions: !input custom_conditions
+
+actions:
+  - delay: !input delay
+  - action: script.turn_on
+    target:
+      entity_id: !input scene_to_activate
+  ## Custom actions
+  - if:
+      - condition: template
+        value_template: "{{ custom_actions is not none }}"
+    then: !input custom_actions
