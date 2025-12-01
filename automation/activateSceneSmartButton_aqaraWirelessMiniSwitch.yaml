@@ -118,6 +118,7 @@ blueprint:
                   #     en: Long Press
                   #     de: Klicken und halten
                   value: "hold"
+              multiple: false
           default: "single"
 
     condition_inputs:
