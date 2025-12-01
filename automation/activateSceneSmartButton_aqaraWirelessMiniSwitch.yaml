@@ -101,23 +101,23 @@ blueprint:
                   #     de: Einzenler Klick
                   value: "single"
                 - label: "Double Press"
-                  value: "double"
                   # translation:
                   #   label:
                   #     en: Double Press
                   #     de: Doppelklick
+                  value: "double"
                 - label: "Triple Press"
-                  value: "triple"
                   # translation:
                   #   label:
                   #     en: Triple Press
                   #     de: Dreifachklick
+                  value: "triple"
                 - label: "Long Press"
-                  value: "hold"
                   # translation:
                   #   label:
                   #     en: Long Press
                   #     de: Klicken und halten
+                  value: "hold"
           default: "single"
 
     condition_inputs:
