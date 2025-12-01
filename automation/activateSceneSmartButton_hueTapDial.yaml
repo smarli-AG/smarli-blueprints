@@ -242,7 +242,8 @@ blueprint:
 trigger_variables: {}
 
 # this is required in order to use inputs as variables within templates
-variables: {}
+variables:
+  interaction_type: !input interaction_type
 
 ##############
 # Automation #
