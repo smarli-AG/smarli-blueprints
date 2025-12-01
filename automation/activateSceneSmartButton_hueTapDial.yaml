@@ -67,12 +67,12 @@ blueprint:
         smart_button:
           # translation:
           #   name:
-          #     en: Phiips hue Tap Dial
+          #     en: Philips hue Tap Dial
           #     de: Philips hue Tap Dial
           #   description:
           #     en: Select the Philips hue Tap Dial that should activate the scene.
           #     de: Wähle den Philips hue Tap Dial, welcher die Szene aktivieren soll.
-          name: Phiips hue Tap Dial
+          name: Philips hue Tap Dial
           description: Select the Philips hue Tap Dial that should activate the scene.
           selector:
             device:
