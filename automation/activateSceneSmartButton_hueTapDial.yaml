@@ -301,6 +301,12 @@ actions:
   - action: script.turn_on
     target:
       entity_id: !input scene_to_activate
+  - if:
+      ## in case of trigger by rotation, add a delay of 2s before finishing the automation to avoid multiple activations by fast rotation or choppy rotation
+      - condition: template
+        value_template: "{{ trigger.id == interaction_type }}"
+    then:
+      - delay: "00:00:02"
   ## Custom actions
   - if:
       - condition: template
