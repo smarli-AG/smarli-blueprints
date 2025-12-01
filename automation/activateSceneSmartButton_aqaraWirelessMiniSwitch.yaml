@@ -20,8 +20,8 @@
 # purpose_en: "Comfort"
 # purpose_de: "Komfort"
 #
-# keywords_en: [scene, button, activate]
-# keywords_de: [szene, button, aktivieren]
+# keywords_en: [scene, button, activate, aqara mini switch]
+# keywords_de: [szene, button, aktivieren, aqara mini switch]
 # events_en: [button press]
 # events_de: [Knopfdruck]
 # highlight: false

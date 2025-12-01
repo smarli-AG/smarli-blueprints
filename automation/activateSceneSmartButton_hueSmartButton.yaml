@@ -20,8 +20,8 @@
 # purpose_en: "Comfort"
 # purpose_de: "Komfort"
 #
-# keywords_en: [scene, button, activate]
-# keywords_de: [szene, button, aktivieren]
+# keywords_en: [scene, button, activate, hue button]
+# keywords_de: [szene, button, aktivieren, hue button]
 # events_en: [button press]
 # events_de: [Knopfdruck]
 # highlight: false
