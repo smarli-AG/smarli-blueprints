@@ -142,6 +142,9 @@ blueprint:
                   #     en: Button 4 Long Press
                   #     de: Taste 4 Langer Klick
                   value: "button_4_hold"
+                # rotation cases don't set the actual action as a value, because we want to trigger on both fast and slow rotation.
+                # To handle this we always trigger on rotation (slow and fast) and then check against the defined interaction_type in the conditions
+                # to decide whether or not rotations should actually activate the scene.
                 - label: "Rotate Right"
                   # translation:
                   #   label:
