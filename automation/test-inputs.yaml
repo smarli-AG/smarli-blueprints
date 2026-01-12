@@ -65,7 +65,7 @@ blueprint:
         area:
           # translation:
           #   name:
-          #     en: area
+          #     en: area as optional input
           #     de: Lorem Ipsum
           #   description:
           #     en: Lorem Ipsum dolor sit amet
@@ -76,6 +76,7 @@ blueprint:
           selector:
             area:
               multiple: false
+          default:
         area2:
           # translation:
           #   name:
@@ -360,12 +361,12 @@ blueprint:
         select3:
           # translation:
           #   name:
-          #     en: select dropdown with multiple with custom values
+          #     en: select list with multiple with custom values
           #     de: Lorem Ipsum
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: select dropdown with multiple with custom values
+          name: select list with multiple with custom values
           description: add short description
           selector:
             select:
@@ -378,7 +379,7 @@ blueprint:
                   value: option_3
               custom_value: true
               multiple: true
-              mode: dropdown
+              mode: list
               sort: false
         select4:
           # translation:
