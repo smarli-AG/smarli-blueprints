@@ -78,6 +78,7 @@ blueprint:
           selector:
             area:
               multiple: false
+          default:
         area2:
           # translation:
           #   name:
