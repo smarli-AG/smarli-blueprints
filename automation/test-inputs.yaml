@@ -65,7 +65,7 @@ blueprint:
         area:
           # translation:
           #   name:
-          #     en: area
+          #     en: area as optional input
           #     de: Lorem Ipsum
           #   description:
           #     en: Lorem Ipsum dolor sit amet
