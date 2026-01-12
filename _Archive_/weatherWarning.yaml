@@ -26,8 +26,8 @@
 # ================
 # icon: "weather-lightning-rainy"
 #
-# name_en: "Weather Warning Conditional"
-# name_de: "Wetterwarnung Conditional"
+# name_en: "Weather Warning"
+# name_de: "Wetterwarnung"
 # subtitle_en: "Phone Notification"
 # subtitle_de: "Handy-Benachrichtigung"
 #
@@ -44,7 +44,7 @@
 # events_en: [weather forecast]
 # events_de: [Wettervorhersage]
 # highlight: true
-# deploy: true
+# deploy: false
 
 blueprint:
   ############
@@ -100,7 +100,6 @@ blueprint:
           #   description:
           #     en: The time to send the notification
           #     de: Die Zeit, an der die Benachrichtigung gesendet wird
-          # display_if: true
           name: Time of notification
           description: The time to send the notification
           selector:
@@ -120,7 +119,6 @@ blueprint:
           #   description:
           #     en: The weather prediction to check
           #     de: Die Wettervorhersage, die überprüft werden soll
-          # display_if: true
           name: Weather Entity
           description: The weather entity to check
           selector:
@@ -135,7 +133,6 @@ blueprint:
           #   description:
           #     en: Which predicted weather events should trigger a notification?
           #     de: Welche vorhergesagten Wetterereignisse sollen eine Benachrichtigung auslösen?
-          # display_if: true
           name: Weather Events
           description: Which predicted weather events should trigger a notification?
           selector:
@@ -205,7 +202,6 @@ blueprint:
           #   description:
           #     en: Do you want to notify all devices or only specific ones?
           #     de: Möchtest du alle Geräte benachrichtigen oder nur bestimmte?
-          # display_if: true
           name: Notification
           description: Who should be notified? It's easiest to just inform all notify devices, as this works even when customers change their mobile devices. But you can also specify specific devices. When notifying all devices (`notify.notify` action) this could also target other notify integrations such as Microsoft Teams. Still, this is the best option for most circumstances.
           selector:
@@ -232,7 +228,6 @@ blueprint:
           #   description:
           #     en: If you set the scope to `Specific Devices`, which devices should be notified?
           #     de: Wenn du `Bestimmte Geräte` gewählt hast, welche Geräte sollen benachrichtigt werden?
-          # display_if: notification_scope == "specific"
           name: Devices to Notify (optional)
           description: If the scope is set to `specific`, which devices should be notified?
           selector:
@@ -252,7 +247,6 @@ blueprint:
           #   default:
           #     en: ☔ Rain Warning
           #     de: ☔ Regenwarnung
-          # display_if: includes(weather_events, 'rainy')
           name: Notification Title "Rainy"
           description: Set the title of the notification that should be sent on rainy weather conditions.
           selector:
@@ -269,7 +263,6 @@ blueprint:
           #   default:
           #     en: Rain is expected in your area today. Just to be safe, take an umbrella with you!
           #     de: Heute wird in deiner Umgebung Regen erwartet. Nimm sicherheitshalber einen Schirm mit!
-          # display_if: includes(weather_events, 'rainy')
           name: Message "Rainy"
           description: Set the message that should be sent on rainy weather conditions.
           selector:
@@ -288,7 +281,6 @@ blueprint:
           #   default:
           #     en: 🌧️ Heavy Rain Warning
           #     de: 🌧️ Starkregenwarnung
-          # display_if: 'includes(weather_events, 'pouring')'
           name: Notification Title "Pouring"
           description: Set the title of the notification that should be sent on pouring weather conditions.
           selector:
@@ -306,7 +298,6 @@ blueprint:
           #   default:
           #     en: Heavy rain is expected in your area today. You should definitely take an umbrella with you!
           #     de: Heute wird in deiner Umgebung starker Regen erwartet. Du solltest unbedingt einen Schirm mitnehmen!
-          # display_if: 'includes(weather_events, 'pouring')'
           name: Message "Pouring"
           description: Set the message that should be sent on pouring weather conditions.
           selector:
@@ -325,7 +316,6 @@ blueprint:
           #   default:
           #     en: ⚡ Lightning Warning
           #     de: ⚡ Blitzwarnung
-          # display_if: includesAny(weather_events, ['lightning', 'lightning-rainy'])
           name: Notification Title "Lightning" and "Lightning, Rainy"
           description: Set the title of the notification that should be sent when there is lightning.
           selector:
@@ -343,7 +333,6 @@ blueprint:
           #   default:
           #     en: Thunderstorms with lightning activity have been reported in your area. Be careful and stay indoors if possible!
           #     de: In deiner Umgebung wurden Gewitter mit Blitzaktivität gemeldet. Sei vorsichtig und bleibe nach Möglichkeit im Gebäude!
-          # display_if: includesAny(weather_events, ['lightning', 'lightning-rainy'])
           name: Message "Lightning" and "Lightning, Rainy"
           description: Set the message that should be sent when there is lightning.
           selector:
@@ -362,7 +351,6 @@ blueprint:
           #   default:
           #     en: 🧊 Hail Warning
           #     de: 🧊 Hagelschlag
-          # display_if: includes(weather_events, 'hail')
           name: Notification Title "Hail"
           description: Set the title of the notification that should be sent when it hails.
           selector:
@@ -380,7 +368,6 @@ blueprint:
           #   default:
           #     en: Hail is expected in your area. Protect your car if necessary and stay indoors if possible!
           #     de: In deiner Umgebung wird Hagelschlag erwartet. Schütze wenn nötig dein Auto und bleibe nach Möglichkeit im Gebäude!
-          # display_if: includes(weather_events, 'hail')
           name: Message "Hail"
           description: Set the message that should be sent when it hails.
           selector:
@@ -399,7 +386,6 @@ blueprint:
           #   default:
           #     en: ❄️ Snow Warning
           #     de: ❄️ Schneefall
-          # display_if: includes(weather_events, 'snowy')
           name: Notification Title "Snowy"
           description: Set the title of the notification that should be sent when it snows.
           selector:
@@ -417,7 +403,6 @@ blueprint:
           #   default:
           #     en: Snowfall is expected in your area. Be careful on the roads and dress warmly!
           #     de: Es wird in deiner Umgebung Schneefall erwartet. Sei vorsichtig auf den Strassen und zieh dich warm an!
-          # display_if: includes(weather_events, 'snowy')
           name: Message "Snowy"
           description: Set the message that should be sent when it snows.
           selector:
@@ -436,7 +421,6 @@ blueprint:
           #   default:
           #     en: 🌨️ Sleet Warning
           #     de: 🌨️ Schneeregen
-          # display_if: includes(weather_events, 'snowy-rainy')
           name: Notification Title "Snowy, Rainy"
           description: Set the title of the notification that should be sent when there is snow and rain at the same time.
           selector:
@@ -454,7 +438,6 @@ blueprint:
           #   default:
           #     en: Sleet is expected in your area. Roads can be slippery, be extra careful today!
           #     de: In deiner Umgebung wird Schneeregen erwartet. Strassen können rutschig sein, sei heute besonders vorsichtig!
-          # display_if: includes(weather_events, 'snowy-rainy')
           name: Message "Snowy, Rainy"
           description: Set the message that should be sent when there is snow and rain at the same time.
           selector:
@@ -473,7 +456,6 @@ blueprint:
           #   default:
           #     en: 🌁 Fog Warning
           #     de: 🌁 Nebelwarnung
-          # display_if: includes(weather_events, 'fog')
           name: Notification Title "Fog"
           description: Set the title of the notification that should be sent when there is fog.
           selector:
@@ -491,7 +473,6 @@ blueprint:
           #   default:
           #     en: Fog has been announced in your area. Be careful accordingly.
           #     de: In deiner Umgebung wurde Nebel angekündigt. Sei entsprechend vorsichtig.
-          # display_if: includes(weather_events, 'fog')
           name: Message "Fog"
           description: Set the message that should be sent when there is fog.
           selector:
