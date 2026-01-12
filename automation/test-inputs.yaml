@@ -70,9 +70,7 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          #   default:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
+          #   optional: true
           name: area
           description: add short description
           selector:
@@ -84,9 +82,6 @@ blueprint:
           #     en: area with device filter and multiple
           #     de: Lorem Ipsum
           #   description:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
-          #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
           name: area with device filter and multiple
@@ -106,9 +101,6 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          #   default:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
           name: boolean
           description: add short description
           selector:
@@ -119,9 +111,6 @@ blueprint:
           #     en: color temperature
           #     de: Lorem Ipsum
           #   description:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
-          #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
           name: color temperature
@@ -139,9 +128,6 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          #   default:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
           name: date
           description: add short description
           selector:
@@ -152,9 +138,6 @@ blueprint:
           #     en: device
           #     de: Lorem Ipsum
           #   description:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
-          #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
           name: device
@@ -168,9 +151,6 @@ blueprint:
           #     en: device with entity filter and multiple
           #     de: Lorem Ipsum
           #   description:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
-          #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
           name: device with entity filter and multiple
@@ -188,9 +168,6 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          #   default:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
           name: duration
           description: add short description
           selector:
@@ -203,9 +180,6 @@ blueprint:
           #     en: duration with days and milliseconds
           #     de: Lorem Ipsum
           #   description:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
-          #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
           name: duration with days
@@ -222,9 +196,6 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          #   default:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
           name: entity
           description: add short description
           selector:
@@ -236,9 +207,6 @@ blueprint:
           #     en: entity with filter
           #     de: Lorem Ipsum
           #   description:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
-          #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
           name: entity with filter
@@ -257,9 +225,6 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          #   default:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
           name: language
           description: add short description
           selector:
@@ -276,9 +241,6 @@ blueprint:
           #   description:
           #     en: Latitude and Longitude for any address can be discovered here: https://www.latlong.net/
           #     de: Längen- und Breitengrade für eine beliebige Adresse können hier gefunden werden: https://www.latlong.net/
-          #   default:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
           name: location
           description: "Latitude and Longitude for any address can be discovered here: https://www.latlong.net/"
           selector:
@@ -293,9 +255,6 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          #   default:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
           name: number box
           description: add short description
           selector:
@@ -307,9 +266,6 @@ blueprint:
           #     en: number with min/max/step/slider/unit
           #     de: Lorem Ipsum
           #   description:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
-          #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
           name: number with min/max/step/slider/unit
@@ -329,9 +285,6 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          #   default:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
           name: color_rgb
           description: add short description
           selector:
@@ -344,10 +297,6 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          #   default:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
-          name: select dropdown
           description: add short description
           selector:
             select:
@@ -368,9 +317,6 @@ blueprint:
           #     en: select list
           #     de: Lorem Ipsum
           #   description:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
-          #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
           name: select list
@@ -396,9 +342,6 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          #   default:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
           name: select list with multiple
           description: add short description
           selector:
@@ -420,9 +363,6 @@ blueprint:
           #     en: select dropdown with multiple with custom values
           #     de: Lorem Ipsum
           #   description:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
-          #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
           name: select dropdown with multiple with custom values
@@ -448,9 +388,6 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          #   default:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
           name: select list with multiple with custom values
           description: add short description
           selector:
@@ -474,9 +411,6 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          #   default:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
           name: text with type street address and autocomplete
           description: add short description
           selector:
@@ -491,9 +425,6 @@ blueprint:
           #     en: text with type email and autocomplete
           #     de: Lorem Ipsum
           #   description:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
-          #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
           name: text with type email and autocomplete
@@ -512,9 +443,6 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          #   default:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
           name: text with type email and autocomplete and multiple
           description: add short description
           selector:
@@ -529,9 +457,6 @@ blueprint:
           #     en: text with multiline address
           #     de: Lorem Ipsum
           #   description:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
-          #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
           name: text with multiline address
@@ -550,9 +475,6 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          #   default:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
           name: text prefix/suffix
           description: add short description
           selector:
@@ -569,9 +491,6 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          #   default:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
           name: text date
           description: add short description
           selector:
@@ -584,9 +503,6 @@ blueprint:
           #     en: text url
           #     de: Lorem Ipsum
           #   description:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
-          #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
           name: text url
@@ -603,9 +519,6 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          #   default:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
           name: text number
           description: add short description
           selector:
@@ -620,9 +533,6 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          #   default:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
           name: text tel
           description: add short description
           selector:
@@ -635,9 +545,6 @@ blueprint:
           #     en: time
           #     de: Lorem Ipsum
           #   description:
-          #     en: Lorem Ipsum dolor sit amet
-          #     de: Lorem Ipsum dolor sit amet
-          #   default:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
           name: time

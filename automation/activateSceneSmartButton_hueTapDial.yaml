@@ -193,6 +193,7 @@ blueprint:
           #   description:
           #     en: Add a delay before activating the scene.
           #     de: Füge eine Verzögerung hinzu, bevor die Szene aktiviert wird.
+          #   optional: true
           name: Delay (optional)
           description: Add a delay before activating the scene.
           selector:
