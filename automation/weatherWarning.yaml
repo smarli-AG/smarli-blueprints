@@ -33,26 +33,51 @@
 #
 # short_description_en: "Get notified about upcoming weather events such as rain, storms, snow, and more."
 # short_description_de: "Erhalte Benachrichtigungen über bevorstehende Wetterereignisse wie Regen, Gewitter, Schnee und mehr."
-# long_description_en: "Every morning, smarli. checks the weather forecast in your area and notifies you about any upcoming weather events so that you can leave your home fully prepared."
 # long_description_en: |
-#   # Header
+#   __Get notified about upcoming weather events such as rain, storms, snow, and more.__
 #
-#   Second paragraph **after** a blank line.
+#   Every morning, smarli. checks the weather forecast in your area and notifies you about any upcoming weather events so that you can leave your home fully prepared.
+#   This is done using the Weather Forecast provided by MeteoSwiss for your selected weather station.
 #
-#   Third paragraph continues here.
+#   How to set it up:
+#   1. Select at what time the notification should be sent - this is the trigger
+#   2. Select the weather forecast that should be watched in case multiple are available. By default, MeteoSwiss will be used.
+#   3. Select which weather conditions you'd like to be informed about
+#   4. Select if a push notification should be sent to all users or only to specific devies
+#   5. If you like, update the texts that will be sent with the notification
 #
-#   - bullet
-#   - points
-# long_description_de: "Jeden Morgen prüft smarli. die Wettervorhersage in deiner Umgebung und benachrichtigt dich über bevorstehende Wetterereignisse, damit du dein Zuhause stets bestens vorbereitet verlassen kannst."
+#   ---
+#
+#   _Version 1.5.0 | 2025-09-24_
+#
+# long_description_de: |
+#   __Erhalte Benachrichtigungen über bevorstehende Wetterereignisse wie Regen, Gewitter, Schnee und mehr.__
+#
+#   Jeden Morgen prüft smarli. die Wettervorhersage in deiner Umgebung und benachrichtigt dich über bevorstehende Wetterereignisse, damit du dein Zuhause stets bestens vorbereitet verlassen kannst.
+#   Dazu wird die Wettervorhersage von MeteoSchweiz für die zuvor gewählte Wetterstation verwendet.
+#
+#   Einrichtung der Automatisierung:
+#   1. Wähle, wann die Benachrichtigung gesendet werden soll - das ist der Trigger
+#   2. Wähle die Wettervorhersage aus, die überwacht werden soll, falls mehrere verfügbar sind. Standardmässig wird MeteoSchweiz verwendet.
+#   3. Wähle aus, über welche Wetterereignisse du informiert werden möchtest
+#   4. Wähle aus, ob eine Push-Benachrichtigung an alle Nutzer oder nur an bestimmte Geräte gesendet werden soll
+#   5. Passe bei Bedarf die Texte an, die mit der Benachrichtigung gesendet werden sollen
+#
+#   ---
+#
+#   _Version 1.5.0 | 2025-09-24_
 #
 # purpose_en: "Comfort"
 # purpose_de: "Komfort"
 #
 # keywords_en: [weather, warning, notification, rain, snow, hail, lightning, fog, storm]
 # keywords_de: [wetter, warnung, benachrichtigung, regen, schnee, hagel, blitz, nebel, sturm]
+#
 # events_en: [weather forecast]
 # events_de: [Wettervorhersage]
+#
 # highlight: true
+#
 # deploy: true
 
 blueprint:
