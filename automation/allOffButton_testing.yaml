@@ -1,0 +1,353 @@
+# TODO: Make a highlight again!
+
+# ! RELEASE NOTES
+## 1.0.1 | 2026-01-12
+## - add PE long description in MD format
+## 1.0.0 | 2025-10-01
+## - initial release
+
+# ================
+# Partner Engine
+# ================
+# icon: "power"
+#
+# name_en: "All Off"
+# name_de: "Alles Aus"
+# subtitle_en: "Smart Button"
+# subtitle_de: "Smart Button"
+#
+# short_description_en: "Turn off all lights and media players in your home with a single button press."
+# short_description_de: "Schalte alle Lichter und Medienplayer in deinem Zuhause mit nur einem Knopfdruck aus."
+# long_description_en: |
+#   __Turn off all lights and media players in your home with a single button press.__
+#
+#   The All Off automation let's you turn off all you lights and media players in your home with a single button press. This is great for quickly turning off everything
+#   when leaving the house or going to bed.
+#
+#   You can also configer a delay before devices are turned off, as well as exclude specific lights or media players from being turned off. This is useful for excluding devices
+#   that should always remain on, no matter what.
+#
+#   How to set it up:
+#
+#   1. Select the button that should trigger the automation
+#   2. Select if you want to turn off lights, media players or both
+#   3. (Optional) Exclude specific lights or media players from being turned off
+#   4. (Optional) Select a delay before turning off the selected devices
+#
+#   ---
+#
+#   _Version 1.0.1 | 2026-01-12_
+#
+# long_description_de: |
+#   __Schalte alle Lichter und Medienplayer in deinem Zuhause mit nur einem Knopfdruck aus.__
+#
+#   Die 'Alles Aus' Automatisierung ermöglicht es dir, alle Lichter und Medienplayer in deinem Zuhause mit nur einem Knopfdruck auszuschalten. Das ist ideal, um schnell alles auszuschalten,
+#   wenn du das Haus verlässt oder ins Bett gehst.
+
+#   Du kannst auch eine Verzögerung einstellen, bevor die Geräte ausgeschaltet werden, sowie bestimmte Lichter oder Medienplayer vom Ausschalten ausschliessen. Das ist nützlich, um Geräte auszuschliessen,
+#   die immer eingeschaltet bleiben sollen.
+#
+#   Einrichtung der Automatisierung:
+#
+#   1. Wähle den Button aus, der die Automation auslösen soll
+#   2. Wähle ob du Lichter, Medienplayer oder beides ausschalten möchtest
+#   3. (Optional) Schliesse bestimmte Lichter oder Medienplayer vom Ausschalten aus
+#   4. (Optional) Wähle eine Verzögerung bevor die ausgewählten Geräte ausgeschaltet werden
+#
+#   ---
+#
+#   _Version 1.0.1 | 2026-01-12_
+# purpose_en: "Comfort"
+# purpose_de: "Komfort"
+#
+# keywords_en: [all off, off]
+# keywords_de: [alles aus, ausschalten]
+# events_en: [leaving home, going to bed]
+# events_de: [Zuhause verlassen, ins Bett gehen]
+# highlight: false
+# deploy: true
+
+blueprint:
+  ############
+  # Metadata #
+  ############
+  name: smarli. All Off Button
+  description: >
+    # 🚫 smarli. All Off Button
+
+    This automation will turn off all lights and media players in your home when a specified button is pressed. This is useful for quickly turning off everything when leaving the house or going to bed.
+
+    *Version 1.0.1 | 2026-01-12*
+
+    <details>
+    <summary><b>How to set it up</b></summary>
+
+    By default, this automation applies to all lights and media players in your smart home. You can exclude specific devices as desired.
+
+      1. Select if you want to turn off lights, media players or both.
+      2. Select the button(s) that will trigger the automation.
+      3. (Optional) Exclude specific lights or media players from being turned off.
+    </details>
+
+
+    All input fields are required unless they are marked as ` (optional) `.
+  domain: automation
+  author: loocd [smarli. AG]
+  source_url: https://github.com/smarli-AG/smarli-blueprints/blob/main/allOffButton.yaml
+  homeassistant:
+    min_version: 2024.10.0
+
+  ###############
+  # User Inputs #
+  ###############
+  input:
+    trigger_inputs:
+      name: Trigger Inputs
+      icon: mdi:star-box-multiple
+      description: These inputs are used to set the automation triggers
+      input:
+        smart_buttons:
+          # translation:
+          #   name:
+          #     en: Smart Buttons
+          #     de: Smart Buttons
+          #   description:
+          #     en: Select the buttons that will trigger the all off automation
+          #     de: Wähle die Smart Buttons aus, welche die "Alles aus" Automation auslösen sollen
+          name: Smart Buttons
+          description: Select the buttons that will trigger the all off automation
+          selector:
+            entity:
+              filter:
+                - integration: mqtt
+                  domain: light
+                - integration: zha
+                  domain: light
+              multiple: true
+
+    condition_inputs:
+      name: Condition Inputs
+      icon: mdi:help-box-multiple
+      description: These inputs are used to set the automation conditions
+
+    action_inputs:
+      name: Action Inputs
+      icon: mdi:play-box-multiple
+      description: These inputs are used to set the actions
+      input:
+        selected_domains:
+          # translation:
+          #   name:
+          #     en: What should get turned off?
+          #     de: Was soll ausgeschaltet werden?
+          #   description:
+          #     en: Select if the "all off" button should turn off lights, media players, or both.
+          #     de: Wähle ob der "Alles aus" Button Lichter, Medienplayer oder beides ausschalten soll.
+          name: What should get turned off?
+          description: Select if the "all off" button should turn off lights, media players, or both.
+          selector:
+            select:
+              options:
+                - label: Lights
+                  # translation:
+                  #   label:
+                  #     en: Lights
+                  #     de: Lichter
+                  value: "lights"
+                - label: Media Players
+                  # translation:
+                  #   label:
+                  #     en: Media Players
+                  #     de: Medienplayer
+                  value: "media_players"
+              multiple: true
+              mode: list
+        excluded_lights:
+          # translation:
+          #   name:
+          #     en: Excluded Lights (optional)
+          #     de: Ausgeschlossene Lichter ausschliessen (optional)
+          #   description:
+          #     en: Select the lights that should NOT be turned off when the button is pressed. This applies only if you have selected the option to turn off lights with the all off button.
+          #     de: Wähle die Lichter aus, die NICHT ausgeschaltet werden sollen, wenn der Button gedrückt wird. Das gilt nur wenn die Option 'Lichter ausschalten' gewählt wurde.
+          # optional: true
+          name: Excluded Lights (optional)
+          description: Select the lights that should NOT be turned off when the button is pressed. This can be useful if specific lights should always remain on.
+          selector:
+            entity:
+              filter:
+                - domain: light
+              multiple: true
+          default: []
+        excluded_media_players:
+          # translation:
+          #   name:
+          #     en: Excluded Media Players (optional)
+          #     de: Ausgeschlossene Medienplayer (optional)
+          #   description:
+          #     en: Select media players that should NOT be turned off when the button is pressed. This only applies if media players are selected to be turned off at all.
+          #     de: Wähle die Medienplayer aus, die NICHT ausgeschaltet werden sollen, wenn der Button gedrückt wird. Das gilt nur wenn überhaupt ausgewählt wurde wie dass Medienplayer ausgeschaltet werden sollen.
+          # optional: true
+          name: Excluded Media Players (optional)
+          description: Select media players that should NOT be turned off when the button is pressed. This only applies if media players are selected to be turned off at all.
+          selector:
+            entity:
+              filter:
+                - domain: media_player
+              multiple: true
+          default: []
+        delay:
+          # translation:
+          #   name:
+          #     en: Delay (optional)
+          #     de: Verzögerung (optional)
+          #   description:
+          #     en: Add a delay before turning off the selected devices.
+          #     de: Füge eine Verzögerung hinzu, bevor die ausgewahlten Geraete ausgeschaltet werden.
+          # optional: true
+          name: Delay (optional)
+          description: Add a delay before turning off the selected devices.
+          selector:
+            duration:
+              enable_day: false
+              enable_millisecond: false
+          default: "00:00:00"
+
+    custom_inputs: # leave these as is - should be present in any blueprint
+      name: "DANGER ZONE: Additional Custom Inputs"
+      icon: mdi:alert
+      description: >-
+        **WATCH OUT!**  
+
+        This is advanced functionality and should only be used if you know what you're doing!  
+
+
+        Use this section to define custom triggers and conditions, as well as actions that will run at the end of the automation.
+      collapsed: true
+      input:
+        custom_triggers:
+          name: Custom triggers (optional)
+          description: >-
+            Use this to define custom triggers in addition to the default triggers.
+          selector:
+            trigger:
+          default: []
+        custom_conditions:
+          name: Custom conditions (optional)
+          description: >-
+            Use this to define custom conditions in addition to the default conditions.
+          selector:
+            condition:
+          default: []
+        custom_actions:
+          name: Custom actions (optional)
+          description: >-
+            Use this to define custom actions that should be executed at the end of this automation.
+          selector:
+            action:
+          default: []
+
+#########################
+# Variables Translation #
+#########################
+
+# this is required in order to use inputs as variables within templates
+variables:
+  selected_domains: !input selected_domains
+  excluded_lights: !input excluded_lights
+  excluded_media_players: !input excluded_media_players
+
+  # first expand all excluded lights to have individual entities instead of group entities
+  # then reject group entities so turning off a group does not also turn of a light that
+  # might be excluded.
+  lights_all_off: |-
+    {% set excluded_lights_expanded = expand(excluded_lights) | map(attribute='entity_id') | list | default([], true) %} 
+    {{
+      states.light
+      | selectattr('state', 'eq', 'on')
+      | rejectattr('entity_id', 'in', label_entities('exclude'))
+      | rejectattr('entity_id', 'in', area_entities('System'))
+      | rejectattr('entity_id', 'in', integration_entities('group'))
+      | rejectattr('entity_id', 'in', excluded_lights_expanded)
+      | map(attribute='entity_id')
+      | list
+    }}
+
+  # same logic as for lights above
+  media_players_all_off: |-
+    {% set excluded_media_players_expanded = expand(excluded_media_players) | map(attribute='entity_id') | list | default([], true) %}
+    {{
+      states.media_player
+      | selectattr('state', 'in', ['on', 'playing', 'paused', 'idle', 'buffering'])
+      | rejectattr('entity_id', 'in', label_entities('exclude'))
+      | rejectattr('entity_id', 'in', area_entities('System'))
+      | rejectattr('entity_id', 'in', integration_entities('group'))
+      | rejectattr('entity_id', 'in', excluded_media_players_expanded)
+      | map(attribute='entity_id')
+      | list
+    }}
+
+##############
+# Automation #
+##############
+
+mode: single
+max_exceeded: silent
+
+triggers:
+  - trigger: state
+    entity_id: !input smart_buttons
+    from: "off"
+    to: "on"
+  - trigger: state
+    entity_id: !input smart_buttons
+    from: "on"
+    to: "off"
+  ## Custom triggers
+  - triggers: !input custom_triggers
+
+conditions: # by default, conditions follow an AND logic
+  - condition: []
+  ## Custom conditions
+  - condition: and
+    conditions: !input custom_conditions
+
+actions:
+  - delay: !input delay
+  - parallel:
+      - if:
+          - condition: template
+            value_template: "{{ 'lights' in selected_domains and lights_all_off | length > 0 }}"
+        then:
+          - action: light.turn_off
+            metadata: {}
+            data: {}
+            target:
+              entity_id: "{{ lights_all_off }}"
+        alias: Turn Off Lights if there are any that are on
+      - if:
+          - condition: template
+            value_template: "{{ 'media_players' in selected_domains and media_players_all_off | length > 0 }}"
+        then:
+          - repeat:
+              for_each: "{{ media_players_all_off }}"
+              sequence:
+                - action: media_player.media_pause
+                  metadata: {}
+                  data: {}
+                  target:
+                    entity_id: "{{ repeat.item }}"
+                  continue_on_error: true
+                - action: media_player.turn_off
+                  metadata: {}
+                  data: {}
+                  target:
+                    entity_id: "{{ repeat.item }}"
+                  continue_on_error: true
+        alias: Turn Off Media Players if there are any that are on
+
+  ## Custom actions
+  - if:
+      - condition: template
+        value_template: "{{ custom_actions is not none }}"
+    then: !input custom_actions
