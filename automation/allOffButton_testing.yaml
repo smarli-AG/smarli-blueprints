@@ -11,8 +11,8 @@
 # ================
 # icon: "power"
 #
-# name_en: "All Off"
-# name_de: "Alles Aus"
+# name_en: "All Off Testing"
+# name_de: "Alles Aus Testing"
 # subtitle_en: "Smart Button"
 # subtitle_de: "Smart Button"
 #
@@ -24,7 +24,7 @@
 #   The All Off automation let's you turn off all you lights and media players in your home with a single button press. This is great for quickly turning off everything
 #   when leaving the house or going to bed.
 #
-#   You can also configer a delay before devices are turned off, as well as exclude specific lights or media players from being turned off. This is useful for excluding devices
+#   You can also configure a delay before devices are turned off, as well as exclude specific lights or media players from being turned off. This is useful for excluding devices
 #   that should always remain on, no matter what.
 #
 #   How to set it up:
