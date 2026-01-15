@@ -121,8 +121,6 @@ blueprint:
               filter:
                 - integration: mqtt
                   domain: light
-                - integration: zha
-                  domain: light
               multiple: true
 
     condition_inputs:
