@@ -124,8 +124,8 @@ blueprint:
         excluded_lights:
           # translation:
           #   name:
-          #     en: Excluded Lights (optional)
-          #     de: Ausgeschlossene Lichter ausschliessen (optional)
+          #     en: Excluded Lights
+          #     de: Ausgeschlossene Lichter ausschliessen
           #   description:
           #     en: Select the lights that should NOT be turned off when the button is pressed. This applies only if you have selected the option to turn off lights with the all off button.
           #     de: Wähle die Lichter aus, die NICHT ausgeschaltet werden sollen, wenn der Button gedrückt wird. Das gilt nur wenn die Option 'Lichter ausschalten' gewählt wurde.
@@ -141,8 +141,8 @@ blueprint:
         excluded_media_players:
           # translation:
           #   name:
-          #     en: Excluded Media Players (optional)
-          #     de: Ausgeschlossene Medienplayer (optional)
+          #     en: Excluded Media Players
+          #     de: Ausgeschlossene Medienplayer
           #   description:
           #     en: Select media players that should NOT be turned off when the button is pressed. This only applies if media players are selected to be turned off at all.
           #     de: Wähle die Medienplayer aus, die NICHT ausgeschaltet werden sollen, wenn der Button gedrückt wird. Das gilt nur wenn überhaupt ausgewählt wurde wie dass Medienplayer ausgeschaltet werden sollen.
@@ -158,8 +158,8 @@ blueprint:
         delay:
           # translation:
           #   name:
-          #     en: Delay (optional)
-          #     de: Verzögerung (optional)
+          #     en: Delay
+          #     de: Verzögerung
           #   description:
           #     en: Add a delay before turning off the selected devices.
           #     de: Füge eine Verzögerung hinzu, bevor die ausgewahlten Geraete ausgeschaltet werden.

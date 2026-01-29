@@ -149,8 +149,8 @@ blueprint:
         delay:
           # translation:
           #   name:
-          #     en: Delay (optional)
-          #     de: Verzögerung (optional)
+          #     en: Delay
+          #     de: Verzögerung
           #   description:
           #     en: Add a delay before activating the scene.
           #     de: Füge eine Verzögerung hinzu, bevor die Szene aktiviert wird.
