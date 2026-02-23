@@ -1,0 +1,148 @@
+# ! RELEASE NOTES
+## 1.0.0 | YYYY-MM-DD
+## - add release notes here
+
+# ================
+# Partner Engine
+# ================
+# icon: "weather-lightning-rainy"
+#
+# name_en: "Test Inputs_oldAgain_superOld"
+# name_de: "Wetterwarnung"
+# subtitle_en: "Phone Notification"
+# subtitle_de: "Handy-Benachrichtigung"
+#
+# short_description_en: "Get notified about upcoming weather events such as rain, storms, snow, and more."
+# short_description_de: "Erhalte Benachrichtigungen über bevorstehende Wetterereignisse wie Regen, Gewitter, Schnee und mehr."
+# long_description_en: "Every morning, smarli. checks the weather forecast in your area and notifies you about any upcoming weather events so that you can leave your home fully prepared."
+# long_description_de: "Jeden Morgen prüft smarli. die Wettervorhersage in deiner Umgebung und benachrichtigt dich über bevorstehende Wetterereignisse, damit du dein Zuhause stets bestens vorbereitet verlassen kannst."
+#
+# purpose_en: "Comfort"
+# purpose_de: "Komfort"
+#
+# keywords_en: [weather, warning, notification, rain, snow, hail, lightning, fog, storm]
+# keywords_de: [wetter, warnung, benachrichtigung, regen, schnee, hagel, blitz, nebel, sturm]
+# events_en: [weather forecast]
+# events_de: [wettervorhersage]
+# highlight: false
+# deploy: true
+
+blueprint:
+  ############
+  # Metadata #
+  ############
+  name: Test Inputs
+  description: >
+    # This is the H1, repeat the name, but add an emoji at the beginning (e.g. 🔔 smarli. Weather Warning)
+
+    Add a short description of what the automation will achieve.
+
+    *Version x.x.x | YYYY-MM-DD*
+
+    <details>
+    <summary><b>How to set it up</b></summary>
+
+      1. Here add a couple of steps that need to be followed when setting up the automation based on this blueprint.
+    </details>
+
+
+    All input fields are required unless they are marked as ` (optional) `.
+  domain: automation
+  author: your-github-user [smarli. AG]
+  source_url: https://github.com/smarli-AG/smarli-blueprints/blob/main/automation/test-inputs.yaml
+  homeassistant:
+    min_version: 2024.11.3
+
+  ###############
+  # User Inputs #
+  ###############
+  input:
+    trigger_inputs:
+      name: Trigger Inputs
+      icon: mdi:star-box-multiple
+      description: These inputs are used to set the automation triggers
+      input:
+        color_rgb:
+          # translation:
+          #   name:
+          #     en: color_rgb
+          #     de: Lorem Ipsum
+          #   description:
+          #     en: Lorem Ipsum dolor sit amet
+          #     de: Lorem Ipsum dolor sit amet
+          name: color_rgb
+          description: add short description
+          selector:
+            color_rgb:
+    condition_inputs:
+      name: Condition Inputs
+      icon: mdi:help-box-multiple
+      description: These inputs are used to set the automation conditions
+
+    action_inputs:
+      name: Action Inputs
+      icon: mdi:play-box-multiple
+      description: These inputs are used to set the actions
+
+    custom_inputs: # leave these as is - should be present in any blueprint
+      name: "DANGER ZONE: Additional Custom Inputs"
+      icon: mdi:alert
+      description: >-
+        **WATCH OUT!**  
+
+        This is advanced functionality and should only be used if you know what you're doing!  
+
+
+        Use this section to define custom triggers and conditions, as well as actions that will run at the end of the automation.
+      collapsed: true
+      input:
+        custom_triggers:
+          name: Custom triggers (optional)
+          description: >-
+            Use this to define custom triggers in addition to the default triggers.
+          selector:
+            trigger:
+          default: []
+        custom_conditions:
+          name: Custom conditions (optional)
+          description: >-
+            Use this to define custom conditions in addition to the default conditions.
+          selector:
+            condition:
+          default: []
+        custom_actions:
+          name: Custom actions (optional)
+          description: >-
+            Use this to define custom actions that should be executed at the end of this automation.
+          selector:
+            action:
+          default: []
+
+#########################
+# Variables Translation #
+#########################
+
+# this is required in order to use inputs as variables within templates
+
+##############
+# Automation #
+##############
+
+mode: single
+max_exceeded: silent
+
+triggers:
+  ## Custom triggers
+  - triggers: !input custom_triggers
+
+conditions: # by default, conditions follow an AND logic
+  ## Custom conditions
+  - condition: and
+    conditions: !input custom_conditions
+
+actions:
+  ## Custom actions
+  - if:
+      - condition: template
+        value_template: "{{ custom_actions is not none }}"
+    then: !input custom_actions
