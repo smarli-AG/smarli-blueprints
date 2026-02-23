@@ -128,4 +128,21 @@ blueprint:
 # Automation #
 ##############
 
-mode: si
+mode: single
+max_exceeded: silent
+
+triggers:
+  ## Custom triggers
+  - triggers: !input custom_triggers
+
+conditions: # by default, conditions follow an AND logic
+  ## Custom conditions
+  - condition: and
+    conditions: !input custom_conditions
+
+actions:
+  ## Custom actions
+  - if:
+      - condition: template
+        value_template: "{{ custom_actions is not none }}"
+    then: !input custom_actions
