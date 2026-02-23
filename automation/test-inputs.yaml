@@ -264,7 +264,7 @@ blueprint:
               min: 12
               max: 110
               step: 5
-              unit_of_measurement: "%"
+              unit_of_measurement: "kelvin"
         number2:
           # translation:
           #   name:
