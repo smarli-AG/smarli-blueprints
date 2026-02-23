@@ -261,6 +261,10 @@ blueprint:
           selector:
             number:
               mode: box
+              min: 12
+              max: 110
+              step: 5
+              unit_of_measurement: "%"
         number2:
           # translation:
           #   name:
@@ -275,7 +279,7 @@ blueprint:
             number:
               mode: slider
               min: 12
-              max: 89
+              max: 150
               step: 7
               unit_of_measurement: "%"
         color_rgb:
