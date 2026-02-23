@@ -280,7 +280,7 @@ blueprint:
               mode: slider
               min: 12
               max: 150
-              step: 7
+              step: 0.4
               unit_of_measurement: "%"
         color_rgb:
           # translation:
