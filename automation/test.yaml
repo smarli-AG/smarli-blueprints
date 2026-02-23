@@ -7,12 +7,12 @@
 # ================
 # icon: "weather-lightning-rainy"
 #
-# name_en: "Test Inputs_oldAgain_superOld"
+# name_en: "New Test"
 # name_de: "Wetterwarnung"
 # subtitle_en: "Phone Notification"
 # subtitle_de: "Handy-Benachrichtigung"
 #
-# short_description_en: "Get notified about upcoming weather events such as rain, storms, snow, and more."
+# short_description_en: "Test"
 # short_description_de: "Erhalte Benachrichtigungen über bevorstehende Wetterereignisse wie Regen, Gewitter, Schnee und mehr."
 # long_description_en: "Every morning, smarli. checks the weather forecast in your area and notifies you about any upcoming weather events so that you can leave your home fully prepared."
 # long_description_de: "Jeden Morgen prüft smarli. die Wettervorhersage in deiner Umgebung und benachrichtigt dich über bevorstehende Wetterereignisse, damit du dein Zuhause stets bestens vorbereitet verlassen kannst."
@@ -22,8 +22,8 @@
 #
 # keywords_en: [weather, warning, notification, rain, snow, hail, lightning, fog, storm]
 # keywords_de: [wetter, warnung, benachrichtigung, regen, schnee, hagel, blitz, nebel, sturm]
-# events_en: [weather forecast]
-# events_de: [wettervorhersage]
+# events_en: [sfsdf]
+# events_de: [sdfsdf]
 # highlight: false
 # deploy: true
 
@@ -31,7 +31,7 @@ blueprint:
   ############
   # Metadata #
   ############
-  name: Test Inputs
+  name: Test
   description: >
     # This is the H1, repeat the name, but add an emoji at the beginning (e.g. 🔔 smarli. Weather Warning)
 
