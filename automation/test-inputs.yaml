@@ -281,7 +281,7 @@ blueprint:
               min: 12
               max: 150
               step: 0.4
-              unit_of_measurement: "%"
+              unit_of_measurement: "kelvin"
         color_rgb:
           # translation:
           #   name:
