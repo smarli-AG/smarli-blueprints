@@ -81,7 +81,7 @@ blueprint:
                   manufacturer: Aqara
                   model: Wireless mini switch T1
               multiple: false
-        push_type:
+        interaction_type:
           # translation:
           #   name:
           #     en: Button Press Type
@@ -217,7 +217,7 @@ triggers:
   - domain: mqtt
     device_id: !input smart_button
     type: action
-    subtype: !input push_type
+    subtype: !input interaction_type
     trigger: device
   ## Custom triggers
   - triggers: !input custom_triggers
