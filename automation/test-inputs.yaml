@@ -92,7 +92,7 @@ blueprint:
               device:
                 - integration: mqtt
                   manufacturer: smarli.
-                  model: S-ZB-PDM1-R251
+                  model_id: S-ZB-PDM1-R251
               multiple: true
         boolean:
           # translation:
