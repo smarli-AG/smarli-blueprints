@@ -92,7 +92,7 @@ blueprint:
               device:
                 - integration: mqtt
                   manufacturer: smarli.
-                  model_id: S-ZB-PDM1-R251
+                  model: Phase dimmer gen 1
               multiple: true
         boolean:
           # translation:
