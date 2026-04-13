@@ -31,7 +31,7 @@ blueprint:
   ############
   # Metadata #
   ############
-  name: Test
+  name: Tester
   description: >
     # This is the H1, repeat the name, but add an emoji at the beginning (e.g. 🔔 smarli. Weather Warning)
 
