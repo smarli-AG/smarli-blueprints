@@ -119,8 +119,8 @@ blueprint:
           selector:
             color_temp:
               unit: kelvin
-              min: 1000
-              max: 2000
+              min: 2700
+              max: 6500
         date:
           # translation:
           #   name:
