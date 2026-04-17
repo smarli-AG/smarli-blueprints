@@ -79,7 +79,11 @@ blueprint:
             device:
               filter:
                 - integration: mqtt
+                  manufacturer: Philips
+                  model: Hue smart button
+                - integration: mqtt
                   manufacturer: smarli.
+                  model: Zigbee 2ch smart relay
               multiple: true
         area:
           # translation:

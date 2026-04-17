@@ -114,12 +114,12 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: color temperature
+          name: color temperature_warm
           description: add short description
           selector:
             color_temp:
               unit: kelvin
-              min: 5700
+              min: 2700
               max: 6500
         date:
           # translation:
@@ -263,7 +263,7 @@ blueprint:
               mode: box
               min: 12
               max: 110
-              step: 5
+              step: 0.0001
               unit_of_measurement: "%%%"
         number2:
           # translation:
