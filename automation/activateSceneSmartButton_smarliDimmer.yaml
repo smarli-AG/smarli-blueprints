@@ -5,6 +5,7 @@
 # ================
 # Partner Engine
 # ================
+# is_smart_button: true
 # icon: "palette"
 #
 # name_en: "Scene Activation"
