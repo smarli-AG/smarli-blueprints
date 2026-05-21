@@ -23,6 +23,7 @@
 #   You can also configure a delay before devices are turned off, as well as exclude specific lights or media players from
 #   being turned off. This is useful for excluding devices that should always remain on, no matter what.
 #   [br]
+#   [br]
 #   __How to set it up:__
 #   1. Select the button that should trigger the automation
 #   2. Select if you want to turn off lights, media players or both
@@ -42,7 +43,8 @@
 #   Du kannst auch eine Verzögerung einstellen, bevor die Geräte ausgeschaltet werden, sowie bestimmte Lichter oder
 #   Medienplayer vom Ausschalten ausschliessen. Das ist nützlich, um Geräte auszuschliessen, die immer eingeschaltet bleiben sollen.
 #   [br]
-#   Einrichtung der Automatisierung:
+#   [br]
+#   __Einrichtung der Automatisierung:__
 #   [br]
 #   1. Wähle den Button aus, der die Automation auslösen soll
 #   2. Wähle ob du Lichter, Medienplayer oder beides ausschalten möchtest

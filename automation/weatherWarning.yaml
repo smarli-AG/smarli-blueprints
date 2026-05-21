@@ -39,6 +39,7 @@
 #   Every morning, smarli. checks the weather forecast in your area and notifies you about any upcoming weather events so that you can leave your home fully prepared.
 #   This is done using the Weather Forecast provided by MeteoSwiss for your selected weather station.
 #   [br]
+#   [br]
 #   __How to set it up:__
 #   1. Select at what time the notification should be sent - this is the trigger
 #   2. Select the weather forecast that should be watched in case multiple are available. By default, MeteoSwiss will be used.
@@ -56,7 +57,8 @@
 #   Jeden Morgen prüft smarli. die Wettervorhersage in deiner Umgebung und benachrichtigt dich über bevorstehende Wetterereignisse, damit du dein Zuhause stets bestens vorbereitet verlassen kannst.
 #   Dazu wird die Wettervorhersage von MeteoSchweiz für die zuvor gewählte Wetterstation verwendet.
 #   [br]
-#   Einrichtung der Automatisierung:
+#   [br]
+#   __Einrichtung der Automatisierung:__
 #   1. Wähle, wann die Benachrichtigung gesendet werden soll - das ist der Trigger
 #   2. Wähle die Wettervorhersage aus, die überwacht werden soll, falls mehrere verfügbar sind. Standardmässig wird MeteoSchweiz verwendet.
 #   3. Wähle aus, über welche Wetterereignisse du informiert werden möchtest
