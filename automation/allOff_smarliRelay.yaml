@@ -116,6 +116,8 @@ blueprint:
           description: Select the buttons that will trigger the all off automation
           selector:
             device:
+              entity:
+                - domain: switch
               filter:
                 - manufacturer: "smarli."
                   model: "Zigbee 2ch smart relay"
