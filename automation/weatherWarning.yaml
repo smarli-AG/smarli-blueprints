@@ -39,7 +39,7 @@
 #   Every morning, smarli. checks the weather forecast in your area and notifies you about any upcoming weather events so that you can leave your home fully prepared.
 #   This is done using the Weather Forecast provided by MeteoSwiss for your selected weather station.
 #   [br]
-#   How to set it up:
+#   __How to set it up:__
 #   1. Select at what time the notification should be sent - this is the trigger
 #   2. Select the weather forecast that should be watched in case multiple are available. By default, MeteoSwiss will be used.
 #   3. Select which weather conditions you'd like to be informed about

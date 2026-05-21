@@ -23,7 +23,7 @@
 #   You can also configure a delay before devices are turned off, as well as exclude specific lights or media players from
 #   being turned off. This is useful for excluding devices that should always remain on, no matter what.
 #   [br]
-#   How to set it up:
+#   __How to set it up:__
 #   1. Select the button that should trigger the automation
 #   2. Select if you want to turn off lights, media players or both
 #   3. (Optional) Exclude specific lights or media players from being turned off
