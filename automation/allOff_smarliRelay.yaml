@@ -16,44 +16,42 @@
 # short_description_de: "Schalte alle Lichter und Medienplayer in deinem Zuhause mit nur einem Knopfdruck aus."
 # long_description_en: |
 #   __Turn off all lights and media players in your home with a single button press.__
-#
+#   [br]
 #   The All Off automation let's you turn off all you lights and media players in your home with a single button press.
 #   This is great for quickly turning off everything when leaving the house or going to bed.
-#
+#   [br]
 #   You can also configure a delay before devices are turned off, as well as exclude specific lights or media players from
 #   being turned off. This is useful for excluding devices that should always remain on, no matter what.
-#
+#   [br]
 #   How to set it up:
-#
 #   1. Select the button that should trigger the automation
 #   2. Select if you want to turn off lights, media players or both
 #   3. (Optional) Exclude specific lights or media players from being turned off
 #   4. (Optional) Select a delay before turning off the selected devices
-#
+#   [br]
 #   ---
-#
+#   [br]
 #   _Version 1.0.0 | Created by Pascal_
 #
 # long_description_de: |
 #   __Schalte alle Lichter und Medienplayer in deinem Zuhause mit nur einem Knopfdruck aus.__
-#
+#   [br]
 #   Die 'Alles Aus' Automatisierung ermöglicht es dir, alle Lichter und Medienplayer in deinem Zuhause mit nur einem
 #   Knopfdruck auszuschalten. Das ist ideal, um schnell alles auszuschalten, wenn du das Haus verlässt oder ins Bett gehst.
-#
+#   [br]
 #   Du kannst auch eine Verzögerung einstellen, bevor die Geräte ausgeschaltet werden, sowie bestimmte Lichter oder
 #   Medienplayer vom Ausschalten ausschliessen. Das ist nützlich, um Geräte auszuschliessen, die immer eingeschaltet bleiben sollen.
-#
+#   [br]
 #   Einrichtung der Automatisierung:
-#
+#   [br]
 #   1. Wähle den Button aus, der die Automation auslösen soll
 #   2. Wähle ob du Lichter, Medienplayer oder beides ausschalten möchtest
 #   3. (Optional) Schliesse bestimmte Lichter oder Medienplayer vom Ausschalten aus
 #   4. (Optional) Wähle eine Verzögerung bevor die ausgewählten Geräte ausgeschaltet werden
-#
+#   [br]
 #   ---
-#
+#   [br]
 #   _Version 1.0.1 | Erstellt durch Pascal_
-#
 #
 # purpose_en: "Comfort"
 # purpose_de: "Komfort"
