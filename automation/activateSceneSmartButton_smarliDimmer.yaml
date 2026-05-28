@@ -86,12 +86,9 @@ blueprint:
           selector:
             device:
               filter:
-                - integration: mqtt
-                  manufacturer: smarli.
-                  model: Phase dimmer gen 1
-                - integration: zha
-                  manufacturer: smarli.
-                  model: Phase dimmer gen 1
+                - manufacturer: "smarli."
+                  model: "relay"
+                  model_id: "S-ZB-1RE1-R251"
               multiple: true
 
     condition_inputs:
@@ -181,7 +178,7 @@ trigger_variables:
       smart_buttons 
       | map('device_entities')
       | sum(start=[])
-      | select('match', '^light\.')
+      | select('match', '^switch\.')
       | list
     }}
 
