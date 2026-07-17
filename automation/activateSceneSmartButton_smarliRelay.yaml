@@ -13,8 +13,8 @@
 # subtitle_en: "smarli. smart button"
 # subtitle_de: "smarli. Smart Button"
 #
-# short_description_en: "Activate a scene with a single press of your preferred smarli. dimmer."
-# short_description_de: "Aktiviere eine Szene durch das einfache Drücken Deines bevorzugten smarli. dimmers."
+# short_description_en: "Activate a scene with a single press of your preferred smarli. relay."
+# short_description_de: "Aktiviere eine Szene durch das einfache Drücken Deines bevorzugten smarli. relays."
 # long_description_en: |
 #   # Header
 #
@@ -76,21 +76,22 @@ blueprint:
         smart_buttons:
           # translation:
           #   name:
-          #     en: smarli. smart buttons
-          #     de: smarli. smart buttons
+          #     en: smarli. Smart Buttons
+          #     de: smarli. Smart Buttons
           #   description:
-          #     en: Select the smarli. devices that should activate the scene.
-          #     de: Wähle das smarli. Geräte aus, welche die Szene aktivieren sollen.
-          name: smarli. smart buttons
-          description: Select the smarli. devices that should activate the scene.
+          #     en: Select the smarli. relays that should activate the scene.
+          #     de: Wähle die smarli. relays aus, welche die Szene aktivieren sollen.
+          name: smarli. Smart Buttons
+          description: Select the smarli. relays that should activate the scene.
           selector:
             device:
+              entity:
+                - domain: switch
               filter:
                 - manufacturer: "smarli."
                   model: "relay"
                   model_id: "S-ZB-1RE1-R251"
               multiple: true
-
     condition_inputs:
       name: Condition Inputs
       icon: mdi:help-box-multiple
