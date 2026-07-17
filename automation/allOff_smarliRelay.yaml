@@ -120,9 +120,6 @@ blueprint:
                 - domain: switch
               filter:
                 - manufacturer: "smarli."
-                  model: "Zigbee 2ch smart relay"
-                  model_id: "S-ZB-1RE1-R251"
-                - manufacturer: "smarli."
                   model: "relay"
                   model_id: "S-ZB-1RE1-R251"
               multiple: true
