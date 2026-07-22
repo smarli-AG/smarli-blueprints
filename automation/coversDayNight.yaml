@@ -1,0 +1,1088 @@
+# TODO: müssen wir eine Logik einbauen, dass das nur auf Shutters und Blinds angewendet wird?
+# -> wohl nicht, Nutzer muss ja Storen bewusst wählen. Wenn er sie will, dann ist sie enthalten.
+# höchstens vielleicht, dass Regen/Wind nur auf Sonnenstoren angewendet werden?
+
+# Fragen:
+# backstop für cover movement ist 3min - oder gibt es überhaupt storen, die länger brauchen?
+
+blueprint:
+  ############
+  # Metadata #
+  ############
+  name: smarli. Cover Control Day-Night-Cycle
+  description: >
+    # 🌞 smarli. Cover Control Day-Night-Cycle
+
+    Control covers based on the day-night-cycle. Based on either sunrise/sunset,
+    time or brightness. Prevents automatically closing the covers in case of
+    current or upcoming weather events. Detects manual operation (app, UI, wall
+    switch, mid-move stop) and suspends the affected cover for a configurable
+    duration — a manually moved cover keeps its position until the next
+    scheduled transition after the suspension has expired.
+
+    *Version 2.0.0 | 2026-07-20*
+
+    <details>
+    <summary><b>How it works</b></summary>
+
+      The automation evaluates the desired cover state (open/closed) once per
+      minute and only acts when the desired state changes (or a custom trigger
+      fires). This makes it robust against restarts: a transition missed during
+      downtime is caught up on the next evaluation.
+
+      Manual interventions are detected centrally (see requirements) and
+      suspend the affected cover — other covers keep automating. After the
+      suspension expires, the cover rejoins at the next scheduled transition.
+
+    </details>
+
+    <details>
+    <summary><b>Requirements</b></summary>
+
+      This blueprint requires the **smarli. Core Package** (included in the
+      Grundinstanz): `sensor.smarli_automation_tracker`,
+      `script.smarli_cover_manual_check` and `script.smarli_cover_move`.
+      To retrofit an older instance, copy `packages/smarli_core.yaml` from this
+      repository into `config/packages/`.
+
+    </details>
+
+    <details>
+    <summary><b>Known limitations</b></summary>
+
+      - For reliable manual-operation detection, select the individual covers
+        rather than cover groups (groups are expanded for actions, but manual
+        detection on group members is not reliable).
+      - Manual operation is detected via cover state transitions (opening/closing/
+        open/closed). A cover whose integration changes position without ever
+        reporting an opening/closing state cannot be detected as manual.
+      - Weather forecast blocking checks the next hourly forecast entry, and only
+        if the weather entity supports hourly forecasts (otherwise only current
+        conditions block closing).
+
+    </details>
+
+
+    All input fields are required unless they are marked as ` (optional) `.
+  domain: automation
+  author: loocd [smarli. AG]
+  source_url: https://github.com/smarli-AG/smarli-blueprints/blob/main/automation/coversDayNight.yaml
+  homeassistant:
+    min_version: 2024.10.0
+
+  ###############
+  # User Inputs #
+  ###############
+  input:
+    trigger_inputs_general:
+      name: Trigger Inputs GENERAL
+      icon: mdi:star-box-multiple
+      description: |
+        These inputs are used to set the general setup for the automation triggers
+
+      input:
+        daynight_cycle_method:
+          name: Day-Night-Cycle Method
+          description: >
+            Based on which method should the day-night cycle (opening covers in the morning, closing them at night) operate?
+            Go ahead and jump down to the section that relates to your chosen method.
+          selector:
+            select:
+              options:
+                - label: Sunrise/Sunset
+                  value: sun
+                - label: Time
+                  value: time
+                - label: Brightness
+                  value: brightness
+          default: sun
+
+        workday_tracker:
+          name: Workday Tracker (optional)
+          description: >
+            Entity used to track whether or not today is a workday. This can be used to differentiate between opening times on workdays vs non-workdays.
+
+            If this is not set, all days will be considered as non-workdays.
+          selector:
+            entity:
+              filter:
+                - domain: binary_sensor
+          default: binary_sensor.workday_sensor
+        workday_tomorrow_tracker:
+          name: Workday Tomorrow Tracker (optional)
+          description: >
+            Entity used to track whether or not tomorrow is a workday. This can be used to differentiate between closing times if tomorrow is a workday vs a non-workday.
+
+            If this is not set, all days will be considered as non-workdays.
+          selector:
+            entity:
+              filter:
+                - domain: binary_sensor
+          default: binary_sensor.workday_tomorrow_sensor
+
+    trigger_inputs_sun:
+      name: Trigger Inputs SUNRISE/SUNSET METHOD
+      icon: mdi:weather-sunny
+      collapsed: true
+      description: |
+        These inputs are used to set the automation triggers for the sunrise/sunset method
+
+      input:
+        sunrise_offset:
+          name: Sunrise Offset (optional)
+          description: If required, offset the opening from the actual sunrise time. Time of sunrise is delivered by the sun integration.
+          selector:
+            number:
+              min: -120
+              max: 120
+              unit_of_measurement: minutes
+          default: 0
+        sunrise_offset_helper:
+          name: Sunrise Offset Helper (optional)
+          description: Instead of setting a sunrise offset within this automation, you can use a number helper (minutes) to set the sunrise offset.
+          selector:
+            entity:
+              filter:
+                - domain: input_number
+          default: ""
+
+        sunset_offset:
+          name: Sunset Offset (optional)
+          description: If required, offset the closing from the actual sunset time. Time of sunset is delivered by the sun integration.
+          selector:
+            number:
+              min: -120
+              max: 120
+              unit_of_measurement: minutes
+          default: 0
+        sunset_offset_helper:
+          name: Sunset Offset Helper (optional)
+          description: Instead of setting a sunset offset within this automation, you can use a number helper (minutes) to set the sunset offset.
+          selector:
+            entity:
+              filter:
+                - domain: input_number
+          default: ""
+
+    trigger_inputs_time:
+      name: Trigger Inputs TIME METHOD
+      icon: mdi:clock
+      collapsed: true
+      description: |
+        These inputs are used to set the automation triggers for time-based method.
+
+      input:
+        time_open_workday:
+          name: Open Time on Workdays (optional)
+          description: Time to open covers on workdays, if `Day-Night-Cycle Method` is set to `Time`.
+          selector:
+            time:
+          default: "06:00:00"
+        time_open_workday_helper:
+          name: Open Time on Workdays Helper (optional)
+          description: Instead of setting the opening time within this automation, you can use a datetime helper (time only) to set the open time.
+          selector:
+            entity:
+              filter:
+                - domain: input_datetime
+          default: ""
+        time_open_non_workday:
+          name: Open Time on Non-Workdays (optional)
+          description: Time to open covers on non-workdays, if `Day-Night-Cycle Method` is set to `Time`.
+          selector:
+            time:
+          default: "07:00:00"
+        time_open_non_workday_helper:
+          name: Open Time on Non-Workdays Helper (optional)
+          description: Instead of setting the opening time within this automation, you can use a datetime helper (time only) to set the open time.
+          selector:
+            entity:
+              filter:
+                - domain: input_datetime
+          default: ""
+
+        time_close_workday_tomorrow:
+          name: Close Time if tomorrow is a Workday (optional)
+          description: Time to close covers if tomorrow is a workday, if `Day-Night-Cycle Method` is set to `Time`.
+          selector:
+            time:
+          default: "21:00:00"
+        time_close_workday_tomorrow_helper:
+          name: Close Time if Tomorrow is a Workday Helper (optional)
+          description: Instead of setting the closing time within this automation, you can use a datetime helper (time only) to set the close time.
+          selector:
+            entity:
+              filter:
+                - domain: input_datetime
+          default: ""
+        time_close_non_workday_tomorrow:
+          name: Close Time if tomorrow is not a Workday (optional)
+          description: Time to close covers if tomorrow is not a workday, if `Day-Night Cycle Method` is set to `Time`.
+          selector:
+            time:
+          default: "21:00:00"
+        time_close_non_workday_tomorrow_helper:
+          name: Close Time if Tomorrow is not a Workday Helper (optional)
+          description: Instead of setting the closing time within this automation, you can use a datetime helper (time only) to set the close time.
+          selector:
+            entity:
+              filter:
+                - domain: input_datetime
+          default: ""
+
+    trigger_inputs_brightness:
+      name: Trigger Inputs BRIGHTNESS METHOD
+      icon: mdi:brightness-7
+      collapsed: true
+      description: |
+        These inputs are used to set the automation triggers for brightness-based method.
+
+      input:
+        brightness_sensor:
+          name: Brightness Sensor
+          description: Brightness sensor entity. Required if `Day-Night-Cycle Method` is set to `Brightness`.
+          selector:
+            entity:
+              filter:
+                - domain: sensor
+                  device_class: illuminance
+          default: ""
+        lux_sensor_delay:
+          name: Brightness Sensor Stabilizer (optional)
+          description: How long does the brightness sensor need to be above/below the defined threshold before the covers move? This avoids frequent back-and-forth switching (e.g. if a cloud passes in front of the sun).
+          selector:
+            time:
+          default: "00:05:00"
+
+        brightness_open:
+          name: Brightness to Open (optional)
+          description: Brightness level to open covers, if `Day-Night Cycle Method` is set to `Brightness`.
+          selector:
+            number:
+              min: 0
+              max: 100000
+              unit_of_measurement: lux
+              mode: box
+          default: 500
+        brightness_open_helper:
+          name: Brightness Open Helper (optional)
+          description: Instead of setting the brightness to open within this automation, you can use a number helper to set the brightness to open.
+          selector:
+            entity:
+              filter:
+                - domain: input_number
+          default: ""
+
+        brightness_close:
+          name: Brightness to Close (optional)
+          description: Brightness level to close covers, if `Day-Night Cycle Method` is set to `Brightness`. Must be below `Brightness to Open` (hysteresis).
+          selector:
+            number:
+              min: 0
+              max: 100000
+              unit_of_measurement: lux
+              mode: box
+          default: 30
+        brightness_close_helper:
+          name: Brightness Close Helper (optional)
+          description: Instead of setting the brightness to close within this automation, you can use a number helper to set the brightness to close.
+          selector:
+            entity:
+              filter:
+                - domain: input_number
+          default: ""
+
+    trigger_inputs_earliest_open_close:
+      name: Trigger Inputs EARLIEST OPEN/CLOSE
+      icon: mdi:clock-alert
+      collapsed: true
+      description: |
+        If desired, these inputs set earliest opening/closing times. The covers will not
+        open/close before the time you set here, even if the chosen method has already
+        reached its opening/closing point — they move once the earliest time is reached.
+
+      input:
+        should_use_earliest_open:
+          name: Use Earliest Open Time
+          description: Do you want to set a time at which the covers should open at the earliest?
+          selector:
+            boolean:
+          default: false
+        earliest_open_workday:
+          name: Earliest Open Time on Workdays (optional)
+          description: Earliest time to open covers on workdays. Only relevant if `Use Earliest Open Time` is set to `true`.
+          selector:
+            time:
+          default: "07:00:00"
+        earliest_open_workday_helper:
+          name: Earliest Open Time Workday Helper (optional)
+          description: Instead of setting the earliest open time on workdays within this automation, you can use a datetime helper (time only).
+          selector:
+            entity:
+              filter:
+                - domain: input_datetime
+          default: ""
+        earliest_open_non_workday:
+          name: Earliest Open Time on Non-Workdays (optional)
+          description: Earliest time to open covers on non-workdays. Only relevant if `Use Earliest Open Time` is set to `true`.
+          selector:
+            time:
+          default: "09:00:00"
+        earliest_open_non_workday_helper:
+          name: Earliest Open Time Non-Workday Helper (optional)
+          description: Instead of setting the earliest open time on non-workdays within this automation, you can use a datetime helper (time only).
+          selector:
+            entity:
+              filter:
+                - domain: input_datetime
+          default: ""
+
+        should_use_earliest_close:
+          name: Use Earliest Close Time
+          description: Do you want to set a time at which the covers should close at the earliest?
+          selector:
+            boolean:
+          default: false
+        earliest_close_workday_tomorrow:
+          name: Earliest Close Time if Tomorrow is a Workday (optional)
+          description: Earliest time to close covers if tomorrow is a workday. Only relevant if `Use Earliest Close Time` is set to `true`.
+          selector:
+            time:
+          default: "22:00:00"
+        earliest_close_workday_tomorrow_helper:
+          name: Earliest Close Time Workday Helper (optional)
+          description: Instead of setting the earliest close time within this automation, you can use a datetime helper (time only).
+          selector:
+            entity:
+              filter:
+                - domain: input_datetime
+          default: ""
+        earliest_close_non_workday_tomorrow:
+          name: Earliest Close Time if Tomorrow is a Non-Workday (optional)
+          description: Earliest time to close covers if tomorrow is not a workday. Only relevant if `Use Earliest Close Time` is set to `true`.
+          selector:
+            time:
+          default: "23:00:00"
+        earliest_close_non_workday_tomorrow_helper:
+          name: Earliest Close Time Non-Workday Helper (optional)
+          description: Instead of setting the earliest close time within this automation, you can use a datetime helper (time only).
+          selector:
+            entity:
+              filter:
+                - domain: input_datetime
+          default: ""
+
+    trigger_inputs_latest_open_close:
+      name: Trigger Inputs LATEST OPEN/CLOSE
+      icon: mdi:clock-alert
+      collapsed: true
+      description: |
+        If desired, these inputs set latest opening/closing times
+        if the chosen method has not reached its opening/closing point yet.
+
+        For example, if it is still bright out at 9pm, you could use this section so that
+        the covers close at 9pm at the latest. But if the brightness reaches the closing
+        threshold before 9pm, the covers will close at that earlier time.
+
+        Please beware that the latest times should be after the earliest times.
+
+      input:
+        should_use_latest_open:
+          name: Use Latest Open Time
+          description: Do you want to set a time at which the covers should open at the latest, if they have not been opened before?
+          selector:
+            boolean:
+          default: false
+        latest_open_workday:
+          name: Latest Open Time on Workdays (optional)
+          description: Latest time to open covers on workdays. Only relevant if `Use Latest Open Time` is set to `true`.
+          selector:
+            time:
+          default: "07:00:00"
+        latest_open_workday_helper:
+          name: Latest Open Time Workday Helper (optional)
+          description: Instead of setting the latest open time on workdays within this automation, you can use a datetime helper (time only).
+          selector:
+            entity:
+              filter:
+                - domain: input_datetime
+          default: ""
+        latest_open_non_workday:
+          name: Latest Open Time on Non-Workdays (optional)
+          description: Latest time to open covers on non-workdays. Only relevant if `Use Latest Open Time` is set to `true`.
+          selector:
+            time:
+          default: "09:00:00"
+        latest_open_non_workday_helper:
+          name: Latest Open Time Non-Workday Helper (optional)
+          description: Instead of setting the latest open time on non-workdays within this automation, you can use a datetime helper (time only).
+          selector:
+            entity:
+              filter:
+                - domain: input_datetime
+          default: ""
+
+        should_use_latest_close:
+          name: Use Latest Close Time
+          description: Do you want to set a time at which the covers should close at the latest, if they have not been closed before?
+          selector:
+            boolean:
+          default: false
+        latest_close_workday_tomorrow:
+          name: Latest Close Time if Tomorrow is a Workday (optional)
+          description: Latest time to close covers if tomorrow is a workday. Only relevant if `Use Latest Close Time` is set to `true`.
+          selector:
+            time:
+          default: "22:00:00"
+        latest_close_workday_tomorrow_helper:
+          name: Latest Close Time Workday Helper (optional)
+          description: Instead of setting the latest close time within this automation, you can use a datetime helper (time only).
+          selector:
+            entity:
+              filter:
+                - domain: input_datetime
+          default: ""
+        latest_close_non_workday_tomorrow:
+          name: Latest Close Time if Tomorrow is a Non-Workday (optional)
+          description: Latest time to close covers if tomorrow is not a workday. Only relevant if `Use Latest Close Time` is set to `true`.
+          selector:
+            time:
+          default: "23:00:00"
+        latest_close_non_workday_tomorrow_helper:
+          name: Latest Close Time Non-Workday Helper (optional)
+          description: Instead of setting the latest close time within this automation, you can use a datetime helper (time only).
+          selector:
+            entity:
+              filter:
+                - domain: input_datetime
+          default: ""
+
+    condition_inputs_suspension:
+      name: Condition Inputs SUSPENSION AFTER MANUAL INTERACTION
+      icon: mdi:cancel
+      description: >
+        These inputs configure the suspension after manual control. If a cover is
+        operated manually (app, UI, wall switch or stopping it mid-move), this
+        automation leaves that cover alone for the suspension duration. The cover
+        keeps its manual position until the next scheduled transition after the
+        suspension has expired. Other covers keep automating.
+
+      input:
+        should_suspend_after_manual_interaction:
+          name: Suspend After Manual Interaction
+          description: >
+            If covers are controlled manually, suspend the automation for the
+            affected cover for a specified amount of time (see `Suspension Duration`).
+          selector:
+            boolean:
+          default: true
+        suspension_duration:
+          name: Suspension Duration (optional)
+          description: If suspension after manual interaction is turned on, this setting specifies how long the suspension should last.
+          selector:
+            time:
+          default: "00:30:00"
+
+    condition_inputs_weather:
+      name: Condition Inputs WEATHER EVENTS
+      icon: mdi:weather-lightning
+      description: >
+        These inputs are used to set the automation conditions related to weather events.
+        Weather events only prevent the covers from CLOSING (opening is always safe).
+        While blocked, the automation retries every minute and closes the covers as
+        soon as the weather clears.
+
+      input:
+        weather_events:
+          name: Weather Events to Prevent Closing (optional)
+          description: Which weather events (current or forecast within the next hour) should prevent the covers from closing? Requires the `Weather Entity` to be set.
+          selector:
+            select:
+              multiple: true
+              mode: list
+              options:
+                - label: High Wind Speeds
+                  value: "windy"
+                - label: Rainy
+                  value: "rainy"
+                - label: Pouring
+                  value: "pouring"
+                - label: Lightning
+                  value: "lightning"
+                - label: Lightning, rainy
+                  value: "lightning-rainy"
+                - label: Hail
+                  value: "hail"
+                - label: Snowy
+                  value: "snowy"
+                - label: Snowy, rainy
+                  value: "snowy-rainy"
+                - label: Fog
+                  value: "fog"
+          default: []
+        weather_entity:
+          name: Weather Entity (optional)
+          description: The weather entity to check in order to block the closing of the covers. This is required if you want to block the closing of the covers based on weather conditions/forecasts.
+          selector:
+            entity:
+              filter:
+                - domain: weather
+          default: ""
+        rain_sensor:
+          name: Rain Sensor (optional)
+          description: If available, specify a separate moisture sensor to be used to track if it's currently raining. Blocks closing while `on`, independently of the selected weather events. Must be of device_class `moisture`.
+          selector:
+            entity:
+              filter:
+                - domain: binary_sensor
+                  device_class: moisture
+          default: ""
+        wind_sensor:
+          name: Wind Sensor (optional)
+          description: If available, specify a separate wind sensor to be used to track current wind speeds. Blocks closing above the threshold, independently of the selected weather events. Must be of device_class `wind_speed`.
+          selector:
+            entity:
+              filter:
+                - domain: sensor
+                  device_class: wind_speed
+          default: ""
+        wind_speed_threshold:
+          name: Wind Speed Threshold to Prevent Closing (optional)
+          description: At what wind speed should the covers be prevented from closing?
+          selector:
+            number:
+              min: 0
+              max: 100
+              unit_of_measurement: km/h
+          default: 35
+        wind_speed_threshold_helper:
+          name: Wind Speed Threshold Helper (optional)
+          description: Instead of setting the wind speed threshold within this automation, you can use a number helper to set the wind speed threshold.
+          selector:
+            entity:
+              filter:
+                - domain: input_number
+          default: ""
+
+    action_inputs:
+      name: Action Inputs
+      icon: mdi:play-box-multiple
+      description: These inputs are used to set the actions.
+      input:
+        cover_entity:
+          name: Cover(s)
+          description: >
+            The cover entities to automate. Please select individual covers rather than
+            cover groups (see limitations). Please beware that covers might close while
+            people are outside (balcony/garden). It is advised to leave certain covers
+            open to ensure nobody gets locked out.
+          selector:
+            entity:
+              filter:
+                - domain: cover
+              multiple: true
+
+    custom_inputs:
+      name: "DANGER ZONE: Additional Custom Inputs"
+      icon: mdi:alert
+      description: >-
+        **WATCH OUT!**
+
+        This is advanced functionality and should only be used if you know what you're doing!
+
+
+        Use this section to define custom triggers and conditions, as well as actions
+        that will run after the covers have been opened/closed.
+      collapsed: true
+      input:
+        custom_opening_triggers:
+          name: Custom Opening Triggers (optional)
+          description: >-
+            Use this to define custom opening triggers in addition to the default triggers. Make sure each one of them has the trigger id `custom_open`.
+          selector:
+            trigger:
+          default: []
+        custom_closing_triggers:
+          name: Custom Closing Triggers (optional)
+          description: >-
+            Use this to define custom closing triggers in addition to the default triggers. Make sure each one of them has the trigger id `custom_close`.
+          selector:
+            trigger:
+          default: []
+        custom_opening_conditions:
+          name: Custom Opening Conditions (optional)
+          description: >-
+            Use this to define custom conditions that must ALL pass before the covers are opened by this automation.
+          selector:
+            condition:
+          default: []
+        custom_closing_conditions:
+          name: Custom Closing Conditions (optional)
+          description: >-
+            Use this to define custom conditions that must ALL pass before the covers are closed by this automation.
+          selector:
+            condition:
+          default: []
+        custom_opening_actions:
+          name: Custom Opening Actions (optional)
+          description: >-
+            Use this to define custom actions that should be executed after covers have been opened by this automation.
+          selector:
+            action:
+          default: []
+        custom_closing_actions:
+          name: Custom Closing Actions (optional)
+          description: >-
+            Use this to define custom actions that should be executed after covers have been closed by this automation.
+          selector:
+            action:
+          default: []
+
+#############
+# Variables #
+#############
+# All settings are resolved here (priority: helper entity -> blueprint input).
+# Triggers stay dumb (variables are not available in triggers); the decision
+# logic below only ever uses resolved variables.
+variables:
+  instance_id: "{{ this.attributes.id }}"
+  now_ts: "{{ as_timestamp(now()) }}"
+  # This blueprint's own namespace in the central tracker. Holds this instance's
+  # keys: <id>_commanded (last commanded position), <id>_bright_since / _dark_since.
+  stored_state: "{{ (state_attr('sensor.smarli_automation_tracker', 'data') or {}).get('cover_day_night', {}) }}"
+
+  daynight_cycle_method: !input daynight_cycle_method
+  should_suspend_after_manual_interaction: !input should_suspend_after_manual_interaction
+
+  workday_tracker: !input workday_tracker
+  workday_tomorrow_tracker: !input workday_tomorrow_tracker
+  is_workday: "{{ workday_tracker != '' and is_state(workday_tracker, 'on') }}"
+  is_workday_tomorrow: "{{ workday_tomorrow_tracker != '' and is_state(workday_tomorrow_tracker, 'on') }}"
+
+  # --- sun method -----------------------------------------------------------
+  sunrise_offset_input: !input sunrise_offset
+  sunrise_offset_helper: !input sunrise_offset_helper
+  # Offset in seconds, resolved from helper or input. May be negative (open
+  # before actual sunrise) — the arithmetic below handles negatives fine.
+  sunrise_offset_seconds: >
+    {% set minutes = states(sunrise_offset_helper) | float(sunrise_offset_input)
+       if sunrise_offset_helper != '' else sunrise_offset_input %}
+    {{ minutes | float(0) * 60 }}
+  sunset_offset_input: !input sunset_offset
+  sunset_offset_helper: !input sunset_offset_helper
+  sunset_offset_seconds: >
+    {% set minutes = states(sunset_offset_helper) | float(sunset_offset_input)
+       if sunset_offset_helper != '' else sunset_offset_input %}
+    {{ minutes | float(0) * 60 }}
+  # sun.sun's next_rising/next_setting always point to the future; subtract a day
+  # when they already point to tomorrow to get *today's* event (approx, +-2 min).
+  todays_sunrise: >
+    {% set next = as_timestamp(state_attr('sun.sun', 'next_rising'), 0) %}
+    {% if next == 0 %}
+      0
+    {% elif next | timestamp_custom('%j') == now_ts | timestamp_custom('%j') %}
+      {{ next }}
+    {% else %}
+      {{ next - 86400 }}
+    {% endif %}
+  todays_sunset: >
+    {% set next = as_timestamp(state_attr('sun.sun', 'next_setting'), 0) %}
+    {% if next == 0 %}
+      0
+    {% elif next | timestamp_custom('%j') == now_ts | timestamp_custom('%j') %}
+      {{ next }}
+    {% else %}
+      {{ next - 86400 }}
+    {% endif %}
+
+  # --- time method ----------------------------------------------------------
+  # Resolution pattern used throughout: pick the workday or non-workday value,
+  # prefer the helper entity's value over the blueprint input, and fall back to
+  # the input default if the helper is empty or doesn't hold a time.
+  time_open_workday: !input time_open_workday
+  time_open_workday_helper: !input time_open_workday_helper
+  time_open_non_workday: !input time_open_non_workday
+  time_open_non_workday_helper: !input time_open_non_workday_helper
+  open_time: >
+    {% set helper = time_open_workday_helper if is_workday else time_open_non_workday_helper %}
+    {% set fallback = time_open_workday if is_workday else time_open_non_workday %}
+    {% set value = states(helper) if helper != '' else fallback %}
+    {{ value if ':' in value else fallback }}
+  time_close_workday_tomorrow: !input time_close_workday_tomorrow
+  time_close_workday_tomorrow_helper: !input time_close_workday_tomorrow_helper
+  time_close_non_workday_tomorrow: !input time_close_non_workday_tomorrow
+  time_close_non_workday_tomorrow_helper: !input time_close_non_workday_tomorrow_helper
+  close_time: >
+    {% set helper = time_close_workday_tomorrow_helper if is_workday_tomorrow else time_close_non_workday_tomorrow_helper %}
+    {% set fallback = time_close_workday_tomorrow if is_workday_tomorrow else time_close_non_workday_tomorrow %}
+    {% set value = states(helper) if helper != '' else fallback %}
+    {{ value if ':' in value else fallback }}
+
+  # --- brightness method ----------------------------------------------------
+  brightness_sensor: !input brightness_sensor
+  lux_sensor_delay: !input lux_sensor_delay
+  # How long brightness must stay past a threshold before acting (the stabilizer).
+  stabilizer_seconds: "{{ (lux_sensor_delay | as_timedelta).total_seconds() }}"
+  brightness_open_input: !input brightness_open
+  brightness_open_helper: !input brightness_open_helper
+  open_lux_level: >
+    {{ states(brightness_open_helper) | float(brightness_open_input)
+       if brightness_open_helper != '' else brightness_open_input }}
+  brightness_close_input: !input brightness_close
+  brightness_close_helper: !input brightness_close_helper
+  close_lux_level: >
+    {{ states(brightness_close_helper) | float(brightness_close_input)
+       if brightness_close_helper != '' else brightness_close_input }}
+  lux: "{{ states(brightness_sensor) | float(-1) if brightness_sensor != '' else -1 }}"
+  # Instantaneous readings (before the stabilizer delay is applied).
+  bright_enough_to_open: "{{ daynight_cycle_method == 'brightness' and lux >= 0 and lux >= open_lux_level | float(0) }}"
+  dark_enough_to_close: "{{ daynight_cycle_method == 'brightness' and lux >= 0 and lux <= close_lux_level | float(0) }}"
+  # Timestamps (from the tracker) of when each threshold was first crossed.
+  bright_since: "{{ stored_state.get(instance_id ~ '_bright_since') }}"
+  dark_since: "{{ stored_state.get(instance_id ~ '_dark_since') }}"
+  # True when the stored "since" timestamps no longer match the current reading,
+  # so the stabilizer bookkeeping needs to write/clear one of them this run.
+  stabilizer_needs_update: >
+    {{ daynight_cycle_method == 'brightness' and (
+         (bright_enough_to_open and bright_since is none) or (not bright_enough_to_open and bright_since is not none)
+         or (dark_enough_to_close and dark_since is none) or (not dark_enough_to_close and dark_since is not none)
+       ) }}
+
+  # --- earliest / latest ----------------------------------------------------
+  should_use_earliest_open: !input should_use_earliest_open
+  earliest_open_workday: !input earliest_open_workday
+  earliest_open_workday_helper: !input earliest_open_workday_helper
+  earliest_open_non_workday: !input earliest_open_non_workday
+  earliest_open_non_workday_helper: !input earliest_open_non_workday_helper
+  earliest_open_time: >
+    {% set helper = earliest_open_workday_helper if is_workday else earliest_open_non_workday_helper %}
+    {% set fallback = earliest_open_workday if is_workday else earliest_open_non_workday %}
+    {% set value = states(helper) if helper != '' else fallback %}
+    {{ value if ':' in value else fallback }}
+  should_use_earliest_close: !input should_use_earliest_close
+  earliest_close_workday_tomorrow: !input earliest_close_workday_tomorrow
+  earliest_close_workday_tomorrow_helper: !input earliest_close_workday_tomorrow_helper
+  earliest_close_non_workday_tomorrow: !input earliest_close_non_workday_tomorrow
+  earliest_close_non_workday_tomorrow_helper: !input earliest_close_non_workday_tomorrow_helper
+  earliest_close_time: >
+    {% set helper = earliest_close_workday_tomorrow_helper if is_workday_tomorrow else earliest_close_non_workday_tomorrow_helper %}
+    {% set fallback = earliest_close_workday_tomorrow if is_workday_tomorrow else earliest_close_non_workday_tomorrow %}
+    {% set value = states(helper) if helper != '' else fallback %}
+    {{ value if ':' in value else fallback }}
+  should_use_latest_open: !input should_use_latest_open
+  latest_open_workday: !input latest_open_workday
+  latest_open_workday_helper: !input latest_open_workday_helper
+  latest_open_non_workday: !input latest_open_non_workday
+  latest_open_non_workday_helper: !input latest_open_non_workday_helper
+  latest_open_time: >
+    {% set helper = latest_open_workday_helper if is_workday else latest_open_non_workday_helper %}
+    {% set fallback = latest_open_workday if is_workday else latest_open_non_workday %}
+    {% set value = states(helper) if helper != '' else fallback %}
+    {{ value if ':' in value else fallback }}
+  should_use_latest_close: !input should_use_latest_close
+  latest_close_workday_tomorrow: !input latest_close_workday_tomorrow
+  latest_close_workday_tomorrow_helper: !input latest_close_workday_tomorrow_helper
+  latest_close_non_workday_tomorrow: !input latest_close_non_workday_tomorrow
+  latest_close_non_workday_tomorrow_helper: !input latest_close_non_workday_tomorrow_helper
+  latest_close_time: >
+    {% set helper = latest_close_workday_tomorrow_helper if is_workday_tomorrow else latest_close_non_workday_tomorrow_helper %}
+    {% set fallback = latest_close_workday_tomorrow if is_workday_tomorrow else latest_close_non_workday_tomorrow %}
+    {% set value = states(helper) if helper != '' else fallback %}
+    {{ value if ':' in value else fallback }}
+
+  # --- weather ---------------------------------------------------------------
+  weather_events: !input weather_events
+  weather_entity: !input weather_entity
+  rain_sensor: !input rain_sensor
+  wind_sensor: !input wind_sensor
+  wind_speed_threshold_input: !input wind_speed_threshold
+  wind_speed_threshold_helper: !input wind_speed_threshold_helper
+  wind_speed_limit: >
+    {{ states(wind_speed_threshold_helper) | float(wind_speed_threshold_input)
+       if wind_speed_threshold_helper != '' else wind_speed_threshold_input }}
+  # Do any selected weather events correspond to each dedicated sensor? The
+  # sensors are real-time proxies, so they only block if the user actually asked
+  # to block on that kind of weather. wet_events = precipitation-type conditions
+  # (the ones a moisture sensor stands in for); wind is the 'windy' condition.
+  wet_events: "{{ ['rainy', 'pouring', 'lightning', 'lightning-rainy', 'snowy-rainy'] }}"
+  rain_events_selected: "{{ weather_events | select('in', wet_events) | list | count > 0 }}"
+  wind_events_selected: "{{ 'windy' in weather_events }}"
+  # Closing is blocked right now if the weather entity currently reports a
+  # blocked condition, OR a relevant dedicated sensor trips (and only when the
+  # matching weather event was selected).
+  weather_blocked_now: >
+    {{ (weather_entity != '' and weather_events | count > 0 and states(weather_entity) in weather_events)
+       or (rain_sensor != '' and rain_events_selected and is_state(rain_sensor, 'on'))
+       or (wind_sensor != '' and wind_events_selected and states(wind_sensor) | float(0) >= wind_speed_limit | float(0)) }}
+
+  # --- covers -----------------------------------------------------------------
+  cover_entity: !input cover_entity
+  # expand() flattens any selected cover *groups* into their member covers (and
+  # passes plain covers through unchanged); map() turns the state objects back
+  # into a flat list of entity_ids. Without groups this is just the input list.
+  cover_entities: "{{ expand(cover_entity) | map(attribute='entity_id') | list }}"
+
+  # --- decision engine ------------------------------------------------------
+  # Targets are numeric positions (see smarli_core.yaml): 100 = open, 0 = closed.
+  # The day-night cycle only ever uses these two, but numbers let the shared move
+  # script drive position-capable and binary covers with the same call.
+  suspension_duration: !input suspension_duration
+  position_open: 100
+  position_closed: 0
+  # binary_threshold is separately set in smarli_core.yaml script.smarli_cover_move - make sure to
+  # keep them in sync if you change it here!
+  binary_threshold: 50
+
+  # Which phase does the schedule put us in right now? Each combines the chosen
+  # method with the optional earliest (delays) and latest (forces) time windows.
+  schedule_wants_open: >
+    {% if daynight_cycle_method == 'sun' %}
+      {% set due = todays_sunrise | float(0) > 0 and now_ts >= todays_sunrise | float(0) + sunrise_offset_seconds | float(0) %}
+    {% elif daynight_cycle_method == 'time' %}
+      {% set due = now_ts >= as_timestamp(today_at(open_time)) %}
+    {% else %}
+      {% set due = bright_since is not none and (now_ts - bright_since | float(0)) >= stabilizer_seconds | float(0) %}
+    {% endif %}
+    {% if should_use_earliest_open and now_ts < as_timestamp(today_at(earliest_open_time)) %}{% set due = false %}{% endif %}
+    {% if should_use_latest_open and now_ts >= as_timestamp(today_at(latest_open_time)) %}{% set due = true %}{% endif %}
+    {{ due }}
+  schedule_wants_closed: >
+    {% if daynight_cycle_method == 'sun' %}
+      {% set due = todays_sunset | float(0) > 0 and now_ts >= todays_sunset | float(0) + sunset_offset_seconds | float(0) %}
+    {% elif daynight_cycle_method == 'time' %}
+      {% set due = now_ts >= as_timestamp(today_at(close_time)) %}
+    {% else %}
+      {% set due = dark_since is not none and (now_ts - dark_since | float(0)) >= stabilizer_seconds | float(0) %}
+    {% endif %}
+    {% if should_use_earliest_close and now_ts < as_timestamp(today_at(earliest_close_time)) %}{% set due = false %}{% endif %}
+    {% if should_use_latest_close and now_ts >= as_timestamp(today_at(latest_close_time)) %}{% set due = true %}{% endif %}
+    {{ due }}
+
+  # The position we last commanded the covers to reach (survives restarts).
+  # Defaults to -1 (an impossible position) when we've never run: that forces a
+  # transition on the very first evaluation, so covers are driven to the correct
+  # phase immediately instead of us assuming they're already where we'd want them.
+  last_commanded: "{{ stored_state.get(instance_id ~ '_commanded') | int(-1) }}"
+
+  # Where the covers should be now. Closing wins over opening in the evening
+  # overlap; outside both phases we hold whatever we last commanded.
+  desired_position: >
+    {% if schedule_wants_closed %}{{ position_closed }}
+    {% elif schedule_wants_open %}{{ position_open }}
+    {% else %}{{ last_commanded }}{% endif %}
+
+  # Only act when the desired position actually changed since our last command.
+  transition_needed: "{{ desired_position | int != last_commanded | int }}"
+
+  # Every cover gets the same target this run. (No `zip` filter in HA Jinja —
+  # build the dict with the same items()|list+[(k,v)] idiom used in smarli_core.)
+  desired_targets: >
+    {% set ns = namespace(d={}) %}
+    {% for c in cover_entities %}
+      {% set ns.d = dict(ns.d.items() | list + [(c, desired_position | int)]) %}
+    {% endfor %}
+    {{ ns.d }}
+
+############
+# Triggers #
+############
+triggers:
+  - alias: Evaluate once per minute
+    trigger: time_pattern
+    minutes: "/1"
+    id: heartbeat
+  - alias: Evaluate after automations are (re)loaded
+    trigger: event
+    event_type: automation_reloaded
+    id: heartbeat
+  - alias: Evaluate after Home Assistant starts
+    trigger: homeassistant
+    event: start
+    id: heartbeat
+  - alias: Cover state changed (manual detection)
+    trigger: state
+    entity_id: !input cover_entity
+    # not_from/not_to (rather than no from/to) means real state transitions only —
+    # no firing on every position attribute tick, and none on availability flaps.
+    not_from:
+      - unavailable
+      - unknown
+    not_to:
+      - unavailable
+      - unknown
+    id: cover_state_changed
+  # Merge optional custom triggers (nested-trigger-list syntax; needs HA 2024.10+).
+  - triggers: !input custom_opening_triggers
+  - triggers: !input custom_closing_triggers
+
+##############
+# Conditions #
+##############
+# Gate the heartbeat: only run when there is actual work. This keeps the
+# logbook and traces clean (condition-failed runs are not logged).
+conditions:
+  - condition: template
+    value_template: >
+      {{ trigger.id | default('') != 'heartbeat'
+         or transition_needed or stabilizer_needs_update }}
+
+###########
+# Actions #
+###########
+actions:
+  - choose:
+      ######
+      # Manual detection: classify the state change centrally
+      ######
+      - alias: A cover changed state — check whether it was manual
+        conditions:
+          - condition: trigger
+            id: cover_state_changed
+        sequence:
+          - condition: template
+            value_template: "{{ should_suspend_after_manual_interaction and trigger.to_state is not none }}"
+          - action: script.smarli_cover_manual_check
+            data:
+              entity_id: "{{ trigger.entity_id }}"
+              user_id: "{{ trigger.to_state.context.user_id | default('') }}"
+              parent_id: "{{ trigger.to_state.context.parent_id | default('') }}"
+              suspension_duration: "{{ suspension_duration }}"
+    default:
+      ######
+      # Heartbeat / custom triggers: bookkeeping, then act on transitions
+      ######
+      - alias: Brightness stabilizer bookkeeping
+        # Record when a threshold is first crossed / clear it when it's no longer
+        # crossed. schedule_wants_* then requires the timestamp to be old enough.
+        if:
+          - condition: template
+            value_template: "{{ stabilizer_needs_update }}"
+        then:
+          - if:
+              - condition: template
+                value_template: "{{ bright_enough_to_open and bright_since is none }}"
+            then:
+              - event: smarli_tracker_set
+                event_data:
+                  namespace: cover_day_night
+                  key: "{{ instance_id }}_bright_since"
+                  value: "{{ now_ts }}"
+          - if:
+              - condition: template
+                value_template: "{{ not bright_enough_to_open and bright_since is not none }}"
+            then:
+              - event: smarli_tracker_remove
+                event_data:
+                  namespace: cover_day_night
+                  key: "{{ instance_id }}_bright_since"
+          - if:
+              - condition: template
+                value_template: "{{ dark_enough_to_close and dark_since is none }}"
+            then:
+              - event: smarli_tracker_set
+                event_data:
+                  namespace: cover_day_night
+                  key: "{{ instance_id }}_dark_since"
+                  value: "{{ now_ts }}"
+          - if:
+              - condition: template
+                value_template: "{{ not dark_enough_to_close and dark_since is not none }}"
+            then:
+              - event: smarli_tracker_remove
+                event_data:
+                  namespace: cover_day_night
+                  key: "{{ instance_id }}_dark_since"
+
+      - alias: Open — reached the day phase (or a custom opening trigger fired)
+        if:
+          - condition: template
+            value_template: >
+              {{ trigger.id | default('') == 'custom_open'
+                 or (trigger.id | default('') == 'heartbeat'
+                     and transition_needed and desired_position | int == position_open) }}
+        then:
+          - alias: Custom opening conditions must pass
+            condition: and
+            conditions: !input custom_opening_conditions
+          - alias: Remember the command before moving (so queued runs dedupe)
+            event: smarli_tracker_set
+            event_data:
+              namespace: cover_day_night
+              key: "{{ instance_id }}_commanded"
+              value: "{{ position_open }}"
+          - alias: Move covers open in the background (marker stays live for manual detection)
+            action: script.turn_on
+            target:
+              entity_id: script.smarli_cover_move
+            data:
+              variables:
+                instance_id: "{{ instance_id }}"
+                suspension_duration: "{{ suspension_duration }}"
+                binary_threshold: "{{ binary_threshold }}"
+                targets: "{{ desired_targets }}"
+          - alias: Run custom opening actions
+            sequence: !input custom_opening_actions
+
+      - alias: Close — reached the night phase (or a custom closing trigger fired)
+        if:
+          - condition: template
+            value_template: >
+              {{ trigger.id | default('') == 'custom_close'
+                 or (trigger.id | default('') == 'heartbeat'
+                     and transition_needed and desired_position | int == position_closed) }}
+        then:
+          - alias: Custom closing conditions must pass
+            condition: and
+            conditions: !input custom_closing_conditions
+          - alias: Don't close if the weather is bad right now (retry next minute)
+            if:
+              - condition: template
+                value_template: "{{ weather_blocked_now }}"
+            then:
+              - stop: "Closing blocked by current weather conditions"
+          - alias: Don't close if bad weather is forecast within the hour (retry next minute)
+            # supported_features bit 2 = FORECAST_HOURLY; skip (don't error) if unsupported.
+            if:
+              - condition: template
+                value_template: >
+                  {{ weather_entity != '' and weather_events | count > 0
+                     and bitwise_and(state_attr(weather_entity, 'supported_features') | int(0), 2) > 0 }}
+            then:
+              - action: weather.get_forecasts
+                # Templated (not `!input`) so config validation passes when no
+                # weather entity is set — a bare entity_id:'' fails schema check
+                # even though this branch is runtime-guarded on weather_entity!=''.
+                target:
+                  entity_id: "{{ weather_entity }}"
+                data:
+                  type: hourly
+                response_variable: forecast_response
+              - if:
+                  - condition: template
+                    value_template: >
+                      {{ (forecast_response.get(weather_entity, {}).get('forecast', [{}])[0].get('condition', ''))
+                         in weather_events }}
+                then:
+                  - stop: "Closing blocked by weather forecast"
+          - alias: Remember the command before moving (so queued runs dedupe)
+            event: smarli_tracker_set
+            event_data:
+              namespace: cover_day_night
+              key: "{{ instance_id }}_commanded"
+              value: "{{ position_closed }}"
+          - alias: Move covers closed in the background (marker stays live for manual detection)
+            action: script.turn_on
+            target:
+              entity_id: script.smarli_cover_move
+            data:
+              variables:
+                instance_id: "{{ instance_id }}"
+                suspension_duration: "{{ suspension_duration }}"
+                binary_threshold: "{{ binary_threshold }}"
+                targets: "{{ desired_targets }}"
+          - alias: Run custom closing actions
+            sequence: !input custom_closing_actions
+
+mode: queued
+max: 35
+max_exceeded: silent
