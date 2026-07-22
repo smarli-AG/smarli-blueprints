@@ -39,11 +39,12 @@ blueprint:
     <details>
     <summary><b>Requirements</b></summary>
 
-      This blueprint requires the **smarli. Core Package** (included in the
-      Grundinstanz): `sensor.smarli_automation_tracker`,
-      `script.smarli_cover_manual_check` and `script.smarli_cover_move`.
-      To retrofit an older instance, copy `packages/smarli_core.yaml` from this
-      repository into `config/packages/`.
+      This blueprint requires the **smarli. Core** and **smarli. Cover**
+      packages (included in the Grundinstanz):
+      `sensor.smarli_automation_tracker` (Core),
+      `script.smarli_cover_manual_check` and `script.smarli_cover_move` (Cover).
+      To retrofit an older instance, copy both `packages/smarli_core.yaml` and
+      `packages/smarli_cover.yaml` from this repository into `config/packages/`.
 
     </details>
 
@@ -823,13 +824,13 @@ variables:
   cover_entities: "{{ expand(cover_entity) | map(attribute='entity_id') | list }}"
 
   # --- decision engine ------------------------------------------------------
-  # Targets are numeric positions (see smarli_core.yaml): 100 = open, 0 = closed.
+  # Targets are numeric positions (see smarli_cover.yaml): 100 = open, 0 = closed.
   # The day-night cycle only ever uses these two, but numbers let the shared move
   # script drive position-capable and binary covers with the same call.
   suspension_duration: !input suspension_duration
   position_open: 100
   position_closed: 0
-  # binary_threshold is separately set in smarli_core.yaml script.smarli_cover_move - make sure to
+  # binary_threshold is separately set in smarli_cover.yaml script.smarli_cover_move - make sure to
   # keep them in sync if you change it here!
   binary_threshold: 50
 
@@ -1046,7 +1047,7 @@ actions:
               - condition: template
                 value_template: >
                   {{ weather_entity != '' and weather_events | count > 0
-                     and bitwise_and(state_attr(weather_entity, 'supported_features') | int(0), 2) > 0 }}
+                     and state_attr(weather_entity, 'supported_features') | int(0) | bitwise_and(2) > 0 }}
             then:
               - action: weather.get_forecasts
                 # Templated (not `!input`) so config validation passes when no

@@ -1,0 +1,335 @@
+# ============================================================================
+# smarli. Cover Package
+# ============================================================================
+# Shared machinery for the smarli. cover blueprints. Included in the
+# Grundinstanz. Requires smarli_core.yaml (the tracker sensor).
+# Retrofit: copy BOTH `smarli_core.yaml` and this file to `config/packages/`
+# and make sure packages are enabled in configuration.yaml:
+#
+#   homeassistant:
+#     packages: !include_dir_named packages
+#
+# Contents:
+#   - script.smarli_cover_manual_check  classifies a cover state change as
+#                                       manual vs. automated; writes suspensions
+#   - script.smarli_cover_move          moves covers under the smarli. moving
+#                                       contract (marker -> command -> settle ->
+#                                       audit -> cleanup)
+#
+# Uses the tracker's `shared` namespace (see smarli_core.yaml):
+#   - suspension_<cover_entity_id>  unix ts until which the cover is suspended
+#   - moving_<instance_id>          {until: ts, targets: {entity: position}}
+#
+# ---------------------------------------------------------------------------
+# TARGET POSITIONS ARE ALWAYS NUMBERS 0-100 — never 'open'/'closed'.
+# ---------------------------------------------------------------------------
+# There is no "just open it" in this system. Every cover target is an explicit
+# position: 100 = fully open, 0 = fully closed, anything between = partial.
+# `smarli_cover_move` translates that number to the right service per cover:
+#   - Cover supports SET_POSITION (supported_features bit 4)  -> set_cover_position
+#   - Cover is binary (open/close only)                       -> open_cover if the
+#     target is >= binary_threshold (default 50), else close_cover
+# So a binary cover asked for 20 closes, for 80 opens — the nearest end.
+# Future cover blueprints MUST pass numeric targets and rely on this fallback;
+# do not add 'open'/'closed' string handling back in.
+# ============================================================================
+
+script:
+  smarli_cover_manual_check:
+    alias: "smarli. Cover Manual Check"
+    description: >-
+      Classifies a cover state change as manual or automated. Call from a cover
+      blueprint's state trigger, passing the trigger's entity and context data.
+      Detection layers: context (user_id = manual, parent_id = automation),
+      then shared moving markers (contextless change while no smarli. automation
+      is moving this cover = wall switch). Manual changes write a suspension for
+      that cover into the tracker's shared namespace.
+    # parallel: covers across all cover automations can change state simultaneously.
+    mode: parallel
+    max: 50
+    fields:
+      entity_id:
+        name: Cover Entity
+        description: The cover whose state changed (trigger.entity_id).
+        required: true
+        selector:
+          entity:
+            filter:
+              - domain: cover
+      user_id:
+        name: Context User ID
+        description: trigger.to_state.context.user_id (empty if none).
+        required: false
+        selector:
+          text:
+      parent_id:
+        name: Context Parent ID
+        description: trigger.to_state.context.parent_id (empty if none).
+        required: false
+        selector:
+          text:
+      suspension_duration:
+        name: Suspension Duration
+        description: How long to suspend the cover on manual operation (HH:MM:SS).
+        required: false
+        default: "00:00:00"
+        selector:
+          text:
+    sequence:
+      - alias: Abort if an automation or script caused this change (layer 1)
+        condition: template
+        value_template: "{{ (parent_id | default('')) in ['', 'None', none] }}"
+      - variables:
+          now_ts: "{{ as_timestamp(now()) }}"
+          duration_seconds: "{{ ((suspension_duration | default('00:00:00')) | as_timedelta).total_seconds() }}"
+          is_user_action: "{{ (user_id | default('')) not in ['', 'None', none] }}"
+          shared: "{{ (state_attr('sensor.smarli_automation_tracker', 'data') or {}).get('shared', {}) }}"
+          # True if any smarli. automation is currently driving this cover
+          # (an unexpired moving marker that lists it) — i.e. the change is ours.
+          driven_by_automation: >
+            {% set ns = namespace(found=false) %}
+            {% for marker_key, marker in shared.items() %}
+              {% if marker_key.startswith('moving_')
+                 and (marker.until | default(0)) | float(0) > now_ts | float(0)
+                 and entity_id in (marker.targets | default({})) %}
+                {% set ns.found = true %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.found }}
+      - alias: Manual if the user acted (layer 1), or a contextless change no automation is driving (layer 2)
+        condition: template
+        value_template: "{{ is_user_action or not driven_by_automation }}"
+      - alias: Suspend this cover
+        event: smarli_tracker_set
+        event_data:
+          namespace: shared
+          key: "suspension_{{ entity_id }}"
+          value: "{{ now_ts | float(0) + duration_seconds | float(0) }}"
+
+  smarli_cover_move:
+    alias: "smarli. Cover Move"
+    description: >-
+      Moves covers under the smarli. moving contract. Filters out suspended
+      covers, announces the movement via a shared moving marker, commands the
+      covers, waits until they settle, audits final positions against targets
+      (mid-move manual intervention suspends that cover — layer 3), and removes
+      the marker. Targets are numeric positions 0-100 (100 = open, 0 = closed);
+      covers without position support fall back to open/close at the threshold.
+    # parallel: at a shared transition (e.g. sunrise) every cover automation calls
+    # this at once, and each call is long-lived (waits for its covers to settle),
+    # so the cap must exceed the number of cover automations that move together.
+    mode: parallel
+    max: 50
+    fields:
+      instance_id:
+        name: Instance ID
+        description: The calling automation's id (this.attributes.id).
+        required: true
+        selector:
+          text:
+      targets:
+        name: Targets
+        description: "Dict of cover entity_id -> target position (number 0-100; 100 = open, 0 = closed)."
+        required: true
+        selector:
+          object:
+      binary_threshold:
+        name: Binary Fallback Threshold
+        description: For covers without position support, target >= this opens, below closes.
+        required: false
+        default: 50
+        selector:
+          number:
+            min: 1
+            max: 99
+      suspension_duration:
+        name: Suspension Duration
+        description: Suspension length for covers where intervention is detected (HH:MM:SS). Defaults to none — the calling blueprint should pass its own.
+        required: false
+        default: "00:00:00"
+        selector:
+          text:
+      settle_timeout:
+        name: Settle Timeout
+        description: >-
+          Hard cap (seconds) for how long to keep tracking a move before giving up
+          on a cover that never settles — NOT the expected move duration. The loop
+          finishes as soon as the covers actually settle, so a large value costs
+          nothing on normal runs. Err large: too large only tolerates a
+          permanently-stuck cover a little longer, whereas too small is actively
+          harmful — once it fires while a cover is still moving, the marker expires
+          and the cover's own ongoing movement is misread as a manual intervention,
+          FALSELY SUSPENDING it. Set it comfortably above your slowest cover's full
+          travel time.
+        required: false
+        default: 180
+        selector:
+          number:
+            min: 10
+            max: 600
+            unit_of_measurement: s
+      position_tolerance:
+        name: Position Tolerance
+        description: Allowed deviation between target and final position.
+        required: false
+        default: 5
+        selector:
+          number:
+            min: 0
+            max: 20
+    sequence:
+      - variables:
+          # When this move began. The settle loop below compares the live now()
+          # against this, so it is deliberately NOT called now_ts.
+          started_ts: "{{ as_timestamp(now()) }}"
+          settle_timeout_s: "{{ settle_timeout | default(180) | float(180) }}"
+          tolerance: "{{ position_tolerance | default(5) | float(5) }}"
+          threshold: "{{ binary_threshold | default(50) | float(50) }}"
+          duration_seconds: "{{ ((suspension_duration | default('00:00:00')) | as_timedelta).total_seconds() }}"
+          shared: "{{ (state_attr('sensor.smarli_automation_tracker', 'data') or {}).get('shared', {}) }}"
+          # Drop covers that are currently suspended by a manual override.
+          active_targets: >
+            {% set ns = namespace(active={}) %}
+            {% for cover, target in (targets | default({})).items() %}
+              {% if shared.get('suspension_' ~ cover, 0) | float(0) <= started_ts | float(0) %}
+                {% set ns.active = dict(ns.active.items() | list + [(cover, target | int)]) %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.active }}
+      - alias: Abort if every requested cover is suspended
+        condition: template
+        value_template: "{{ active_targets | count > 0 }}"
+      - alias: Announce movement (moving marker, layer 2)
+        event: smarli_tracker_set
+        event_data:
+          namespace: shared
+          key: "moving_{{ instance_id }}"
+          value:
+            until: "{{ started_ts | float(0) + settle_timeout_s | float(0) + 15 }}"
+            targets: "{{ active_targets }}"
+      - alias: Command each cover to its target position
+        repeat:
+          for_each: "{{ active_targets | dictsort }}"
+          sequence:
+            - variables:
+                cover: "{{ repeat.item[0] }}"
+                target_position: "{{ repeat.item[1] | int }}"
+                supports_position: "{{ state_attr(cover, 'supported_features') | int(0) | bitwise_and(4) > 0 }}"
+            - choose:
+                - alias: Cover supports positioning — set the exact position
+                  conditions: "{{ supports_position }}"
+                  sequence:
+                    - action: cover.set_cover_position
+                      target:
+                        entity_id: "{{ cover }}"
+                      data:
+                        position: "{{ target_position }}"
+                - alias: Binary cover, target at/above threshold — open fully
+                  conditions: "{{ target_position >= threshold }}"
+                  sequence:
+                    - action: cover.open_cover
+                      target:
+                        entity_id: "{{ cover }}"
+              default:
+                - alias: Binary cover, target below threshold — close fully
+                  action: cover.close_cover
+                  target:
+                    entity_id: "{{ cover }}"
+      - alias: Give covers a moment to start moving
+        # Bridges the gap before a cover reports opening/closing, so the first
+        # poll below doesn't mistake a not-yet-started cover for one that stopped.
+        delay:
+          seconds: 3
+      # ---------------------------------------------------------------------
+      # Per-cover settle loop (incremental layer-3 audit).
+      # Poll until the marker is empty or the timeout backstop is reached. Each
+      # pass, for every cover still listed in the marker:
+      #   - still opening/closing   -> leave it (exempt from manual detection for
+      #                                exactly as long as it is genuinely moving)
+      #   - reached its target      -> drop it (finished cleanly)
+      #   - stopped short of target -> drop it AND suspend it (mid-move manual
+      #                                intervention)
+      # The marker is rewritten with only the still-moving covers whenever the
+      # set shrinks (until refreshed), and removed once empty. If the timeout is
+      # hit with covers still moving, the marker is left to expire via `until`.
+      # ---------------------------------------------------------------------
+      - alias: Release covers from the marker as they settle
+        repeat:
+          while:
+            - condition: template
+              value_template: >
+                {% set marker = (state_attr('sensor.smarli_automation_tracker', 'data') or {})
+                     .get('shared', {}).get('moving_' ~ instance_id, {}) %}
+                {{ marker.get('targets', {}) | count > 0
+                   and as_timestamp(now()) < started_ts | float(0) + settle_timeout_s | float(0) }}
+          sequence:
+            - delay:
+                seconds: 2
+            - variables:
+                pending: >
+                  {% set marker = (state_attr('sensor.smarli_automation_tracker', 'data') or {})
+                       .get('shared', {}).get('moving_' ~ instance_id, {}) %}
+                  {{ marker.get('targets', {}) }}
+                # Covers still physically moving — keep them in the marker.
+                still_moving: >
+                  {% set ns = namespace(m={}) %}
+                  {% for cover, target in pending.items() %}
+                    {% if is_state(cover, 'opening') or is_state(cover, 'closing') %}
+                      {% set ns.m = dict(ns.m.items() | list + [(cover, target)]) %}
+                    {% endif %}
+                  {% endfor %}
+                  {{ ns.m }}
+                # Covers that have stopped but not at their target — intervention.
+                intervened: >
+                  {% set ns = namespace(bad=[]) %}
+                  {% for cover, target in pending.items() %}
+                    {% if states(cover) not in ['unavailable', 'unknown', 'opening', 'closing'] %}
+                      {% if state_attr(cover, 'supported_features') | int(0) | bitwise_and(4) > 0 %}
+                        {% set pos = state_attr(cover, 'current_position') %}
+                        {% if pos is none or (pos | float(0) - target | float(0)) | abs > tolerance %}
+                          {% set ns.bad = ns.bad + [cover] %}
+                        {% endif %}
+                      {% else %}
+                        {% set expected = 'open' if target | float(0) >= threshold else 'closed' %}
+                        {% if not is_state(cover, expected) %}
+                          {% set ns.bad = ns.bad + [cover] %}
+                        {% endif %}
+                      {% endif %}
+                    {% endif %}
+                  {% endfor %}
+                  {{ ns.bad }}
+            - alias: Suspend covers that stopped short of their target
+              repeat:
+                for_each: "{{ intervened }}"
+                sequence:
+                  - event: smarli_tracker_set
+                    event_data:
+                      namespace: shared
+                      key: "suspension_{{ repeat.item }}"
+                      value: "{{ as_timestamp(now()) + duration_seconds | float(0) }}"
+            - alias: Prune settled covers from the marker (only when the set shrank)
+              if:
+                - condition: template
+                  value_template: "{{ still_moving | count != pending | count }}"
+              then:
+                - if:
+                    - condition: template
+                      value_template: "{{ still_moving | count > 0 }}"
+                  then:
+                    - alias: Keep only the still-moving covers
+                      # `until` stays fixed at the initial value (started_ts +
+                      # settle_timeout + 15) — it is only a crash/past-deadline
+                      # backstop; the loop manages the marker during normal runs.
+                      event: smarli_tracker_set
+                      event_data:
+                        namespace: shared
+                        key: "moving_{{ instance_id }}"
+                        value:
+                          until: "{{ started_ts | float(0) + settle_timeout_s | float(0) + 15 }}"
+                          targets: "{{ still_moving }}"
+                  else:
+                    - alias: All covers settled — remove the marker
+                      event: smarli_tracker_remove
+                      event_data:
+                        namespace: shared
+                        key: "moving_{{ instance_id }}"

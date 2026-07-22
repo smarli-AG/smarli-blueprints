@@ -1,0 +1,62 @@
+﻿# ============================================================================
+# smarli. Core Package
+# ============================================================================
+# Foundation required by ALL smarli. blueprints. Included in the Grundinstanz.
+# Retrofit: copy this file to `config/packages/` (plus the feature package for
+# each blueprint family in use, e.g. smarli_cover.yaml) and make sure packages
+# are enabled in configuration.yaml:
+#
+#   homeassistant:
+#     packages: !include_dir_named packages
+#
+# Contents:
+#   - sensor.smarli_automation_tracker  central key-value store for automation
+#                                       state (survives restarts)
+#
+# Feature-specific scripts/sensors live in their own package files
+# (smarli_<family>.yaml â€” e.g. smarli_cover.yaml). This file holds only the
+# tracker, which every family reads.
+#
+# Conventions (see CLAUDE.md in the blueprints repo):
+#   - Tracker data model: data[namespace][key] = value
+#   - Event `smarli_tracker_set`:    payload namespace/key/value -> upsert the key.
+#   - Event `smarli_tracker_remove`: payload namespace/key       -> delete the key.
+#     Writes are atomic per key.
+#   - Namespace `shared` is cross-blueprint (e.g. cover suspension_<entity_id>
+#     and moving_<instance_id> keys â€” see smarli_cover.yaml); each blueprint
+#     otherwise uses its own namespace.
+# ============================================================================
+
+template:
+  - trigger:
+      - trigger: event
+        event_type: smarli_tracker_set
+      - trigger: event
+        event_type: smarli_tracker_remove
+    sensor:
+      - name: "smarli. Automation Tracker"
+        unique_id: smarli_automation_tracker
+        icon: mdi:database-cog
+        state: "ok"
+        attributes:
+          data: >
+            {% set data = this.attributes.get('data', {}) if this is defined else {} %}
+            {% if trigger is defined and trigger.event is defined %}
+              {% set ev = trigger.event.data %}
+              {% set etype = trigger.event.event_type %}
+              {% set ns_name = ev.namespace | default('') %}
+              {% set key = ev.key | default('') %}
+              {% if ns_name == '' or key == '' %}
+                {{ data }}
+              {% else %}
+                {% set bucket = data.get(ns_name, {}) %}
+                {% if etype == 'smarli_tracker_remove' %}
+                  {% set bucket = dict(bucket.items() | rejectattr('0', 'eq', key)) %}
+                {% elif 'value' in ev %}
+                  {% set bucket = dict(bucket.items() | list + [(key, ev.value)]) %}
+                {% endif %}
+                {{ dict(data.items() | list + [(ns_name, bucket)]) }}
+              {% endif %}
+            {% else %}
+              {{ data }}
+            {% endif %}
