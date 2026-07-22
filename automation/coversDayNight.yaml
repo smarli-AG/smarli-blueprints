@@ -4,6 +4,7 @@
 
 # Fragen:
 # backstop für cover movement ist 3min - oder gibt es überhaupt storen, die länger brauchen?
+# wo soll die default grenze für brightness to open und brightness to close sein?
 
 blueprint:
   ############
@@ -253,7 +254,7 @@ blueprint:
           description: How long does the brightness sensor need to be above/below the defined threshold before the covers move? This avoids frequent back-and-forth switching (e.g. if a cloud passes in front of the sun).
           selector:
             time:
-          default: "00:05:00"
+          default: "00:15:00"
 
         brightness_open:
           name: Brightness to Open (optional)
@@ -748,6 +749,27 @@ variables:
          (bright_enough_to_open and bright_since is none) or (not bright_enough_to_open and bright_since is not none)
          or (dark_enough_to_close and dark_since is none) or (not dark_enough_to_close and dark_since is not none)
        ) }}
+  # Sun-anchored directionality for the brightness method: brightness alone can't
+  # tell "dark because evening" from "dark because a midday storm" — a lux
+  # threshold has no time direction. Fence each transition to a window anchored on
+  # today's sunrise/sunset (see todays_sunrise/todays_sunset above). Brightness may
+  # LEAD the sun event by at most this offset (bright mornings / overcast dusks) and
+  # LAG freely until the opposite phase. Constant (not an input) to keep the UI
+  # simple; tune here. Without this a midday storm arms the close and a 3am light
+  # arms the open.
+  brightness_offset_sunrise_sunset: 3600 # 60 min
+  # Open armed from the morning boundary (sunrise - offset) until the evening
+  # boundary (sunset - offset) — the day half.
+  brightness_open_armed: >
+    {{ todays_sunrise | float(0) > 0 and todays_sunset | float(0) > 0
+       and now_ts >= todays_sunrise | float(0) - brightness_offset_sunrise_sunset
+       and now_ts <  todays_sunset  | float(0) - brightness_offset_sunrise_sunset }}
+  # Close armed from the evening boundary onward — the night half. One-sided: after
+  # midnight todays_sunset points at the new day's (future) sunset, so this falls
+  # false again in the small hours — no re-close overnight.
+  brightness_close_armed: >
+    {{ todays_sunset | float(0) > 0
+       and now_ts >= todays_sunset | float(0) - brightness_offset_sunrise_sunset }}
 
   # --- earliest / latest ----------------------------------------------------
   should_use_earliest_open: !input should_use_earliest_open
@@ -842,7 +864,7 @@ variables:
     {% elif daynight_cycle_method == 'time' %}
       {% set due = now_ts >= as_timestamp(today_at(open_time)) %}
     {% else %}
-      {% set due = bright_since is not none and (now_ts - bright_since | float(0)) >= stabilizer_seconds | float(0) %}
+      {% set due = brightness_open_armed and bright_since is not none and (now_ts - bright_since | float(0)) >= stabilizer_seconds | float(0) %}
     {% endif %}
     {% if should_use_earliest_open and now_ts < as_timestamp(today_at(earliest_open_time)) %}{% set due = false %}{% endif %}
     {% if should_use_latest_open and now_ts >= as_timestamp(today_at(latest_open_time)) %}{% set due = true %}{% endif %}
@@ -853,7 +875,7 @@ variables:
     {% elif daynight_cycle_method == 'time' %}
       {% set due = now_ts >= as_timestamp(today_at(close_time)) %}
     {% else %}
-      {% set due = dark_since is not none and (now_ts - dark_since | float(0)) >= stabilizer_seconds | float(0) %}
+      {% set due = brightness_close_armed and dark_since is not none and (now_ts - dark_since | float(0)) >= stabilizer_seconds | float(0) %}
     {% endif %}
     {% if should_use_earliest_close and now_ts < as_timestamp(today_at(earliest_close_time)) %}{% set due = false %}{% endif %}
     {% if should_use_latest_close and now_ts >= as_timestamp(today_at(latest_close_time)) %}{% set due = true %}{% endif %}
