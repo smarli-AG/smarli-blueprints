@@ -235,6 +235,15 @@ script:
                   action: cover.close_cover
                   target:
                     entity_id: "{{ cover }}"
+            - alias: Record last-commander for this cover (cross-automation arbitration)
+              event: smarli_tracker_set
+              event_data:
+                namespace: shared
+                key: "commanded_{{ cover }}"
+                value:
+                  instance_id: "{{ instance_id }}"
+                  target: "{{ target_position }}"
+                  ts: "{{ started_ts }}"
       - alias: Give covers a moment to start moving
         # Bridges the gap before a cover reports opening/closing, so the first
         # poll below doesn't mistake a not-yet-started cover for one that stopped.
@@ -281,9 +290,11 @@ script:
                   {{ ns.m }}
                 # Covers that have stopped but not at their target — intervention.
                 intervened: >
+                  {% set shared = (state_attr('sensor.smarli_automation_tracker', 'data') or {}).get('shared', {}) %}
                   {% set ns = namespace(bad=[]) %}
                   {% for cover, target in pending.items() %}
-                    {% if states(cover) not in ['unavailable', 'unknown', 'opening', 'closing'] %}
+                    {% set owner = shared.get('commanded_' ~ cover, {}).get('instance_id') %}
+                    {% if owner == instance_id and states(cover) not in ['unavailable', 'unknown', 'opening', 'closing'] %}
                       {% if state_attr(cover, 'supported_features') | int(0) | bitwise_and(4) > 0 %}
                         {% set pos = state_attr(cover, 'current_position') %}
                         {% if pos is none or (pos | float(0) - target | float(0)) | abs > tolerance %}
