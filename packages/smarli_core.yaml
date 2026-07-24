@@ -60,3 +60,84 @@ template:
             {% else %}
               {{ data }}
             {% endif %}
+
+# ---------------------------------------------------------------------------
+# Tracker garbage collection.
+# ---------------------------------------------------------------------------
+# Every instance-scoped or entity-scoped tracker key is named `<owner>::<name>`.
+# `::` cannot appear in an entity_id and is not generated in automation ids, so
+# the owner can always be recovered from the key without knowing which blueprint
+# family wrote it. A key whose owner no longer exists is unreachable garbage:
+# automation ids are regenerated on every create, so delete-and-recreate would
+# otherwise leak a key per cycle, and every tracker write snapshots the whole
+# `data` attribute into the recorder.
+#
+# Owner forms:  <automation id> | <entity_id> | the literal `global`
+script:
+  smarli_tracker_gc:
+    alias: "smarli. Tracker Garbage Collection"
+    description: >-
+      Removes tracker keys whose owner (the part before `::`) is neither a live
+      automation, nor a live entity, nor the reserved literal `global`. Keys
+      without `::` are left alone.
+    mode: single
+    max_exceeded: silent
+    sequence:
+      - alias: Never sweep while the automation registry looks empty (mid-reload)
+        condition: template
+        value_template: "{{ states.automation | list | count > 0 }}"
+      - variables:
+          data: "{{ state_attr('sensor.smarli_automation_tracker', 'data') or {} }}"
+          # A deleted automation leaves a permanent unavailable/restored ghost
+          # entity behind (entity registry keeps the unique_id => attributes.id
+          # survives in states.automation forever, even across restarts) — so
+          # a plain domain scan would never see that id as dead. Excluding
+          # 'unavailable' states drops the ghost while keeping every real
+          # automation (which is always 'on' or 'off', never 'unavailable',
+          # except in the empty-registry window already guarded above).
+          live_ids: "{{ states.automation | rejectattr('state', 'eq', 'unavailable') | map(attribute='attributes.id') | select('string') | list }}"
+          orphans: >
+            {% set ns = namespace(dead=[]) %}
+            {% for bucket_name, bucket in data.items() %}
+              {% for key in bucket.keys() %}
+                {% if '::' in key %}
+                  {% set owner = key.split('::')[0] %}
+                  {% set is_entity = owner is match('^[a-z_][a-z0-9_]*\.[a-z0-9_]+$') %}
+                  {% set alive = owner == 'global'
+                                 or owner in live_ids
+                                 or (is_entity and states[owner] is not none) %}
+                  {% if not alive %}
+                    {% set ns.dead = ns.dead + [[bucket_name, key]] %}
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
+            {% endfor %}
+            {{ ns.dead }}
+      - alias: Remove every orphaned key
+        repeat:
+          for_each: "{{ orphans }}"
+          sequence:
+            - event: smarli_tracker_remove
+              event_data:
+                namespace: "{{ repeat.item[0] }}"
+                key: "{{ repeat.item[1] }}"
+
+automation:
+  - id: smarli_tracker_gc
+    alias: "smarli. Tracker Garbage Collection"
+    description: >-
+      Sweeps orphaned tracker keys. Deleting an automation fires
+      `automation_reloaded`, so this runs exactly when ownership can have
+      changed and costs nothing in steady state.
+    mode: single
+    max_exceeded: silent
+    triggers:
+      - trigger: event
+        event_type: automation_reloaded
+      - trigger: homeassistant
+        event: start
+    actions:
+      - alias: Let the reload finish before deciding who is alive
+        delay:
+          seconds: 10
+      - action: script.smarli_tracker_gc
