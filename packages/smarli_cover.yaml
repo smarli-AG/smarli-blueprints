@@ -19,6 +19,11 @@
 # Uses the tracker's `shared` namespace (see smarli_core.yaml):
 #   - suspension_<cover_entity_id>  unix ts until which the cover is suspended
 #   - moving_<instance_id>          {until: ts, targets: {entity: position}}
+#   - commanded_<cover_entity_id>   {instance_id, target, ts} — last commander of
+#                                   this cover; written by smarli_cover_move,
+#                                   read by its settle-loop audit so a cover
+#                                   moved by a sibling automation isn't
+#                                   false-suspended
 #
 # ---------------------------------------------------------------------------
 # TARGET POSITIONS ARE ALWAYS NUMBERS 0-100 — never 'open'/'closed'.
@@ -242,6 +247,8 @@ script:
                 key: "commanded_{{ cover }}"
                 value:
                   instance_id: "{{ instance_id }}"
+                  # target/ts are reserved for Phase 2 arbitration; only
+                  # instance_id is read today (by the intervened guard below).
                   target: "{{ target_position }}"
                   ts: "{{ started_ts }}"
       - alias: Give covers a moment to start moving
@@ -289,6 +296,11 @@ script:
                   {% endfor %}
                   {{ ns.m }}
                 # Covers that have stopped but not at their target — intervention.
+                # Residual race: this guard trusts commanded_<cover> as a proxy for which
+                # instance last commanded the cover, but the tracker write and device
+                # command are independent async paths — two instances racing the same
+                # cover in one tick could still false-suspend it. Phase 2's central
+                # resolver (no coincident conflicting commands) is the real fix.
                 intervened: >
                   {% set shared = (state_attr('sensor.smarli_automation_tracker', 'data') or {}).get('shared', {}) %}
                   {% set ns = namespace(bad=[]) %}
