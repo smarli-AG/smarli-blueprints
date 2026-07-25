@@ -267,21 +267,28 @@ script:
                   {% set tns.pos = i.targets[c] | int %}
                 {% endif %}
               {% endfor %}
-              {# no target for this cover: hold what we last decided, else seed from reality.
-                 Position-capable covers seed from current_position. Position-less (binary,
-                 state-only open/close) covers never expose current_position, so without this
-                 a cover named only by a BOUND — never by any target contributor — would be
-                 skipped forever; seed those from state instead (open=100, closed=0), matching
-                 the mover's own state<->position mapping. Anything else (unavailable/unknown,
-                 or a state that is neither) gives no usable answer and is skipped, not
-                 guessed. #}
-              {% set stored = shared.get(c ~ '::resolved') %}
+              {# No target for this cover: a BOUND is a statement about physical reality
+                 ("stay within min..max"), not intent, so its implicit seed must be where
+                 the cover actually IS — never the stored `::resolved` record, which is
+                 only a memory of a past decision and can go stale the moment a contributor
+                 stops publishing or the cover is moved by hand while nothing watches (a
+                 bound would otherwise "correct" an already-compliant cover back toward a
+                 forgotten position). So: current_position first; then, for position-less
+                 (binary, state-only open/close) covers that never expose current_position,
+                 the state seed (open=100, closed=0), matching the mover's own
+                 state<->position mapping — without this a cover named only by a bound could
+                 never seed and would be skipped forever; only if the cover cannot report
+                 where it is at all (just-added, never touched) does the stale `::resolved`
+                 record serve as a last-resort fallback. Anything else (unavailable/unknown,
+                 or a state that is neither open nor closed) gives no usable answer and is
+                 skipped, not guessed. #}
               {% set current = state_attr(c, 'current_position') %}
               {% set state_seed = 100 if is_state(c, 'open') else (0 if is_state(c, 'closed') else none) %}
+              {% set stored = shared.get(c ~ '::resolved') %}
               {% set target = tns.pos if tns.pos is not none
-                              else (stored | int if stored is not none
-                                    else (current | int if current is not none
-                                          else state_seed)) %}
+                              else (current | int if current is not none
+                                    else (state_seed if state_seed is not none
+                                          else (stored | int if stored is not none else none))) %}
               {% if target is not none %}
                 {# intersect bounds, highest priority first, skipping any that would empty the range #}
                 {% set bl = namespace(l=[]) %}
@@ -296,26 +303,38 @@ script:
                   {% if nlo <= nhi %}{% set b.lo = nlo %}{% set b.hi = nhi %}{% endif %}
                 {% endfor %}
                 {% set resolved = [[target | int, b.lo] | max, b.hi] | min %}
-                {% set ns.d = dict(ns.d.items() | list + [(c, resolved)]) %}
+                {# `seed` and `has_target` ride along so the batch step below can tell a
+                   bound that actually moved a cover from one that only re-recorded an
+                   already-satisfied position — see `batch` for why that distinction
+                   matters only for no-target covers. #}
+                {% set ns.d = dict(ns.d.items() | list + [(c, {'pos': resolved, 'seed': target | int, 'has_target': tns.pos is not none})]) %}
               {% endif %}
             {% endfor %}
             {{ ns.d }}
           changed: >
             {% set ns = namespace(d={}) %}
-            {% for c, pos in resolved_map.items() %}
+            {% for c, info in resolved_map.items() %}
               {% if shared.get(c ~ '::resolved') is none
-                    or shared.get(c ~ '::resolved') | int(-1) != pos | int %}
-                {% set ns.d = dict(ns.d.items() | list + [(c, pos)]) %}
+                    or shared.get(c ~ '::resolved') | int(-1) != info.pos | int %}
+                {% set ns.d = dict(ns.d.items() | list + [(c, info)]) %}
               {% endif %}
             {% endfor %}
             {{ ns.d }}
           # Suspended covers are recorded but NOT commanded: a transition that
           # falls inside a suspension is CANCELLED, not deferred (see CLAUDE.md).
+          # A no-target cover whose bound-clamped position equals its own seed
+          # (real current position) is also excluded here: the bound is a physical
+          # constraint, and a cover already satisfying it is not in violation, so
+          # there is nothing to command — only `<cover>::resolved` needed updating
+          # to stop it reading as stale next time. Covers WITH a target are never
+          # filtered this way: they are commanded whenever the resolved value
+          # differs from the stored record, exactly as before this change.
           batch: >
             {% set ns = namespace(d={}) %}
-            {% for c, pos in changed.items() %}
-              {% if shared.get(c ~ '::suspension', 0) | float(0) <= now_ts %}
-                {% set ns.d = dict(ns.d.items() | list + [(c, pos)]) %}
+            {% for c, info in changed.items() %}
+              {% if shared.get(c ~ '::suspension', 0) | float(0) <= now_ts
+                    and (info.has_target or info.pos | int != info.seed | int) %}
+                {% set ns.d = dict(ns.d.items() | list + [(c, info.pos)]) %}
               {% endif %}
             {% endfor %}
             {{ ns.d }}
@@ -346,7 +365,7 @@ script:
               event_data:
                 namespace: shared
                 key: "{{ repeat.item[0] }}::resolved"
-                value: "{{ repeat.item[1] | int }}"
+                value: "{{ repeat.item[1].pos | int }}"
       - alias: Prune expired moving markers only ('::resolved' persists; see 'stale' above)
         repeat:
           for_each: "{{ stale }}"
