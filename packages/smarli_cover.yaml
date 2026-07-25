@@ -19,7 +19,9 @@
 # Uses the tracker's `shared` namespace. Every key is `<owner>::<name>`, so the
 # core GC can collect keys whose owner no longer exists (see smarli_core.yaml):
 #   - <cover>::suspension      unix ts until which the cover is suspended
-#   - <cover>::moving_<run>    {target, until} while mover run <run> drives it
+#   - <cover>::moving_<run>    {target, until, started_ts} while mover run <run>
+#                              drives it; started_ts orders competing markers
+#                              for the same cover (see `superseded` below)
 #   - <cover>::resolved        last position the resolver decided for this cover
 #   - <automation_id>::intent  a contributor's declared targets/bounds
 #
@@ -286,6 +288,7 @@ script:
                 value:
                   target: "{{ target_position }}"
                   until: "{{ marker_until }}"
+                  started_ts: "{{ started_ts }}"
             - choose:
                 - alias: Cover supports positioning — set the exact position
                   conditions: "{{ supports_position }}"
@@ -369,13 +372,21 @@ script:
                   {% endfor %}
                   {{ ns.d }}
                 # Covers a newer run has taken over — release without suspending.
+                # Ordering lives in the marker VALUE (`started_ts`), not the run
+                # token: tokens are opaque (real automation ids like
+                # cover_sun_test, or a context.id ULID), so parsing them as
+                # numbers - `key.split('::moving_')[1] | float(0)` - maps every
+                # realistic token to 0.0 and the comparison never fires. A
+                # foreign marker only counts if it is still live (`until` not
+                # expired) — an expired marker cannot supersede anything.
                 superseded: >
                   {% set ns = namespace(l=[]) %}
                   {% for cover in pending.keys() %}
-                    {% for key in shared_now.keys() %}
+                    {% for key, marker in shared_now.items() %}
                       {% if key.startswith(cover ~ '::moving_')
                             and key != (cover ~ '::moving_' ~ run_token)
-                            and (key.split('::moving_')[1] | float(0)) > (run_token | float(0)) %}
+                            and (marker.get('until', 0) | float(0)) > as_timestamp(now())
+                            and (marker.get('started_ts', 0) | float(0)) > (started_ts | float(0)) %}
                         {% if cover not in ns.l %}{% set ns.l = ns.l + [cover] %}{% endif %}
                       {% endif %}
                     {% endfor %}
