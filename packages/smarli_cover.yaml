@@ -650,7 +650,11 @@ script:
                   - action: script.smarli_cover_suspend
                     data:
                       entity_id: "{{ repeat.item }}"
-                      fallback_duration: 1800
+                      # No fallback on purpose: the resolver only ever commands a cover that
+                      # some active intent names, and that intent carries the duration. A
+                      # hardcoded fallback here would suspend for a fixed time even when every
+                      # contributor deliberately opted out of suspension (duration 0).
+                      fallback_duration: 0
             - alias: Release every cover that is no longer moving for this run
               repeat:
                 for_each: "{{ pending.keys() | reject('in', still_moving) | list }}"
