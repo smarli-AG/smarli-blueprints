@@ -179,32 +179,13 @@ Reproduced + verified in the Docker HA test env."
 
 ---
 
-## Phase 2 — Constraint-based arbitration (needs its own detailed plan first)
+## Phase 2 — Constraint-based arbitration
 
-**Status: design direction settled, but several decisions are still open — this phase is NOT yet execute-ready.** Do a focused design pass (brainstorming → writing-plans) that closes the open decisions below, then implement. Do not write bite-sized steps until the intent schema and the manual-detection integration are nailed, or the plan will contain guesses.
-
-**Settled (from the design discussion — see memory `cover-multi-automation-arbitration.md`):**
-
-- Model is a **constraint-based central resolver**, not winner-takes-all priority. Contributors publish either a **target** (exact position, e.g. day-night 0/100) or a **bound** (e.g. shade "max openness ≤ 20"). The resolver clamps the winning target to all active bounds. Priority only breaks ties between conflicting bounds.
-- One **resolver** script (in `smarli_cover.yaml`) is the single mover; blueprints stop calling `smarli_cover_move` directly and instead publish intent to the tracker.
-- Manual `suspension_<entity>` still trumps everything (resolver skips suspended covers).
-- Each intent is written by exactly one owner → per-automation key `intent_<instance_id>` holding `{targets:{cover:pos}, bounds:{cover:{max?,min?}}, priority, until?}` (single writer, wholesale replace → atomic).
-
-**Open decisions to close before implementing:**
-
-1. **Intent freshness / orphan-decay** (per-blueprint policy, see memory meta-logic (a)): edge-based (write once, persists — risk: dead automation's bound lingers) vs. freshness-based (`until` refreshed each heartbeat — self-healing, costs a tracker write/min per active instance → likely exclude `sensor.smarli_automation_tracker` from the recorder). Decide per family; day-night can be edge-based, shade should refresh.
-2. **Re-assert after manual-suspension expiry** (per-blueprint, meta-logic (b)): targets are **sticky** (no catch-up — current day-night behaviour, keep it), bounds are **live** (re-applied when suspension lifts). Requires that a suspension-blocked cover is NOT recorded as commanded (mirror the weather-block "don't write `_commanded` when blocked" trick) so it retries.
-3. **Migration:** does the resolver _replace_ the body of `smarli_cover_move`, or wrap it (resolver computes final per-cover target, then calls the existing move contract)? Recommended: resolver computes final targets and reuses `smarli_cover_move` as its mover (keeps the settle/marker/Phase-1 logic intact).
-4. **Manual detection under the resolver:** `manual_check` and the settle loop must keep working when the mover is the resolver, not the blueprint. Confirm `instance_id` semantics (resolver uses one id, or per-source id?).
-5. **Blueprint change:** `coversDayNight.yaml` heartbeat currently computes `desired_position` and calls the move. Under the resolver it should instead **publish its intent** (`target = desired_position`, no bounds) and stop moving directly. Preserve the `-1` first-run / restart catch-up semantics as a _target_ (sticky).
-6. **`commanded_<entity>` key lifecycle** (surfaced by the Phase 1 final review): the Phase 1 fix writes `shared.commanded_<entity>` on every command but never removes it — it persists between moves and lands in every recorder snapshot. Bounded (overwritten in place, O(covers ever commanded)), so acceptable for Phase 1, but the resolver should define its cleanup/expiry.
-7. **Residual settle-loop race** (surfaced by the Phase 1 final review, documented in-code at the `intervened` guard): Phase 1's owner-guard trusts `commanded_<entity>` as a proxy for which instance the cover physically ended at, but the tracker write and the device command are independent async paths — two instances racing the same cover in a single tick can still false-suspend. The central resolver **eliminates the coincidence entirely** (one mover, no competing commands), so building Phase 2 closes this residual rather than needing a separate fix.
-
-**Acceptance (what Phase 2 must demonstrate in the env):**
-
-- Day-night (target 100) + shade (bound ≤20) → cover rests at 20 while shade active; **0** when day-night wants closed (0 satisfies ≤20); back to **100** when shade withdraws.
-- No false suspension on coincident conflicting intents (Phase 1 already covers the settle-loop; the resolver removes the coincidence entirely).
-- Restart mid-shade: cover returns to the correct resolved position, day-night does not stomp a live bound.
+**Done.** Design: `docs/superpowers/specs/2026-07-24-cover-constraint-resolver-design.md`.
+Implementation plan: `docs/superpowers/plans/2026-07-24-cover-constraint-resolver.md`.
+All seven open decisions were closed in the design pass; open decisions #6 and #7
+(the `commanded_<entity>` lifecycle and the settle-loop race) were resolved by
+deleting that key and auditing against `<cover>::resolved` instead.
 
 ---
 

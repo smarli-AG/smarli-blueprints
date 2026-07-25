@@ -631,10 +631,26 @@ script:
               repeat:
                 for_each: "{{ intervened }}"
                 sequence:
+                  # 1800s (30 min) fallback: script.smarli_cover_suspend only
+                  # falls back to this when NOT ONE active intent names the
+                  # cover at all. In the normal resolver-driven path that never
+                  # happens — a cover only ever reaches this audit because some
+                  # active intent put it in the commanded batch, and that same
+                  # intent is still sitting in the tracker moments later — so
+                  # the intent's own suspension_duration always wins and this
+                  # value is dead code there. It matters only when
+                  # smarli_cover_move is driven directly with no intent behind
+                  # it (a bare test harness call, or a future non-resolver
+                  # caller): without a positive fallback, layer 3 would detect
+                  # the manual stop correctly but silently skip writing the
+                  # suspension, because smarli_cover_suspend's own "did every
+                  # contributor opt out" guard cannot tell "no intent at all"
+                  # from "an intent explicitly asked for 0" and treats a 0
+                  # fallback the same as an opt-out.
                   - action: script.smarli_cover_suspend
                     data:
                       entity_id: "{{ repeat.item }}"
-                      fallback_duration: 0
+                      fallback_duration: 1800
             - alias: Release every cover that is no longer moving for this run
               repeat:
                 for_each: "{{ pending.keys() | reject('in', still_moving) | list }}"

@@ -69,6 +69,26 @@ Known residual blind spot (accepted): a manual move _during_ our movement _in th
 
 _Flipping to "pause" (deferred catch-up) later — Phase 2 resolver:_ two edits. (1) The resolver stops writing `<cover>::resolved` for covers it skipped as suspended, so the missed transition stays pending. (2) The blueprint that wants catch-up ORs a `catchup_needed` clause into its heartbeat condition (_any of my covers not at my target and no longer suspended_), mirroring the existing weather-block retry. Safe for **targets** — a one-shot event applied late cannot loop, because the record updates once it lands. Never do it for **bounds**: a standing condition re-applied after every manual override is an endless user-vs-automation fight. The flip stays a one-liner only while all families agree; if one wants pause and another cancel, the resolver must record `<cover>::applied` (what was actually commanded) next to `<cover>::resolved` (what the system wants) and each family compares against its own.
 
+## Cover arbitration: contributors publish, one resolver commands
+
+Several cover automations can control one cover. They never command it themselves — they publish an intent and call `script.smarli_cover_resolve`, which is the single mover.
+
+- **TARGET** = "move to position X now" — a one-shot **event**. The newest target wins; `priority` only breaks a same-tick tie.
+- **BOUND** = "while I say so, stay within min…max" — a standing **condition** that clamps whatever target is current. Bounds intersect; if two cannot both hold, the higher-priority one wins outright and the other is dropped for that cover.
+- `resolved = clamp(newest_target, bounds)`. With no target at all, the implicit target is the cover's own `current_position` (or the state-mapped open/closed seed for position-less covers), falling back to the stale `<cover>::resolved` only if the cover cannot report where it is at all — a bound is a statement about physical reality, so it must seed from where the cover actually sits, never from a stale memory of past intent (see the design spec §4 for why that distinction matters).
+- An intent counts only while its owner automation **exists and is on**. Priorities: day-night 10, shade 50, safety/storm 90.
+
+**Contributor rules.** Publish only on change (edge-based — an idle house writes nothing). Publish a **target** only when genuinely deciding "move now", inside your own operating window; withdrawing a constraint outside that window means dropping the bound **silently**, with no target — otherwise a shade family whose condition clears at 22:00 reopens covers that day-night closed at 21:00. Anything that must _hold_ against later events is a bound, not a target. Keep owning your own manual detection (scripts cannot see `trigger`).
+
+**Key grammar.** Every tracker key is `<owner>::<name>`, owner being an automation id, an entity*id, or the literal `global`. This is what lets `script.smarli_tracker_gc` in `smarli_core.yaml` collect keys whose owner no longer exists without knowing any family's key names — automation ids are regenerated on every create, so delete-and-recreate would otherwise leak a key per cycle. (The garbage-collector \_script* is `script.smarli_tracker_gc`; the wrapping _automation_ that triggers it has config-level `id: smarli_tracker_gc` but HA slugifies its alias, so its real entity_id is `automation.smarli_tracker_garbage_collection` — don't assume the id and the entity_id match.)
+
+```
+shared:  <automation_id>::intent   <cover>::resolved   <cover>::suspension   <cover>::moving_<run>
+cover_day_night:  <automation_id>::bright_since | ::dark_since
+```
+
+**Suspension duration is cover-level, not automation-level.** Several automations watch one cover and all fire on the same wall-switch press, so `script.smarli_cover_suspend` takes the **maximum** `suspension_duration` across active intents naming that cover; an automation with suspension turned off contributes 0.
+
 ## Delivery split: Grundinstanz package vs. blueprint
 
 **Trigger distributed, logic centralized.** Blueprints keep entity-scoped state triggers on their own covers (self-registering: the set of watched covers is derived from the set of automations), but all shared logic lives in **package files**, shipped with the Grundinstanz. Packages are split by blueprint family, `smarli_<family>.yaml`, over a single foundation file — HA merges same-domain sections (`script:`, `template:`, …) across all package files at load, so multiple files each carrying a `script:` block is expected, not a conflict (entity/object IDs must stay unique, which the `smarli_` prefix guarantees):
@@ -134,3 +154,8 @@ None of these are caught by `check_config` — they fail only at runtime, often 
 - **`context`-based manual detection** — cannot distinguish physical wall-switch presses (contextless) from other contextless changes; tracker-based in-progress markers catch these.
 - **Technician-entered slug for instance identity** — manual uniqueness bookkeeping; `this.attributes.id` is automatic and rename-proof. (`this.entity_id` rejected: entity-ID renames would orphan provisioned entities.)
 - **`python_script` + `hass.states.set`** — state lost on restart.
+- **Winner-takes-all priority for covers** — shade holding 20 (partial) vs. day-night wanting 0 (night): priority picks 20, leaving the cover _more open_ than the loser wanted. Priority cannot express "blocks opening, allows closing"; the target/bound split can.
+- **A shade family writing a suspension to "protect" a cover** — a suspension is non-directional, so it would also block day-night's legitimate night close.
+- **Priority-ownership** (each automation checks a shared owner record, then acts itself) — cheaper than a resolver, but a yielded low-priority automation never reclaims after the winner releases without an explicit poke, and coincident commands remain possible.
+- **A value-level `owner:` field on every tracker entry** (instead of `<owner>::<name>` keys) — needs a second convention for entity-scoped keys, adds Jinja at every read/write site, and grows the payload we are trying to shrink.
+- **A resolver heartbeat automation** — the one case it could repair (an orphaned bound whose contributor is gone) has no remaining target to command anyway, so it buys nothing for a per-minute run and a visible system automation.
