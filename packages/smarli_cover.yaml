@@ -244,7 +244,11 @@ script:
           text:
     sequence:
       - variables:
-          run_token: "{{ run | default(instance_id) | default('run', true) }}"
+          # Fallback must be unique per run, never a shared literal - a caller
+          # passing neither `run` nor `instance_id` would otherwise collide
+          # with every other such caller under the same key ('run'). The
+          # script's own context id is unique per invocation and always set.
+          run_token: "{{ run | default(instance_id) | default(context.id, true) }}"
           fallback_seconds: "{{ ((suspension_duration | default('00:00:00')) | as_timedelta).total_seconds() }}"
           started_ts: "{{ as_timestamp(now()) }}"
           settle_timeout_s: "{{ settle_timeout | default(180) | float(180) }}"
@@ -324,19 +328,43 @@ script:
             - condition: template
               value_template: >
                 {% set shared = (state_attr('sensor.smarli_automation_tracker', 'data') or {}).get('shared', {}) %}
-                {% set mine = shared.keys() | select('search', '::moving_' ~ run_token ~ '$') | list %}
-                {{ mine | count > 0
+                {# Exact key membership, not a regex search - run_token may contain
+                   '.' (e.g. a resolver timestamp or a context id), which 'search'
+                   would treat as "any character" and over-match. #}
+                {% set ns = namespace(count=0) %}
+                {% for cover in active_targets.keys() %}
+                  {% if (cover ~ '::moving_' ~ run_token) in shared %}
+                    {% set ns.count = ns.count + 1 %}
+                  {% endif %}
+                {% endfor %}
+                {{ ns.count > 0
                    and as_timestamp(now()) < started_ts | float(0) + settle_timeout_s | float(0) }}
           sequence:
             - delay:
                 seconds: 2
             - variables:
                 shared_now: "{{ (state_attr('sensor.smarli_automation_tracker', 'data') or {}).get('shared', {}) }}"
+                # Target comes from the MARKER's current contents, not this
+                # run's frozen `active_targets` input. Today run_token is
+                # stable per instance (see the run/instance_id fallback
+                # above), so two overlapping runs from the same caller write
+                # the SAME marker key - the second's write replaces the
+                # first's. If this run kept auditing against its own frozen
+                # target, it would judge the cover against a target that is
+                # no longer what the system (or even this same instance) is
+                # currently driving it to, and false-suspend a cover that
+                # correctly settled at the newer target. Reading the target
+                # back out of the marker each pass makes the marker itself -
+                # whoever last wrote it - the single source of truth for what
+                # a cover is presently being driven to, exactly like the
+                # pre-existing `superseded` check already assumes for
+                # genuinely different tokens.
                 pending: >
                   {% set ns = namespace(d={}) %}
-                  {% for cover, target in active_targets.items() %}
-                    {% if (cover ~ '::moving_' ~ run_token) in shared_now %}
-                      {% set ns.d = dict(ns.d.items() | list + [(cover, target)]) %}
+                  {% for cover in active_targets.keys() %}
+                    {% set mkey = cover ~ '::moving_' ~ run_token %}
+                    {% if mkey in shared_now %}
+                      {% set ns.d = dict(ns.d.items() | list + [(cover, shared_now[mkey].target)]) %}
                     {% endif %}
                   {% endfor %}
                   {{ ns.d }}
