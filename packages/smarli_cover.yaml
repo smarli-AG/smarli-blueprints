@@ -12,6 +12,13 @@
 # Contents:
 #   - script.smarli_cover_manual_check  classifies a cover state change as
 #                                       manual vs. automated; writes suspensions
+#   - script.smarli_cover_resolve       single-flight constraint resolver:
+#                                       reads every contributor's published
+#                                       intent (targets/bounds), computes
+#                                       clamp(newest target, bounds) per cover,
+#                                       and fires smarli_cover_move for what
+#                                       changed. The only entry point that
+#                                       should ever command a cover.
 #   - script.smarli_cover_move          moves covers under the smarli. moving
 #                                       contract (marker -> command -> settle ->
 #                                       audit -> cleanup)
@@ -167,6 +174,177 @@ script:
         data:
           entity_id: "{{ entity_id }}"
           fallback_duration: "{{ duration_seconds | float(0) }}"
+
+  smarli_cover_resolve:
+    alias: "smarli. Cover Resolve"
+    description: >-
+      The single mover for every smarli. cover automation. Reads all published
+      intents, computes one position per cover (clamp(newest target, bounds)),
+      records it, and commands the covers whose resolved position changed.
+      Contributors publish intent and call this; they never command covers.
+
+      `mode: queued` is load-bearing: a run writes several `<cover>::resolved`
+      keys as a SEQUENCE of atomic single-key writes, so serialising runs is
+      what makes the resolved set consistent.
+    mode: queued
+    max: 50
+    max_exceeded: silent
+    fields:
+      owner:
+        name: Owner
+        description: The calling automation's id (this.attributes.id).
+        required: false
+        selector:
+          text:
+      intent:
+        name: Fresh Intent
+        description: >-
+          The intent the caller just published. Overlaid on the tracker read so
+          resolution never depends on the template sensor having re-rendered.
+        required: false
+        selector:
+          object:
+    sequence:
+      - alias: Wait until my own write is visible — renders are ordered, so every earlier write is too
+        if:
+          - condition: template
+            value_template: "{{ (owner | default('')) != '' and (intent | default({})) | count > 0 }}"
+        then:
+          - wait_template: >
+              {{ ((state_attr('sensor.smarli_automation_tracker', 'data') or {}).get('shared', {})
+                   .get(owner ~ '::intent', {}).get('ts', 0) | float(0))
+                 >= ((intent | default({})).get('ts', 0) | float(0)) }}
+            timeout:
+              seconds: 1
+            continue_on_timeout: true
+      - alias: Skip if a fresher run is queued behind me — it has strictly better input
+        # Avoids commanding an intermediate position that the next run immediately
+        # overrides (the visible "starts to 100, reverses to 20" twitch).
+        condition: template
+        value_template: "{{ state_attr('script.smarli_cover_resolve', 'current') | int(1) <= 1 }}"
+      - variables:
+          now_ts: "{{ as_timestamp(now()) }}"
+          shared: "{{ (state_attr('sensor.smarli_automation_tracker', 'data') or {}).get('shared', {}) }}"
+          live_ids: >
+            {{ states.automation | selectattr('state', 'eq', 'on')
+               | map(attribute='attributes.id') | select('string') | list }}
+          # Active intents: owner automation exists AND is on (disabling a shade
+          # automation releases its bound), and not past its optional `until`.
+          intents: >
+            {% set ns = namespace(d={}) %}
+            {% for key, value in shared.items() if key.endswith('::intent') %}
+              {% set o = key.split('::')[0] %}
+              {% if o in live_ids
+                    and (value.get('until', 0) | float(0) == 0 or value.get('until') | float(0) > now_ts) %}
+                {% set ns.d = dict(ns.d.items() | list + [(o, value)]) %}
+              {% endif %}
+            {% endfor %}
+            {% if (owner | default('')) != '' and (intent | default({})) | count > 0 %}
+              {% set ns.d = dict(ns.d.items() | list + [(owner, intent)]) %}
+            {% endif %}
+            {{ ns.d }}
+          covers: >
+            {% set ns = namespace(l=[]) %}
+            {% for o, i in intents.items() %}
+              {% for c in (i.get('targets', {}) | list) + (i.get('bounds', {}) | list) %}
+                {% if c not in ns.l %}{% set ns.l = ns.l + [c] %}{% endif %}
+              {% endfor %}
+            {% endfor %}
+            {{ ns.l }}
+          resolved_map: >
+            {% set ns = namespace(d={}) %}
+            {% for c in covers %}
+              {# newest target wins; ties by priority, then owner id (descending, for determinism) #}
+              {% set tns = namespace(pos=none, key=none) %}
+              {% for o, i in intents.items() if c in i.get('targets', {}) %}
+                {% set k = [i.get('ts', 0) | float(0), i.get('priority', 0) | int(0), o] %}
+                {% if tns.key is none or k > tns.key %}
+                  {% set tns.key = k %}
+                  {% set tns.pos = i.targets[c] | int %}
+                {% endif %}
+              {% endfor %}
+              {# no target for this cover: hold what we last decided, else seed from reality #}
+              {% set stored = shared.get(c ~ '::resolved') %}
+              {% set current = state_attr(c, 'current_position') %}
+              {% set target = tns.pos if tns.pos is not none
+                              else (stored | int if stored is not none
+                                    else (current | int if current is not none else none)) %}
+              {% if target is not none %}
+                {# intersect bounds, highest priority first, skipping any that would empty the range #}
+                {% set bl = namespace(l=[]) %}
+                {% for o, i in intents.items() if c in i.get('bounds', {}) %}
+                  {% set bl.l = bl.l + [[i.get('priority', 0) | int(0), o]] %}
+                {% endfor %}
+                {% set b = namespace(lo=0, hi=100) %}
+                {% for pair in bl.l | sort(reverse=true) %}
+                  {% set bound = intents[pair[1]].bounds[c] %}
+                  {% set nlo = [b.lo, bound.get('min', 0) | int(0)] | max %}
+                  {% set nhi = [b.hi, bound.get('max', 100) | int(100)] | min %}
+                  {% if nlo <= nhi %}{% set b.lo = nlo %}{% set b.hi = nhi %}{% endif %}
+                {% endfor %}
+                {% set resolved = [[target | int, b.lo] | max, b.hi] | min %}
+                {% set ns.d = dict(ns.d.items() | list + [(c, resolved)]) %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.d }}
+          changed: >
+            {% set ns = namespace(d={}) %}
+            {% for c, pos in resolved_map.items() %}
+              {% if shared.get(c ~ '::resolved') is none
+                    or shared.get(c ~ '::resolved') | int(-1) != pos | int %}
+                {% set ns.d = dict(ns.d.items() | list + [(c, pos)]) %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.d }}
+          # Suspended covers are recorded but NOT commanded: a transition that
+          # falls inside a suspension is CANCELLED, not deferred (see CLAUDE.md).
+          batch: >
+            {% set ns = namespace(d={}) %}
+            {% for c, pos in changed.items() %}
+              {% if shared.get(c ~ '::suspension', 0) | float(0) <= now_ts %}
+                {% set ns.d = dict(ns.d.items() | list + [(c, pos)]) %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.d }}
+          stale: >
+            {% set ns = namespace(l=[]) %}
+            {% for key, value in shared.items() %}
+              {% if key.endswith('::resolved') and key.split('::')[0] not in covers %}
+                {% set ns.l = ns.l + [key] %}
+              {% elif '::moving_' in key and (value.get('until', 0) | float(0)) < now_ts %}
+                {% set ns.l = ns.l + [key] %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.l }}
+      - alias: Record the resolved position for every cover that changed
+        repeat:
+          for_each: "{{ changed | dictsort }}"
+          sequence:
+            - event: smarli_tracker_set
+              event_data:
+                namespace: shared
+                key: "{{ repeat.item[0] }}::resolved"
+                value: "{{ repeat.item[1] | int }}"
+      - alias: Prune orphaned resolved records and expired markers
+        repeat:
+          for_each: "{{ stale }}"
+          sequence:
+            - event: smarli_tracker_remove
+              event_data:
+                namespace: shared
+                key: "{{ repeat.item }}"
+      - alias: Command the covers that changed and are not suspended
+        if:
+          - condition: template
+            value_template: "{{ batch | count > 0 }}"
+        then:
+          - action: script.turn_on
+            target:
+              entity_id: script.smarli_cover_move
+            data:
+              variables:
+                run: "{{ now_ts }}"
+                targets: "{{ batch }}"
 
   smarli_cover_move:
     alias: "smarli. Cover Move"
