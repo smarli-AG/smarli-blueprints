@@ -406,12 +406,6 @@ script:
         required: false
         selector:
           text:
-      instance_id:
-        name: Instance ID (deprecated)
-        description: Legacy alias for `run`, kept until every caller passes `run`.
-        required: false
-        selector:
-          text:
       targets:
         name: Targets
         description: "Dict of cover entity_id -> target position (number 0-100; 100 = open, 0 = closed)."
@@ -451,26 +445,13 @@ script:
           number:
             min: 0
             max: 20
-      suspension_duration:
-        name: Suspension Duration (fallback)
-        description: >-
-          Fallback suspension length (HH:MM:SS) used only while no published
-          intent names the cover — the duration is normally the maximum across
-          the intents that do (see script.smarli_cover_suspend). Kept so a
-          caller that has not published an intent yet still gets its configured
-          suspension; once every caller publishes intent this can go.
-        required: false
-        default: "00:00:00"
-        selector:
-          text:
     sequence:
       - variables:
-          # Fallback must be unique per run, never a shared literal - a caller
-          # passing neither `run` nor `instance_id` would otherwise collide
-          # with every other such caller under the same key ('run'). The
-          # script's own context id is unique per invocation and always set.
-          run_token: "{{ run | default(instance_id) | default(context.id, true) }}"
-          fallback_seconds: "{{ ((suspension_duration | default('00:00:00')) | as_timedelta).total_seconds() }}"
+          # Fallback must be unique per run, never a shared literal - two
+          # callers that both omitted `run` would otherwise collide under the
+          # same key ('run'). The script's own context id is unique per
+          # invocation and always set.
+          run_token: "{{ run | default(context.id, true) }}"
           started_ts: "{{ as_timestamp(now()) }}"
           settle_timeout_s: "{{ settle_timeout | default(180) | float(180) }}"
           tolerance: "{{ position_tolerance | default(5) | float(5) }}"
@@ -568,10 +549,10 @@ script:
                 shared_now: "{{ (state_attr('sensor.smarli_automation_tracker', 'data') or {}).get('shared', {}) }}"
                 # Target comes from the MARKER's current contents, not this
                 # run's frozen `active_targets` input. Today run_token is
-                # stable per instance (see the run/instance_id fallback
-                # above), so two overlapping runs from the same caller write
-                # the SAME marker key - the second's write replaces the
-                # first's. If this run kept auditing against its own frozen
+                # stable per caller (see the run_token fallback above), so two
+                # overlapping runs from the same caller write the SAME marker
+                # key - the second's write replaces the first's. If this run
+                # kept auditing against its own frozen
                 # target, it would judge the cover against a target that is
                 # no longer what the system (or even this same instance) is
                 # currently driving it to, and false-suspend a cover that
@@ -653,7 +634,7 @@ script:
                   - action: script.smarli_cover_suspend
                     data:
                       entity_id: "{{ repeat.item }}"
-                      fallback_duration: "{{ fallback_seconds | float(0) }}"
+                      fallback_duration: 0
             - alias: Release every cover that is no longer moving for this run
               repeat:
                 for_each: "{{ pending.keys() | reject('in', still_moving) | list }}"
