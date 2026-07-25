@@ -71,7 +71,7 @@ Per resolve run:
    - **Bounds** = start from `lo=0, hi=100`; apply each bounding intent in order of descending `priority` (then owner id), **skipping any bound that would empty the range**. Two conflicting bounds → the higher-priority one wins outright; three or more terminate with a defined answer instead of a special case.
    - `resolved = clamp(target, lo, hi)`.
 4. If `resolved != <C>::resolved`: **write `<C>::resolved` unconditionally**, and add C to the move batch **only if C is not suspended**. Writing even when suspended is what implements _cancel, not pause_ (§7).
-5. **Prune** inline: expired `<cover>::moving_*` keys, and `<cover>::resolved` for covers no active intent mentions.
+5. **Prune** inline: expired `<cover>::moving_*` keys only. `<cover>::resolved` is **not** pruned just because no active intent currently mentions the cover — it is entity-owned and survives until the core GC (§8) collects it when the cover entity itself disappears, consistent with the sticky-target semantics the rest of this design relies on.
 6. Fire **one** `smarli_cover_move` run for the whole batch, non-blocking, with a `run` token.
 
 ### Coalescing
@@ -133,7 +133,7 @@ The flip recipe to "pause" (deferred catch-up) is documented in `CLAUDE.md` § S
 
 `automation.smarli_tracker_gc` triggers on `automation_reloaded` + `homeassistant: start` — deleting an automation _fires_ `automation_reloaded`, so cleanup happens exactly when ownership can have changed and costs nothing in steady state. It waits 10 s for the reload to finish and **aborts if the automation list is empty**, guarding against sweeping mid-reload (verification V3).
 
-Entity-owned keys survive automation churn by design — they describe the cover, not the automation — and are bounded by "covers ever automated", i.e. by hardware. They are collected when the cover entity itself disappears; `<cover>::resolved` for a cover no active intent mentions is pruned by the resolver inline.
+Entity-owned keys survive automation churn by design — they describe the cover, not the automation — and are bounded by "covers ever automated", i.e. by hardware. They are collected only when the cover entity itself disappears; `<cover>::resolved` persists across intent churn (no active intent naming the cover does **not** prune it) precisely because it is entity-owned, not intent-owned, and because a stale-but-unchanged record must never read as a fresh transition on the next matching publish.
 
 **Rejected:** a value-level `owner:` field on every entry. It would force `coversDayNight.yaml` value-shape changes, need a _second_ convention for entity-scoped keys (which have no owning automation), add Jinja at every read and write site, and make payloads larger — the opposite of the goal. Structural ownership in the key costs nothing.
 

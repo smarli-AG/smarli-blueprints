@@ -239,6 +239,10 @@ script:
                 {% set ns.d = dict(ns.d.items() | list + [(o, value)]) %}
               {% endif %}
             {% endfor %}
+            {# The caller's own freshly-passed intent is overlaid unconditionally, with
+               no `owner in live_ids` check — the one documented exception to that rule.
+               Safe because a script cannot be executing on behalf of an automation that
+               does not exist: `owner` is always the live caller's own id. #}
             {% if (owner | default('')) != '' and (intent | default({})) | count > 0 %}
               {% set ns.d = dict(ns.d.items() | list + [(owner, intent)]) %}
             {% endif %}
@@ -263,12 +267,21 @@ script:
                   {% set tns.pos = i.targets[c] | int %}
                 {% endif %}
               {% endfor %}
-              {# no target for this cover: hold what we last decided, else seed from reality #}
+              {# no target for this cover: hold what we last decided, else seed from reality.
+                 Position-capable covers seed from current_position. Position-less (binary,
+                 state-only open/close) covers never expose current_position, so without this
+                 a cover named only by a BOUND — never by any target contributor — would be
+                 skipped forever; seed those from state instead (open=100, closed=0), matching
+                 the mover's own state<->position mapping. Anything else (unavailable/unknown,
+                 or a state that is neither) gives no usable answer and is skipped, not
+                 guessed. #}
               {% set stored = shared.get(c ~ '::resolved') %}
               {% set current = state_attr(c, 'current_position') %}
+              {% set state_seed = 100 if is_state(c, 'open') else (0 if is_state(c, 'closed') else none) %}
               {% set target = tns.pos if tns.pos is not none
                               else (stored | int if stored is not none
-                                    else (current | int if current is not none else none)) %}
+                                    else (current | int if current is not none
+                                          else state_seed)) %}
               {% if target is not none %}
                 {# intersect bounds, highest priority first, skipping any that would empty the range #}
                 {% set bl = namespace(l=[]) %}
@@ -307,11 +320,20 @@ script:
             {% endfor %}
             {{ ns.d }}
           stale: >
+            {# Only expired moving markers are pruned here. `<cover>::resolved` is NOT
+               pruned just because no currently-active intent mentions the cover: it is
+               entity-owned (bounded by "covers ever automated", not by intent churn) and
+               the core GC (script.smarli_tracker_gc) already removes it once the cover
+               entity itself disappears. Pruning it here on every intent change previously
+               deleted a live record for a cover simply not named by the LATEST publish,
+               so the next unchanged republish of the same target read as a fresh
+               transition and re-commanded a cover already sitting at that position — a
+               spurious move/settle cycle. Keeping a stale record is also correct per this
+               system's "sticky target" semantics: an unchanged intent must never
+               re-command. #}
             {% set ns = namespace(l=[]) %}
             {% for key, value in shared.items() %}
-              {% if key.endswith('::resolved') and key.split('::')[0] not in covers %}
-                {% set ns.l = ns.l + [key] %}
-              {% elif '::moving_' in key and (value.get('until', 0) | float(0)) < now_ts %}
+              {% if '::moving_' in key and (value.get('until', 0) | float(0)) < now_ts %}
                 {% set ns.l = ns.l + [key] %}
               {% endif %}
             {% endfor %}
@@ -325,7 +347,7 @@ script:
                 namespace: shared
                 key: "{{ repeat.item[0] }}::resolved"
                 value: "{{ repeat.item[1] | int }}"
-      - alias: Prune orphaned resolved records and expired markers
+      - alias: Prune expired moving markers only ('::resolved' persists; see 'stale' above)
         repeat:
           for_each: "{{ stale }}"
           sequence:
