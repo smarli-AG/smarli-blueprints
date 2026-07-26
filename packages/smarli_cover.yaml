@@ -12,18 +12,25 @@
 # Contents:
 #   - script.smarli_cover_manual_check  classifies a cover state change as
 #                                       manual vs. automated; writes suspensions
+#   - script.smarli_cover_resolve       single-flight constraint resolver:
+#                                       reads every contributor's published
+#                                       intent (targets/bounds), computes
+#                                       clamp(newest target, bounds) per cover,
+#                                       and fires smarli_cover_move for what
+#                                       changed. The only entry point that
+#                                       should ever command a cover.
 #   - script.smarli_cover_move          moves covers under the smarli. moving
 #                                       contract (marker -> command -> settle ->
 #                                       audit -> cleanup)
 #
-# Uses the tracker's `shared` namespace (see smarli_core.yaml):
-#   - suspension_<cover_entity_id>  unix ts until which the cover is suspended
-#   - moving_<instance_id>          {until: ts, targets: {entity: position}}
-#   - commanded_<cover_entity_id>   {instance_id, target, ts} — last commander of
-#                                   this cover; written by smarli_cover_move,
-#                                   read by its settle-loop audit so a cover
-#                                   moved by a sibling automation isn't
-#                                   false-suspended
+# Uses the tracker's `shared` namespace. Every key is `<owner>::<name>`, so the
+# core GC can collect keys whose owner no longer exists (see smarli_core.yaml):
+#   - <cover>::suspension      unix ts until which the cover is suspended
+#   - <cover>::moving_<run>    {target, until, started_ts} while mover run <run>
+#                              drives it; started_ts orders competing markers
+#                              for the same cover (see `superseded` below)
+#   - <cover>::resolved        last position the resolver decided for this cover
+#   - <automation_id>::intent  a contributor's declared targets/bounds
 #
 # ---------------------------------------------------------------------------
 # TARGET POSITIONS ARE ALWAYS NUMBERS 0-100 — never 'open'/'closed'.
@@ -40,6 +47,64 @@
 # ============================================================================
 
 script:
+  smarli_cover_suspend:
+    alias: "smarli. Cover Suspend"
+    description: >-
+      Suspends one cover. The duration is a cover-level fact, not an
+      automation-level one: several automations may watch the same cover and
+      each fires its own manual-detection path on the same wall-switch press.
+      So the duration is the MAXIMUM `suspension_duration` across active
+      intents naming this cover; an automation that opted out of suspension
+      contributes 0. Falls back to the caller's value while no intent exists
+      yet (e.g. a manual move in the first minute after setup).
+    mode: parallel
+    max: 50
+    fields:
+      entity_id:
+        name: Cover Entity
+        description: The cover to suspend.
+        required: true
+        selector:
+          entity:
+            filter:
+              - domain: cover
+      fallback_duration:
+        name: Fallback Duration
+        description: Seconds to use when no active intent names this cover.
+        required: false
+        default: 0
+        selector:
+          number:
+            min: 0
+            max: 86400
+            unit_of_measurement: s
+    sequence:
+      - variables:
+          now_ts: "{{ as_timestamp(now()) }}"
+          shared: "{{ (state_attr('sensor.smarli_automation_tracker', 'data') or {}).get('shared', {}) }}"
+          live_ids: >
+            {{ states.automation | selectattr('state', 'eq', 'on')
+               | map(attribute='attributes.id') | select('string') | list }}
+          duration: >
+            {% set ns = namespace(max=-1) %}
+            {% for key, value in shared.items() if key.endswith('::intent') %}
+              {% if key.split('::')[0] in live_ids
+                    and (entity_id in value.get('targets', {}) or entity_id in value.get('bounds', {})) %}
+                {% set d = value.get('suspension_duration', 0) | float(0) %}
+                {% if d > ns.max %}{% set ns.max = d %}{% endif %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.max if ns.max >= 0 else (fallback_duration | default(0) | float(0)) }}
+      - alias: Skip when every contributor opted out of suspension
+        condition: template
+        value_template: "{{ duration | float(0) > 0 }}"
+      - alias: Suspend this cover
+        event: smarli_tracker_set
+        event_data:
+          namespace: shared
+          key: "{{ entity_id }}::suspension"
+          value: "{{ now_ts | float(0) + duration | float(0) }}"
+
   smarli_cover_manual_check:
     alias: "smarli. Cover Manual Check"
     description: >-
@@ -89,14 +154,14 @@ script:
           duration_seconds: "{{ ((suspension_duration | default('00:00:00')) | as_timedelta).total_seconds() }}"
           is_user_action: "{{ (user_id | default('')) not in ['', 'None', none] }}"
           shared: "{{ (state_attr('sensor.smarli_automation_tracker', 'data') or {}).get('shared', {}) }}"
-          # True if any smarli. automation is currently driving this cover
-          # (an unexpired moving marker that lists it) — i.e. the change is ours.
+          # True if any smarli. mover is currently driving THIS cover (an
+          # unexpired per-cover marker). One key lookup per cover instead of a
+          # scan of every shared key; during a supersede two marker keys
+          # coexist, which is correct — two movers really are driving it.
           driven_by_automation: >
             {% set ns = namespace(found=false) %}
-            {% for marker_key, marker in shared.items() %}
-              {% if marker_key.startswith('moving_')
-                 and (marker.until | default(0)) | float(0) > now_ts | float(0)
-                 and entity_id in (marker.targets | default({})) %}
+            {% for key, marker in shared.items() if key.startswith(entity_id ~ '::moving_') %}
+              {% if (marker.get('until', 0) | float(0)) > now_ts | float(0) %}
                 {% set ns.found = true %}
               {% endif %}
             {% endfor %}
@@ -104,32 +169,248 @@ script:
       - alias: Manual if the user acted (layer 1), or a contextless change no automation is driving (layer 2)
         condition: template
         value_template: "{{ is_user_action or not driven_by_automation }}"
-      - alias: Suspend this cover
-        event: smarli_tracker_set
-        event_data:
-          namespace: shared
-          key: "suspension_{{ entity_id }}"
-          value: "{{ now_ts | float(0) + duration_seconds | float(0) }}"
+      - alias: Suspend this cover (duration resolved centrally)
+        action: script.smarli_cover_suspend
+        data:
+          entity_id: "{{ entity_id }}"
+          fallback_duration: "{{ duration_seconds | float(0) }}"
+
+  smarli_cover_resolve:
+    alias: "smarli. Cover Resolve"
+    description: >-
+      The single mover for every smarli. cover automation. Reads all published
+      intents, computes one position per cover (clamp(newest target, bounds)),
+      records it, and commands the covers whose resolved position changed.
+      Contributors publish intent and call this; they never command covers.
+
+      `mode: queued` is load-bearing: a run writes several `<cover>::resolved`
+      keys as a SEQUENCE of atomic single-key writes, so serialising runs is
+      what makes the resolved set consistent.
+    mode: queued
+    max: 50
+    max_exceeded: silent
+    fields:
+      owner:
+        name: Owner
+        description: The calling automation's id (this.attributes.id).
+        required: false
+        selector:
+          text:
+      intent:
+        name: Fresh Intent
+        description: >-
+          The intent the caller just published. Overlaid on the tracker read so
+          resolution never depends on the template sensor having re-rendered.
+        required: false
+        selector:
+          object:
+    sequence:
+      - alias: Wait until my own write is visible — renders are ordered, so every earlier write is too
+        if:
+          - condition: template
+            value_template: "{{ (owner | default('')) != '' and (intent | default({})) | count > 0 }}"
+        then:
+          - wait_template: >
+              {{ ((state_attr('sensor.smarli_automation_tracker', 'data') or {}).get('shared', {})
+                   .get(owner ~ '::intent', {}).get('ts', 0) | float(0))
+                 >= ((intent | default({})).get('ts', 0) | float(0)) }}
+            timeout:
+              seconds: 1
+            continue_on_timeout: true
+      - alias: Skip if a fresher run is queued behind me — it has strictly better input
+        # Avoids commanding an intermediate position that the next run immediately
+        # overrides (the visible "starts to 100, reverses to 20" twitch).
+        condition: template
+        value_template: "{{ state_attr('script.smarli_cover_resolve', 'current') | int(1) <= 1 }}"
+      - variables:
+          now_ts: "{{ as_timestamp(now()) }}"
+          shared: "{{ (state_attr('sensor.smarli_automation_tracker', 'data') or {}).get('shared', {}) }}"
+          live_ids: >
+            {{ states.automation | selectattr('state', 'eq', 'on')
+               | map(attribute='attributes.id') | select('string') | list }}
+          # Active intents: owner automation exists AND is on (disabling a shade
+          # automation releases its bound), and not past its optional `until`.
+          intents: >
+            {% set ns = namespace(d={}) %}
+            {% for key, value in shared.items() if key.endswith('::intent') %}
+              {% set o = key.split('::')[0] %}
+              {% if o in live_ids
+                    and (value.get('until', 0) | float(0) == 0 or value.get('until') | float(0) > now_ts) %}
+                {% set ns.d = dict(ns.d.items() | list + [(o, value)]) %}
+              {% endif %}
+            {% endfor %}
+            {# The caller's own freshly-passed intent is overlaid unconditionally, with
+               no `owner in live_ids` check — the one documented exception to that rule.
+               Safe because a script cannot be executing on behalf of an automation that
+               does not exist: `owner` is always the live caller's own id. #}
+            {% if (owner | default('')) != '' and (intent | default({})) | count > 0 %}
+              {% set ns.d = dict(ns.d.items() | list + [(owner, intent)]) %}
+            {% endif %}
+            {{ ns.d }}
+          covers: >
+            {% set ns = namespace(l=[]) %}
+            {% for o, i in intents.items() %}
+              {% for c in (i.get('targets', {}) | list) + (i.get('bounds', {}) | list) %}
+                {% if c not in ns.l %}{% set ns.l = ns.l + [c] %}{% endif %}
+              {% endfor %}
+            {% endfor %}
+            {{ ns.l }}
+          resolved_map: >
+            {% set ns = namespace(d={}) %}
+            {% for c in covers %}
+              {# newest target wins; ties by priority, then owner id (descending, for determinism) #}
+              {% set tns = namespace(pos=none, key=none) %}
+              {% for o, i in intents.items() if c in i.get('targets', {}) %}
+                {% set k = [i.get('ts', 0) | float(0), i.get('priority', 0) | int(0), o] %}
+                {% if tns.key is none or k > tns.key %}
+                  {% set tns.key = k %}
+                  {% set tns.pos = i.targets[c] | int %}
+                {% endif %}
+              {% endfor %}
+              {# No target for this cover: a BOUND is a statement about physical reality
+                 ("stay within min..max"), not intent, so its implicit seed must be where
+                 the cover actually IS — never the stored `::resolved` record, which is
+                 only a memory of a past decision and can go stale the moment a contributor
+                 stops publishing or the cover is moved by hand while nothing watches (a
+                 bound would otherwise "correct" an already-compliant cover back toward a
+                 forgotten position). So: current_position first; then, for position-less
+                 (binary, state-only open/close) covers that never expose current_position,
+                 the state seed (open=100, closed=0), matching the mover's own
+                 state<->position mapping — without this a cover named only by a bound could
+                 never seed and would be skipped forever; only if the cover cannot report
+                 where it is at all (just-added, never touched) does the stale `::resolved`
+                 record serve as a last-resort fallback. Anything else (unavailable/unknown,
+                 or a state that is neither open nor closed) gives no usable answer and is
+                 skipped, not guessed. #}
+              {% set current = state_attr(c, 'current_position') %}
+              {% set state_seed = 100 if is_state(c, 'open') else (0 if is_state(c, 'closed') else none) %}
+              {% set stored = shared.get(c ~ '::resolved') %}
+              {# An unavailable/unknown cover cannot report where it physically is, so the
+                 no-target (bound-only) path must skip it rather than fall through to the
+                 stale `::resolved` record — an offline cover has no "current reality" to
+                 seed a bound from. Only the no-target path is guarded: a cover WITH a
+                 target is commanded to that target regardless of its present state, exactly
+                 as before this guard existed. #}
+              {% set target = tns.pos if tns.pos is not none
+                              else (none if states(c) in ['unavailable', 'unknown']
+                                    else (current | int if current is not none
+                                          else (state_seed if state_seed is not none
+                                                else (stored | int if stored is not none else none)))) %}
+              {% if target is not none %}
+                {# intersect bounds, highest priority first, skipping any that would empty the range #}
+                {% set bl = namespace(l=[]) %}
+                {% for o, i in intents.items() if c in i.get('bounds', {}) %}
+                  {% set bl.l = bl.l + [[i.get('priority', 0) | int(0), o]] %}
+                {% endfor %}
+                {% set b = namespace(lo=0, hi=100) %}
+                {% for pair in bl.l | sort(reverse=true) %}
+                  {% set bound = intents[pair[1]].bounds[c] %}
+                  {% set nlo = [b.lo, bound.get('min', 0) | int(0)] | max %}
+                  {% set nhi = [b.hi, bound.get('max', 100) | int(100)] | min %}
+                  {% if nlo <= nhi %}{% set b.lo = nlo %}{% set b.hi = nhi %}{% endif %}
+                {% endfor %}
+                {% set resolved = [[target | int, b.lo] | max, b.hi] | min %}
+                {# `seed` and `has_target` ride along so the batch step below can tell a
+                   bound that actually moved a cover from one that only re-recorded an
+                   already-satisfied position — see `batch` for why that distinction
+                   matters only for no-target covers. #}
+                {% set ns.d = dict(ns.d.items() | list + [(c, {'pos': resolved, 'seed': target | int, 'has_target': tns.pos is not none})]) %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.d }}
+          changed: >
+            {% set ns = namespace(d={}) %}
+            {% for c, info in resolved_map.items() %}
+              {% if shared.get(c ~ '::resolved') is none
+                    or shared.get(c ~ '::resolved') | int(-1) != info.pos | int %}
+                {% set ns.d = dict(ns.d.items() | list + [(c, info)]) %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.d }}
+          # Suspended covers are recorded but NOT commanded: a transition that
+          # falls inside a suspension is CANCELLED, not deferred (see CLAUDE.md).
+          # A no-target cover whose bound-clamped position equals its own seed
+          # (real current position) is also excluded here: the bound is a physical
+          # constraint, and a cover already satisfying it is not in violation, so
+          # there is nothing to command — only `<cover>::resolved` needed updating
+          # to stop it reading as stale next time. Covers WITH a target are never
+          # filtered this way: they are commanded whenever the resolved value
+          # differs from the stored record, exactly as before this change.
+          batch: >
+            {% set ns = namespace(d={}) %}
+            {% for c, info in changed.items() %}
+              {% if shared.get(c ~ '::suspension', 0) | float(0) <= now_ts
+                    and (info.has_target or info.pos | int != info.seed | int) %}
+                {% set ns.d = dict(ns.d.items() | list + [(c, info.pos)]) %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.d }}
+          stale: >
+            {# Only expired moving markers are pruned here. `<cover>::resolved` is NOT
+               pruned just because no currently-active intent mentions the cover: it is
+               entity-owned (bounded by "covers ever automated", not by intent churn) and
+               the core GC (script.smarli_tracker_gc) already removes it once the cover
+               entity itself disappears. Pruning it here on every intent change previously
+               deleted a live record for a cover simply not named by the LATEST publish,
+               so the next unchanged republish of the same target read as a fresh
+               transition and re-commanded a cover already sitting at that position — a
+               spurious move/settle cycle. Keeping a stale record is also correct per this
+               system's "sticky target" semantics: an unchanged intent must never
+               re-command. #}
+            {% set ns = namespace(l=[]) %}
+            {% for key, value in shared.items() %}
+              {% if '::moving_' in key and (value.get('until', 0) | float(0)) < now_ts %}
+                {% set ns.l = ns.l + [key] %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.l }}
+      - alias: Record the resolved position for every cover that changed
+        repeat:
+          for_each: "{{ changed | dictsort }}"
+          sequence:
+            - event: smarli_tracker_set
+              event_data:
+                namespace: shared
+                key: "{{ repeat.item[0] }}::resolved"
+                value: "{{ repeat.item[1].pos | int }}"
+      - alias: Prune expired moving markers only ('::resolved' persists; see 'stale' above)
+        repeat:
+          for_each: "{{ stale }}"
+          sequence:
+            - event: smarli_tracker_remove
+              event_data:
+                namespace: shared
+                key: "{{ repeat.item }}"
+      - alias: Command the covers that changed and are not suspended
+        if:
+          - condition: template
+            value_template: "{{ batch | count > 0 }}"
+        then:
+          - action: script.turn_on
+            target:
+              entity_id: script.smarli_cover_move
+            data:
+              variables:
+                run: "{{ now_ts }}"
+                targets: "{{ batch }}"
 
   smarli_cover_move:
     alias: "smarli. Cover Move"
     description: >-
       Moves covers under the smarli. moving contract. Filters out suspended
-      covers, announces the movement via a shared moving marker, commands the
-      covers, waits until they settle, audits final positions against targets
-      (mid-move manual intervention suspends that cover — layer 3), and removes
-      the marker. Targets are numeric positions 0-100 (100 = open, 0 = closed);
-      covers without position support fall back to open/close at the threshold.
-    # parallel: at a shared transition (e.g. sunrise) every cover automation calls
-    # this at once, and each call is long-lived (waits for its covers to settle),
-    # so the cap must exceed the number of cover automations that move together.
+      covers, announces each cover with a per-cover marker, commands them,
+      waits until they settle, audits final positions (mid-move manual
+      intervention suspends that cover — layer 3), and removes its markers.
+      Targets are numeric positions 0-100; covers without position support fall
+      back to open/close at the threshold. Normally called only by
+      script.smarli_cover_resolve.
     mode: parallel
     max: 50
     fields:
-      instance_id:
-        name: Instance ID
-        description: The calling automation's id (this.attributes.id).
-        required: true
+      run:
+        name: Run Token
+        description: Unique token for this move run (the resolver passes its start timestamp).
+        required: false
         selector:
           text:
       targets:
@@ -147,25 +428,14 @@ script:
           number:
             min: 1
             max: 99
-      suspension_duration:
-        name: Suspension Duration
-        description: Suspension length for covers where intervention is detected (HH:MM:SS). Defaults to none — the calling blueprint should pass its own.
-        required: false
-        default: "00:00:00"
-        selector:
-          text:
       settle_timeout:
         name: Settle Timeout
         description: >-
-          Hard cap (seconds) for how long to keep tracking a move before giving up
-          on a cover that never settles — NOT the expected move duration. The loop
-          finishes as soon as the covers actually settle, so a large value costs
-          nothing on normal runs. Err large: too large only tolerates a
-          permanently-stuck cover a little longer, whereas too small is actively
-          harmful — once it fires while a cover is still moving, the marker expires
-          and the cover's own ongoing movement is misread as a manual intervention,
-          FALSELY SUSPENDING it. Set it comfortably above your slowest cover's full
-          travel time.
+          Hard cap (seconds) for how long to keep tracking a move before giving
+          up on a cover that never settles — NOT the expected move duration. Err
+          large: too small is actively harmful, because once it fires while a
+          cover is still moving, its marker expires and its own movement is
+          misread as manual intervention.
         required: false
         default: 180
         selector:
@@ -184,19 +454,22 @@ script:
             max: 20
     sequence:
       - variables:
-          # When this move began. The settle loop below compares the live now()
-          # against this, so it is deliberately NOT called now_ts.
+          # Fallback must be unique per run, never a shared literal - two
+          # callers that both omitted `run` would otherwise collide under the
+          # same key ('run'). The script's own context id is unique per
+          # invocation and always set.
+          run_token: "{{ run | default(context.id, true) }}"
           started_ts: "{{ as_timestamp(now()) }}"
           settle_timeout_s: "{{ settle_timeout | default(180) | float(180) }}"
           tolerance: "{{ position_tolerance | default(5) | float(5) }}"
           threshold: "{{ binary_threshold | default(50) | float(50) }}"
-          duration_seconds: "{{ ((suspension_duration | default('00:00:00')) | as_timedelta).total_seconds() }}"
+          marker_until: "{{ as_timestamp(now()) | float(0) + (settle_timeout | default(180) | float(180)) + 15 }}"
           shared: "{{ (state_attr('sensor.smarli_automation_tracker', 'data') or {}).get('shared', {}) }}"
           # Drop covers that are currently suspended by a manual override.
           active_targets: >
             {% set ns = namespace(active={}) %}
             {% for cover, target in (targets | default({})).items() %}
-              {% if shared.get('suspension_' ~ cover, 0) | float(0) <= started_ts | float(0) %}
+              {% if shared.get(cover ~ '::suspension', 0) | float(0) <= as_timestamp(now()) %}
                 {% set ns.active = dict(ns.active.items() | list + [(cover, target | int)]) %}
               {% endif %}
             {% endfor %}
@@ -204,22 +477,25 @@ script:
       - alias: Abort if every requested cover is suspended
         condition: template
         value_template: "{{ active_targets | count > 0 }}"
-      - alias: Announce movement (moving marker, layer 2)
-        event: smarli_tracker_set
-        event_data:
-          namespace: shared
-          key: "moving_{{ instance_id }}"
-          value:
-            until: "{{ started_ts | float(0) + settle_timeout_s | float(0) + 15 }}"
-            targets: "{{ active_targets }}"
-      - alias: Command each cover to its target position
+      - alias: Announce and command each cover
         repeat:
           for_each: "{{ active_targets | dictsort }}"
           sequence:
             - variables:
                 cover: "{{ repeat.item[0] }}"
                 target_position: "{{ repeat.item[1] | int }}"
-                supports_position: "{{ state_attr(cover, 'supported_features') | int(0) | bitwise_and(4) > 0 }}"
+                supports_position: "{{ state_attr(repeat.item[0], 'supported_features') | int(0) | bitwise_and(4) > 0 }}"
+            - alias:
+                Per-cover moving marker (layer 2). The run token is in the KEY, so
+                this run is the only writer and there is nothing to race.
+              event: smarli_tracker_set
+              event_data:
+                namespace: shared
+                key: "{{ cover }}::moving_{{ run_token }}"
+                value:
+                  target: "{{ target_position }}"
+                  until: "{{ marker_until }}"
+                  started_ts: "{{ started_ts }}"
             - choose:
                 - alias: Cover supports positioning — set the exact position
                   conditions: "{{ supports_position }}"
@@ -240,80 +516,117 @@ script:
                   action: cover.close_cover
                   target:
                     entity_id: "{{ cover }}"
-            - alias: Record last-commander for this cover (cross-automation arbitration)
-              event: smarli_tracker_set
-              event_data:
-                namespace: shared
-                key: "commanded_{{ cover }}"
-                value:
-                  instance_id: "{{ instance_id }}"
-                  # target/ts are reserved for Phase 2 arbitration; only
-                  # instance_id is read today (by the intervened guard below).
-                  target: "{{ target_position }}"
-                  ts: "{{ started_ts }}"
       - alias: Give covers a moment to start moving
-        # Bridges the gap before a cover reports opening/closing, so the first
-        # poll below doesn't mistake a not-yet-started cover for one that stopped.
         delay:
           seconds: 3
       # ---------------------------------------------------------------------
-      # Per-cover settle loop (incremental layer-3 audit).
-      # Poll until the marker is empty or the timeout backstop is reached. Each
-      # pass, for every cover still listed in the marker:
-      #   - still opening/closing   -> leave it (exempt from manual detection for
-      #                                exactly as long as it is genuinely moving)
-      #   - reached its target      -> drop it (finished cleanly)
-      #   - stopped short of target -> drop it AND suspend it (mid-move manual
-      #                                intervention)
-      # The marker is rewritten with only the still-moving covers whenever the
-      # set shrinks (until refreshed), and removed once empty. If the timeout is
-      # hit with covers still moving, the marker is left to expire via `until`.
+      # Per-cover settle loop (incremental layer-3 audit). Each pass, for every
+      # cover whose marker for THIS run still exists:
+      #   - still opening/closing              -> leave it
+      #   - a newer run now drives it          -> drop it, do NOT suspend
+      #   - stopped at my target or at the
+      #     currently resolved position        -> drop it (finished cleanly)
+      #   - stopped anywhere else              -> drop it AND suspend it
+      # Comparing against <cover>::resolved (system intent) rather than against
+      # a "who commanded last" record is what makes a superseded move safe
+      # without a race: it does not matter who wrote what first, only where the
+      # system currently wants the cover.
       # ---------------------------------------------------------------------
       - alias: Release covers from the marker as they settle
         repeat:
           while:
             - condition: template
               value_template: >
-                {% set marker = (state_attr('sensor.smarli_automation_tracker', 'data') or {})
-                     .get('shared', {}).get('moving_' ~ instance_id, {}) %}
-                {{ marker.get('targets', {}) | count > 0
+                {% set shared = (state_attr('sensor.smarli_automation_tracker', 'data') or {}).get('shared', {}) %}
+                {# Exact key membership, not a regex search - run_token may contain
+                   '.' (e.g. a resolver timestamp or a context id), which 'search'
+                   would treat as "any character" and over-match. #}
+                {% set ns = namespace(count=0) %}
+                {% for cover in active_targets.keys() %}
+                  {% if (cover ~ '::moving_' ~ run_token) in shared %}
+                    {% set ns.count = ns.count + 1 %}
+                  {% endif %}
+                {% endfor %}
+                {{ ns.count > 0
                    and as_timestamp(now()) < started_ts | float(0) + settle_timeout_s | float(0) }}
           sequence:
             - delay:
                 seconds: 2
             - variables:
+                shared_now: "{{ (state_attr('sensor.smarli_automation_tracker', 'data') or {}).get('shared', {}) }}"
+                # Target comes from the MARKER's current contents, not this
+                # run's frozen `active_targets` input. Today run_token is
+                # stable per caller (see the run_token fallback above), so two
+                # overlapping runs from the same caller write the SAME marker
+                # key - the second's write replaces the first's. If this run
+                # kept auditing against its own frozen
+                # target, it would judge the cover against a target that is
+                # no longer what the system (or even this same instance) is
+                # currently driving it to, and false-suspend a cover that
+                # correctly settled at the newer target. Reading the target
+                # back out of the marker each pass makes the marker itself -
+                # whoever last wrote it - the single source of truth for what
+                # a cover is presently being driven to, exactly like the
+                # pre-existing `superseded` check already assumes for
+                # genuinely different tokens.
                 pending: >
-                  {% set marker = (state_attr('sensor.smarli_automation_tracker', 'data') or {})
-                       .get('shared', {}).get('moving_' ~ instance_id, {}) %}
-                  {{ marker.get('targets', {}) }}
-                # Covers still physically moving — keep them in the marker.
-                still_moving: >
-                  {% set ns = namespace(m={}) %}
-                  {% for cover, target in pending.items() %}
-                    {% if is_state(cover, 'opening') or is_state(cover, 'closing') %}
-                      {% set ns.m = dict(ns.m.items() | list + [(cover, target)]) %}
+                  {% set ns = namespace(d={}) %}
+                  {% for cover in active_targets.keys() %}
+                    {% set mkey = cover ~ '::moving_' ~ run_token %}
+                    {% if mkey in shared_now %}
+                      {% set ns.d = dict(ns.d.items() | list + [(cover, shared_now[mkey].target)]) %}
                     {% endif %}
                   {% endfor %}
-                  {{ ns.m }}
-                # Covers that have stopped but not at their target — intervention.
-                # Residual race: this guard trusts commanded_<cover> as a proxy for which
-                # instance last commanded the cover, but the tracker write and device
-                # command are independent async paths — two instances racing the same
-                # cover in one tick could still false-suspend it. Phase 2's central
-                # resolver (no coincident conflicting commands) is the real fix.
+                  {{ ns.d }}
+                # Covers a newer run has taken over — release without suspending.
+                # Ordering lives in the marker VALUE (`started_ts`), not the run
+                # token: tokens are opaque (real automation ids like
+                # cover_sun_test, or a context.id ULID), so parsing them as
+                # numbers - `key.split('::moving_')[1] | float(0)` - maps every
+                # realistic token to 0.0 and the comparison never fires. A
+                # foreign marker only counts if it is still live (`until` not
+                # expired) — an expired marker cannot supersede anything.
+                superseded: >
+                  {% set ns = namespace(l=[]) %}
+                  {% for cover in pending.keys() %}
+                    {% for key, marker in shared_now.items() %}
+                      {% if key.startswith(cover ~ '::moving_')
+                            and key != (cover ~ '::moving_' ~ run_token)
+                            and (marker.get('until', 0) | float(0)) > as_timestamp(now())
+                            and (marker.get('started_ts', 0) | float(0)) > (started_ts | float(0)) %}
+                        {% if cover not in ns.l %}{% set ns.l = ns.l + [cover] %}{% endif %}
+                      {% endif %}
+                    {% endfor %}
+                  {% endfor %}
+                  {{ ns.l }}
+                # Covers still physically moving — keep their markers.
+                still_moving: >
+                  {% set ns = namespace(l=[]) %}
+                  {% for cover in pending.keys() %}
+                    {% if is_state(cover, 'opening') or is_state(cover, 'closing') %}
+                      {% set ns.l = ns.l + [cover] %}
+                    {% endif %}
+                  {% endfor %}
+                  {{ ns.l }}
+                # Covers that stopped somewhere we did not ask for and the
+                # system does not currently want — manual intervention.
                 intervened: >
-                  {% set shared = (state_attr('sensor.smarli_automation_tracker', 'data') or {}).get('shared', {}) %}
                   {% set ns = namespace(bad=[]) %}
                   {% for cover, target in pending.items() %}
-                    {% set owner = shared.get('commanded_' ~ cover, {}).get('instance_id') %}
-                    {% if owner == instance_id and states(cover) not in ['unavailable', 'unknown', 'opening', 'closing'] %}
+                    {% if cover not in superseded and cover not in still_moving
+                          and states(cover) not in ['unavailable', 'unknown'] %}
+                      {% set resolved = shared_now.get(cover ~ '::resolved') %}
                       {% if state_attr(cover, 'supported_features') | int(0) | bitwise_and(4) > 0 %}
                         {% set pos = state_attr(cover, 'current_position') %}
-                        {% if pos is none or (pos | float(0) - target | float(0)) | abs > tolerance %}
+                        {% set hits_target = pos is not none and (pos | float(0) - target | float(0)) | abs <= tolerance %}
+                        {% set hits_resolved = pos is not none and resolved is not none
+                             and (pos | float(0) - resolved | float(0)) | abs <= tolerance %}
+                        {% if not hits_target and not hits_resolved %}
                           {% set ns.bad = ns.bad + [cover] %}
                         {% endif %}
                       {% else %}
-                        {% set expected = 'open' if target | float(0) >= threshold else 'closed' %}
+                        {% set want = target if resolved is none else resolved %}
+                        {% set expected = 'open' if want | float(0) >= threshold else 'closed' %}
                         {% if not is_state(cover, expected) %}
                           {% set ns.bad = ns.bad + [cover] %}
                         {% endif %}
@@ -325,34 +638,35 @@ script:
               repeat:
                 for_each: "{{ intervened }}"
                 sequence:
-                  - event: smarli_tracker_set
+                  # 1800s (30 min) fallback: script.smarli_cover_suspend only
+                  # falls back to this when NOT ONE active intent names the
+                  # cover at all. In the normal resolver-driven path that never
+                  # happens — a cover only ever reaches this audit because some
+                  # active intent put it in the commanded batch, and that same
+                  # intent is still sitting in the tracker moments later — so
+                  # the intent's own suspension_duration always wins and this
+                  # value is dead code there. It matters only when
+                  # smarli_cover_move is driven directly with no intent behind
+                  # it (a bare test harness call, or a future non-resolver
+                  # caller): without a positive fallback, layer 3 would detect
+                  # the manual stop correctly but silently skip writing the
+                  # suspension, because smarli_cover_suspend's own "did every
+                  # contributor opt out" guard cannot tell "no intent at all"
+                  # from "an intent explicitly asked for 0" and treats a 0
+                  # fallback the same as an opt-out.
+                  - action: script.smarli_cover_suspend
+                    data:
+                      entity_id: "{{ repeat.item }}"
+                      # No fallback on purpose: the resolver only ever commands a cover that
+                      # some active intent names, and that intent carries the duration. A
+                      # hardcoded fallback here would suspend for a fixed time even when every
+                      # contributor deliberately opted out of suspension (duration 0).
+                      fallback_duration: 0
+            - alias: Release every cover that is no longer moving for this run
+              repeat:
+                for_each: "{{ pending.keys() | reject('in', still_moving) | list }}"
+                sequence:
+                  - event: smarli_tracker_remove
                     event_data:
                       namespace: shared
-                      key: "suspension_{{ repeat.item }}"
-                      value: "{{ as_timestamp(now()) + duration_seconds | float(0) }}"
-            - alias: Prune settled covers from the marker (only when the set shrank)
-              if:
-                - condition: template
-                  value_template: "{{ still_moving | count != pending | count }}"
-              then:
-                - if:
-                    - condition: template
-                      value_template: "{{ still_moving | count > 0 }}"
-                  then:
-                    - alias: Keep only the still-moving covers
-                      # `until` stays fixed at the initial value (started_ts +
-                      # settle_timeout + 15) — it is only a crash/past-deadline
-                      # backstop; the loop manages the marker during normal runs.
-                      event: smarli_tracker_set
-                      event_data:
-                        namespace: shared
-                        key: "moving_{{ instance_id }}"
-                        value:
-                          until: "{{ started_ts | float(0) + settle_timeout_s | float(0) + 15 }}"
-                          targets: "{{ still_moving }}"
-                  else:
-                    - alias: All covers settled — remove the marker
-                      event: smarli_tracker_remove
-                      event_data:
-                        namespace: shared
-                        key: "moving_{{ instance_id }}"
+                      key: "{{ repeat.item }}::moving_{{ run_token }}"

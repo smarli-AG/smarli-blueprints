@@ -21,7 +21,7 @@ blueprint:
     duration — a manually moved cover keeps its position until the next
     scheduled transition after the suspension has expired.
 
-    *Version 2.0.0 | 2026-07-20*
+    *Version 3.0.0 | 2026-07-24*
 
     <details>
     <summary><b>How it works</b></summary>
@@ -35,6 +35,11 @@ blueprint:
       suspend the affected cover — other covers keep automating. After the
       suspension expires, the cover rejoins at the next scheduled transition.
 
+      Several smarli. cover automations can control the same cover. Each one
+      publishes what it wants to a central resolver, which combines all of them
+      into one position per cover — so a shading automation and this one no
+      longer fight over the same blind.
+
     </details>
 
     <details>
@@ -43,7 +48,7 @@ blueprint:
       This blueprint requires the **smarli. Core** and **smarli. Cover**
       packages (included in the Grundinstanz):
       `sensor.smarli_automation_tracker` (Core),
-      `script.smarli_cover_manual_check` and `script.smarli_cover_move` (Cover).
+      `script.smarli_cover_manual_check` and `script.smarli_cover_resolve` (Cover).
       To retrofit an older instance, copy both `packages/smarli_core.yaml` and
       `packages/smarli_cover.yaml` from this repository into `config/packages/`.
 
@@ -650,7 +655,9 @@ variables:
   instance_id: "{{ this.attributes.id }}"
   now_ts: "{{ as_timestamp(now()) }}"
   # This blueprint's own namespace in the central tracker. Holds this instance's
-  # keys: <id>_commanded (last commanded position), <id>_bright_since / _dark_since.
+  # brightness stabilizer bookkeeping keys: <id>::bright_since / <id>::dark_since.
+  # The last-commanded position lives in shared.<id>::intent instead (see
+  # my_intent/last_commanded below) — the intent is the single record.
   stored_state: "{{ (state_attr('sensor.smarli_automation_tracker', 'data') or {}).get('cover_day_night', {}) }}"
 
   daynight_cycle_method: !input daynight_cycle_method
@@ -740,8 +747,8 @@ variables:
   bright_enough_to_open: "{{ daynight_cycle_method == 'brightness' and lux >= 0 and lux >= open_lux_level | float(0) }}"
   dark_enough_to_close: "{{ daynight_cycle_method == 'brightness' and lux >= 0 and lux <= close_lux_level | float(0) }}"
   # Timestamps (from the tracker) of when each threshold was first crossed.
-  bright_since: "{{ stored_state.get(instance_id ~ '_bright_since') }}"
-  dark_since: "{{ stored_state.get(instance_id ~ '_dark_since') }}"
+  bright_since: "{{ stored_state.get(instance_id ~ '::bright_since') }}"
+  dark_since: "{{ stored_state.get(instance_id ~ '::dark_since') }}"
   # True when the stored "since" timestamps no longer match the current reading,
   # so the stabilizer bookkeeping needs to write/clear one of them this run.
   stabilizer_needs_update: >
@@ -852,9 +859,6 @@ variables:
   suspension_duration: !input suspension_duration
   position_open: 100
   position_closed: 0
-  # binary_threshold is separately set in smarli_cover.yaml script.smarli_cover_move - make sure to
-  # keep them in sync if you change it here!
-  binary_threshold: 50
 
   # Which phase does the schedule put us in right now? Each combines the chosen
   # method with the optional earliest (delays) and latest (forces) time windows.
@@ -881,11 +885,23 @@ variables:
     {% if should_use_latest_close and now_ts >= as_timestamp(today_at(latest_close_time)) %}{% set due = true %}{% endif %}
     {{ due }}
 
-  # The position we last commanded the covers to reach (survives restarts).
-  # Defaults to -1 (an impossible position) when we've never run: that forces a
-  # transition on the very first evaluation, so covers are driven to the correct
-  # phase immediately instead of us assuming they're already where we'd want them.
-  last_commanded: "{{ stored_state.get(instance_id ~ '_commanded') | int(-1) }}"
+  # What this instance last committed to commanding — read back from its own
+  # published intent, so the intent is the single record instead of a second
+  # bookkeeping key. Absent (never run, or wiped) reads as -1, an impossible
+  # position, which forces a transition on the first evaluation and drives the
+  # covers to the correct phase instead of assuming where they are.
+  my_intent: >
+    {{ (state_attr('sensor.smarli_automation_tracker', 'data') or {})
+       .get('shared', {}).get(instance_id ~ '::intent', {}) }}
+  last_commanded: >
+    {% set vals = my_intent.get('targets', {}).values() | list %}
+    {{ vals[0] | int(-1) if vals | count > 0 else -1 }}
+  # Suspension length this instance asks for, in seconds; 0 when the technician
+  # turned suspension off. The resolver-side helper takes the MAX across all
+  # contributors naming a cover, so this is a request, not a decision.
+  suspension_seconds: >
+    {{ 0 if not should_suspend_after_manual_interaction
+       else (suspension_duration | as_timedelta).total_seconds() }}
 
   # Where the covers should be now. Closing wins over opening in the evening
   # overlap; outside both phases we hold whatever we last commanded.
@@ -905,6 +921,12 @@ variables:
       {% set ns.d = dict(ns.d.items() | list + [(c, desired_position | int)]) %}
     {% endfor %}
     {{ ns.d }}
+
+  # This instance's declaration to the resolver: a TARGET for every cover, never
+  # a bound. Day-night says "move to X now"; it never constrains other families.
+  intent_payload: >
+    {{ {'targets': desired_targets, 'bounds': {}, 'priority': 10,
+        'ts': now_ts | float(0), 'suspension_duration': suspension_seconds | float(0)} }}
 
 ############
 # Triggers #
@@ -988,7 +1010,7 @@ actions:
               - event: smarli_tracker_set
                 event_data:
                   namespace: cover_day_night
-                  key: "{{ instance_id }}_bright_since"
+                  key: "{{ instance_id }}::bright_since"
                   value: "{{ now_ts }}"
           - if:
               - condition: template
@@ -997,7 +1019,7 @@ actions:
               - event: smarli_tracker_remove
                 event_data:
                   namespace: cover_day_night
-                  key: "{{ instance_id }}_bright_since"
+                  key: "{{ instance_id }}::bright_since"
           - if:
               - condition: template
                 value_template: "{{ dark_enough_to_close and dark_since is none }}"
@@ -1005,7 +1027,7 @@ actions:
               - event: smarli_tracker_set
                 event_data:
                   namespace: cover_day_night
-                  key: "{{ instance_id }}_dark_since"
+                  key: "{{ instance_id }}::dark_since"
                   value: "{{ now_ts }}"
           - if:
               - condition: template
@@ -1014,7 +1036,7 @@ actions:
               - event: smarli_tracker_remove
                 event_data:
                   namespace: cover_day_night
-                  key: "{{ instance_id }}_dark_since"
+                  key: "{{ instance_id }}::dark_since"
 
       - alias: Open — reached the day phase (or a custom opening trigger fired)
         if:
@@ -1027,22 +1049,20 @@ actions:
           - alias: Custom opening conditions must pass
             condition: and
             conditions: !input custom_opening_conditions
-          - alias: Remember the command before moving (so queued runs dedupe)
+          - alias: Publish this instance's intent (the resolver arbitrates it against every other contributor)
             event: smarli_tracker_set
             event_data:
-              namespace: cover_day_night
-              key: "{{ instance_id }}_commanded"
-              value: "{{ position_open }}"
-          - alias: Move covers open in the background (marker stays live for manual detection)
-            action: script.turn_on
-            target:
-              entity_id: script.smarli_cover_move
+              namespace: shared
+              key: "{{ instance_id }}::intent"
+              value: "{{ intent_payload }}"
+          - alias: Resolve and move whatever changed
+            # Called blocking: resolution is milliseconds and never waits for
+            # travel (it fires the mover non-blocking), and blocking keeps the
+            # publish-then-resolve order deterministic.
+            action: script.smarli_cover_resolve
             data:
-              variables:
-                instance_id: "{{ instance_id }}"
-                suspension_duration: "{{ suspension_duration }}"
-                binary_threshold: "{{ binary_threshold }}"
-                targets: "{{ desired_targets }}"
+              owner: "{{ instance_id }}"
+              intent: "{{ intent_payload }}"
           - alias: Run custom opening actions
             sequence: !input custom_opening_actions
 
@@ -1087,22 +1107,20 @@ actions:
                          in weather_events }}
                 then:
                   - stop: "Closing blocked by weather forecast"
-          - alias: Remember the command before moving (so queued runs dedupe)
+          - alias: Publish this instance's intent (the resolver arbitrates it against every other contributor)
             event: smarli_tracker_set
             event_data:
-              namespace: cover_day_night
-              key: "{{ instance_id }}_commanded"
-              value: "{{ position_closed }}"
-          - alias: Move covers closed in the background (marker stays live for manual detection)
-            action: script.turn_on
-            target:
-              entity_id: script.smarli_cover_move
+              namespace: shared
+              key: "{{ instance_id }}::intent"
+              value: "{{ intent_payload }}"
+          - alias: Resolve and move whatever changed
+            # Called blocking: resolution is milliseconds and never waits for
+            # travel (it fires the mover non-blocking), and blocking keeps the
+            # publish-then-resolve order deterministic.
+            action: script.smarli_cover_resolve
             data:
-              variables:
-                instance_id: "{{ instance_id }}"
-                suspension_duration: "{{ suspension_duration }}"
-                binary_threshold: "{{ binary_threshold }}"
-                targets: "{{ desired_targets }}"
+              owner: "{{ instance_id }}"
+              intent: "{{ intent_payload }}"
           - alias: Run custom closing actions
             sequence: !input custom_closing_actions
 
