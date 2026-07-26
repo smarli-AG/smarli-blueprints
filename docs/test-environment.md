@@ -127,26 +127,28 @@ FORECAST_HOURLY bit-2 guard passes and `weather.get_forecasts` returns real data
 
 ## Entities
 
-| Entity                    | Notes                                                                                                           |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `cover.vfast`             | virtual, **6 s** travel, reports `opening`/`closing`, contextless                                               |
-| `cover.vslow`             | virtual, **16 s** travel — the pair tests per-cover release (fast cover freed without waiting for the slow one) |
-| `cover.garage_door`       | demo, binary (`supported_features` 3), no `current_position` — tests the position-less code paths               |
-| `weather.weather_at_8001` | real MeteoSwiss, hourly forecasts                                                                               |
+| Entity                                      | Notes                                                                                                                                                                                            |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `cover.vfast`                               | virtual, **6 s** travel, reports `opening`/`closing`, contextless                                                                                                                                |
+| `cover.vslow`                               | virtual, **16 s** travel — the pair tests per-cover release (fast cover freed without waiting for the slow one)                                                                                  |
+| `cover.vbright`                             | virtual, **8 s** travel — dedicated to `cover_brightness_test` so it doesn't contend with vfast/vslow                                                                                            |
+| `cover.garage_door`                         | demo, binary (`supported_features` 3), no `current_position` — tests the position-less code paths                                                                                                |
+| `weather.weather_at_8001`                   | real MeteoSwiss, hourly forecasts                                                                                                                                                                |
+| `input_number.test_lux` / `sensor.test_lux` | TEST-ONLY controllable lux (`configuration.yaml`): the template sensor (`device_class: illuminance`) mirrors the input_number so brightness-method tests can force threshold crossings on demand |
 
 ## Automations
 
-| Entity                                             | id                      | Purpose                                                                                                                                             |
-| -------------------------------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `automation.test_tick`                             | `test_tick`             | heartbeat used by other rig automations                                                                                                             |
-| `automation.test_mover_contextless`                | `test_mover`            | fires `script.smarli_cover_move` from a `time_pattern` when armed via tracker key `test.fire`, so the move is **contextless** like a real heartbeat |
-| `automation.test_manual_check_watcher_vfast_vslow` | `test_manual_watch`     | calls `smarli_cover_manual_check` for the virtual covers; **turn this off** to isolate the mover's layer-3 audit                                    |
-| `automation.covers_day_night_sun`                  | `cover_sun_test`        | blueprint instance, sun method, drives `cover.garage_door`, wired to the real weather entity, plus a `force_close` custom trigger                   |
-| `automation.covers_day_night_time`                 | `cover_time_test`       | blueprint instance, time method — **currently inert**, see gaps                                                                                     |
-| `automation.covers_day_night_brightness`           | `cover_brightness_test` | blueprint instance, brightness method — **currently inert**, see gaps                                                                               |
-| `automation.stub_day_target`                       | `stub_day`              | resolver stub: publishes a `targets`-only intent, armed via tracker key `stub.day`                                                                  |
-| `automation.stub_shade_bound`                      | `stub_shade`            | resolver stub: publishes bounds and/or a retract target, armed via `stub.shade`                                                                     |
-| `automation.smarli_tracker_garbage_collection`     | `smarli_tracker_gc`     | shipped by `smarli_core.yaml`, not a test fixture                                                                                                   |
+| Entity                                             | id                      | Purpose                                                                                                                                                                                                                                                                                                  |
+| -------------------------------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `automation.test_tick`                             | `test_tick`             | heartbeat used by other rig automations                                                                                                                                                                                                                                                                  |
+| `automation.test_mover_contextless`                | `test_mover`            | fires `script.smarli_cover_move` from a `time_pattern` when armed via tracker key `test.fire`, so the move is **contextless** like a real heartbeat                                                                                                                                                      |
+| `automation.test_manual_check_watcher_vfast_vslow` | `test_manual_watch`     | calls `smarli_cover_manual_check` for the virtual covers; **turn this off** to isolate the mover's layer-3 audit                                                                                                                                                                                         |
+| `automation.covers_day_night_sun`                  | `cover_sun_test`        | blueprint instance, sun method, drives `cover.garage_door`, wired to the real weather entity, plus a `force_close` custom trigger                                                                                                                                                                        |
+| `automation.covers_day_night_time`                 | `cover_time_test`       | blueprint instance, time method, drives `cover.vfast`, wired to `weather.weather_at_8001`. Close/open times are pinned to the past/future (`00:01:00`/`23:59:00`) so the heartbeat always genuinely wants it closed, for weather-block testing. **Left `off`** after use (see gaps) — turn on to re-test |
+| `automation.covers_day_night_brightness`           | `cover_brightness_test` | blueprint instance, brightness method, drives `cover.vbright` from `sensor.test_lux`; `lux_sensor_delay` shortened to `00:00:20` for fast stabilizer testing. **Left `off`** after use (see gaps) — turn on to re-test                                                                                   |
+| `automation.stub_day_target`                       | `stub_day`              | resolver stub: publishes a `targets`-only intent, armed via tracker key `stub.day`                                                                                                                                                                                                                       |
+| `automation.stub_shade_bound`                      | `stub_shade`            | resolver stub: publishes bounds and/or a retract target, armed via `stub.shade`                                                                                                                                                                                                                          |
+| `automation.smarli_tracker_garbage_collection`     | `smarli_tracker_gc`     | shipped by `smarli_core.yaml`, not a test fixture                                                                                                                                                                                                                                                        |
 
 Note the id and the entity_id differ: HA derives the entity_id from the **alias** slug, while
 `attributes.id` is the config-level `id`. Anything matching intents to automations uses
@@ -154,10 +156,12 @@ Note the id and the entity_id differ: HA derives the entity_id from the **alias*
 
 ## Known gaps in the environment
 
-- **The time and brightness instances are inert.** They reference `cover.test_position`,
-  `sensor.test_lux` and `weather.test`, none of which exist. Testing the brightness stabilizer or
-  the time method requires creating those entities first (a `template` or `input_number`-backed
-  lux sensor and any real cover), or repointing the instances at existing entities.
+- ~~The time and brightness instances are inert~~ **Fixed 2026-07-26.** Both now point at real
+  entities (see Automations table) and are left `off` so they don't perpetually hold a competing
+  resolver intent on `cover.vfast`/`cover.vbright` between sessions — `automation.turn_on` them to
+  test again. `sensor.test_lux` is backed by `input_number.test_lux`
+  (`HA-Call input_number set_value @{entity_id="input_number.test_lux"; value=<lux>}`), not a real
+  sensor, so thresholds are hit on demand instead of waiting for real light.
 - **Two ghost automations** (`automation.v3_probe`, `automation.a8_gc_victim`) linger at state
   `unavailable` from earlier test runs. Deleting an automation leaves a permanent entity-registry
   entry whose `attributes.id` still resolves — which is exactly why the tracker GC filters out
@@ -189,21 +193,43 @@ Note the id and the entity_id differ: HA derives the entity_id from the **alias*
   Chain with `;`, precompute into variables, and use `-join`.
 - **`Get-Date -UFormat %s` returns a local-time epoch**, off by the UTC offset (7200 s in CEST).
   Use `([datetimeoffset](Get-Date)).ToUnixTimeSeconds()` when comparing against tracker timestamps.
+- **A bare REST `cover.*` call only proves layer 1, never layer 2.** Every REST/WS call carries the
+  token's `user_id`, so the _first_ state write it causes is always tainted — that write can never
+  land in the "neither `user_id` nor `parent_id`" ambiguous case layer 2 exists for. To get a
+  genuinely contextless write without real hardware, use HA's own context-recency rule instead:
+  `homeassistant.helpers.entity.CONTEXT_RECENT_TIME_SECONDS` (confirmed **5s** on this image via
+  `docker exec smarli-ha-test python3 -c "import homeassistant.helpers.entity as e; print(e.CONTEXT_RECENT_TIME_SECONDS)"`)
+  nulls an entity's stored service-call context once it's older than that, so any subsequent
+  internal `async_write_ha_state()` (e.g. a virtual cover's travel-simulation tick) is written with
+  a **brand-new, contextless** `Context()`. Command a REST move on a **slow** cover (`vslow`, 16 s
+  travel — comfortably past the 5 s cutoff), clear whatever suspension the tainted first tick
+  produces, then wait past t+5s with no marker present: any later tick is the real ambiguous case,
+  and there is nothing else that can have written the resulting suspension. See
+  `test-r2-layer2-contextless.ps1`.
+- **Forcing a schedule with `weather_events` values outside the blueprint's `select` selector list
+  works at `use_blueprint:` scope** (config-check and runtime both accept it — selector `options`
+  aren't enforced outside the UI dropdown), but don't rely on it: real weather rarely reports the
+  _exact_ option string you'd need to test the "currently matches" branch, and a technician can
+  only ever pick from the 9 listed options anyway. Prefer a real listed option (`rainy`, `windy`,
+  …) when the live condition happens to allow it.
 
 ## Test suite
 
-| Script                                                        | Covers                                                                                                          |
-| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `test-resolver.ps1`                                           | A1–A3: day target + shade bound → 20, night → 0, bound withdrawn → 100                                          |
-| `test-markers.ps1`                                            | per-cover moving markers appear and are cleaned up; no legacy keys                                              |
-| `test-overlap.ps1`                                            | two overlapping moves from the **same** instance must not false-suspend                                         |
-| `test-cross-instance.ps1`                                     | two moves from **different** instances must not false-suspend                                                   |
-| `test-gc.ps1`                                                 | tracker GC removes orphaned keys, keeps live ones                                                               |
-| `test-daynight.ps1`                                           | the blueprint publishes an intent and no longer writes a legacy record                                          |
-| `test-a4.ps1`, `test-a4-fresh.ps1`                            | coincident conflicting intents; the `-fresh` variant resets both intents each rep, which the plain one does not |
-| `test-a7.ps1`                                                 | a suspension spanning a transition cancels it                                                                   |
-| `verify-assumptions.ps1`                                      | the V1–V6 design assumptions                                                                                    |
-| `test-part1.ps1`, `test-part1-regression.ps1`, `racetest.ps1` | Phase 1 era; kept for reference                                                                                 |
+| Script                                                        | Covers                                                                                                                                                                                                                                           |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `test-resolver.ps1`                                           | A1–A3: day target + shade bound → 20, night → 0, bound withdrawn → 100                                                                                                                                                                           |
+| `test-markers.ps1`                                            | per-cover moving markers appear and are cleaned up; no legacy keys                                                                                                                                                                               |
+| `test-overlap.ps1`                                            | two overlapping moves from the **same** instance must not false-suspend                                                                                                                                                                          |
+| `test-cross-instance.ps1`                                     | two moves from **different** instances must not false-suspend                                                                                                                                                                                    |
+| `test-gc.ps1`                                                 | tracker GC removes orphaned keys, keeps live ones                                                                                                                                                                                                |
+| `test-daynight.ps1`                                           | the blueprint publishes an intent and no longer writes a legacy record                                                                                                                                                                           |
+| `test-a4.ps1`, `test-a4-fresh.ps1`                            | coincident conflicting intents; the `-fresh` variant resets both intents each rep, which the plain one does not                                                                                                                                  |
+| `test-a7.ps1`                                                 | a suspension spanning a transition cancels it                                                                                                                                                                                                    |
+| `verify-assumptions.ps1`                                      | the V1–V6 design assumptions                                                                                                                                                                                                                     |
+| `test-r2-layer2-contextless.ps1`                              | R2 redone correctly: a genuinely contextless tick (context-staleness, not a tainted REST call) with no live marker suspends the cover                                                                                                            |
+| `test-brightness-stabilizer.ps1`                              | `bright_since`/`dark_since` written only on threshold crossings, never rewritten while steady; `schedule_wants_*` waits for `stabilizer_seconds` before acting                                                                                   |
+| `test-restart-selfheal.ps1`                                   | restart mid-transition self-heal (a stale-but-consistent published intent no longer matching the schedule) and the first-run `-1` sentinel (never-published intent + a persisted stabilizer timestamp), both caught up on `homeassistant: start` |
+| `test-part1.ps1`, `test-part1-regression.ps1`, `racetest.ps1` | Phase 1 era; kept for reference                                                                                                                                                                                                                  |
 
 ## Rebuilding from scratch
 
