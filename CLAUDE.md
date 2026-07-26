@@ -21,7 +21,7 @@ For hidden/internal state in blueprints, use the single central **trigger-based 
 **Atomicity model (critical):**
 
 - Writes are **atomic at the key level** — the merge happens inside the single serialized template render.
-- Anything _below_ key level is writer-side read-modify-write and **not atomic**. Therefore: make the key the unit that changes independently. Example: per-cover keys `suspension_<entity_id>` — atomic; one fat `suspensions` dict under a single key — racy, don't.
+- Anything _below_ key level is writer-side read-modify-write and **not atomic**. Therefore: make the key the unit that changes independently. Example: per-cover keys `<cover_entity_id>::suspension` — atomic; one fat `suspensions` dict under a single key — racy, don't.
 - A value may be a list/dict only if exactly one writer replaces it wholesale (e.g. `automation_in_progress`).
 
 **Namespaces:**
@@ -79,9 +79,9 @@ Several cover automations can control one cover. They never command it themselve
 
 **Contributor rules.** Publish only on change (edge-based — an idle house writes nothing). Publish a **target** only when genuinely deciding "move now", inside your own operating window; withdrawing a constraint outside that window means dropping the bound **silently**, with no target — otherwise a shade family whose condition clears at 22:00 reopens covers that day-night closed at 21:00. Anything that must _hold_ against later events is a bound, not a target. Keep owning your own manual detection (scripts cannot see `trigger`).
 
-**Key grammar.** Every tracker key is `<owner>::<name>`, owner being an automation id, an entity*id, or the literal `global`. This is what lets `script.smarli_tracker_gc` in `smarli_core.yaml` collect keys whose owner no longer exists without knowing any family's key names — automation ids are regenerated on every create, so delete-and-recreate would otherwise leak a key per cycle. (The garbage-collector \_script* is `script.smarli_tracker_gc`; the wrapping _automation_ that triggers it has config-level `id: smarli_tracker_gc` but HA slugifies its alias, so its real entity_id is `automation.smarli_tracker_garbage_collection` — don't assume the id and the entity_id match.)
+**Key grammar.** Every tracker key is `<owner>::<name>`, owner being an automation id, an `entity_id`, or the literal `global`. This is what lets `script.smarli_tracker_gc` in `smarli_core.yaml` collect keys whose owner no longer exists without knowing any family's key names — automation ids are regenerated on every create, so delete-and-recreate would otherwise leak a key per cycle. Note the GC ships as two entities: the script is `script.smarli_tracker_gc`, while the automation that triggers it carries config-level `id: smarli_tracker_gc` but slugifies to `automation.smarli_tracker_garbage_collection` — don't assume the two names match.
 
-```
+```text
 shared:  <automation_id>::intent   <cover>::resolved   <cover>::suspension   <cover>::moving_<run>
 cover_day_night:  <automation_id>::bright_since | ::dark_since
 ```
