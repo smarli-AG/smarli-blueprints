@@ -285,10 +285,17 @@ script:
               {% set current = state_attr(c, 'current_position') %}
               {% set state_seed = 100 if is_state(c, 'open') else (0 if is_state(c, 'closed') else none) %}
               {% set stored = shared.get(c ~ '::resolved') %}
+              {# An unavailable/unknown cover cannot report where it physically is, so the
+                 no-target (bound-only) path must skip it rather than fall through to the
+                 stale `::resolved` record — an offline cover has no "current reality" to
+                 seed a bound from. Only the no-target path is guarded: a cover WITH a
+                 target is commanded to that target regardless of its present state, exactly
+                 as before this guard existed. #}
               {% set target = tns.pos if tns.pos is not none
-                              else (current | int if current is not none
-                                    else (state_seed if state_seed is not none
-                                          else (stored | int if stored is not none else none))) %}
+                              else (none if states(c) in ['unavailable', 'unknown']
+                                    else (current | int if current is not none
+                                          else (state_seed if state_seed is not none
+                                                else (stored | int if stored is not none else none)))) %}
               {% if target is not none %}
                 {# intersect bounds, highest priority first, skipping any that would empty the range #}
                 {% set bl = namespace(l=[]) %}

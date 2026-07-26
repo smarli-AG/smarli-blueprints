@@ -22,9 +22,13 @@
 #   - Event `smarli_tracker_set`:    payload namespace/key/value -> upsert the key.
 #   - Event `smarli_tracker_remove`: payload namespace/key       -> delete the key.
 #     Writes are atomic per key.
-#   - Namespace `shared` is cross-blueprint (e.g. cover suspension_<entity_id>,
-#     moving_<instance_id>, and commanded_<cover_entity_id> keys — see
-#     smarli_cover.yaml); each blueprint otherwise uses its own namespace.
+#   - Namespace `shared` is cross-blueprint. Every key in it (and every
+#     instance-scoped key in a family namespace) is named `<owner>::<name>`,
+#     owner being an automation id, an entity_id, or the literal `global` — e.g.
+#     `<cover>::suspension`, `<cover>::moving_<run>`, `<automation_id>::intent`
+#     (see smarli_cover.yaml). `script.smarli_tracker_gc` below depends on every
+#     key following this `<owner>::<name>` grammar: it is how GC recovers the
+#     owner of a key without knowing any family's key names.
 # ============================================================================
 
 template:
