@@ -80,6 +80,33 @@ If another resolve run is already queued behind this one, **return immediately w
 
 **Measured (Task 5 A4, 10 coincident reps, confirmed again in the Task 6 acceptance sweep): it does not work reliably.** `state_attr('script.smarli_cover_resolve', 'current')` does not reflect a run that has been queued but not yet started — it only ever reported the caller's own single execution slot at the point each run checked it — so the earlier of two near-simultaneous runs almost never sees the later one as "queued" and almost never skips. Task 5 measured two commands in 9 of 10 genuinely-fresh coincident reps (1 coalesced); the Task 6 re-run measured two commands in 10 of 10. **Two commands — a visible intermediate position, then the corrected one — is the norm, not the rare fallback.** Correctness was unaffected in every rep measured across both sweeps (20 + 10 reps): correct final position, zero false suspensions. The step is kept because it is harmless, costs one cheap template check per run, and does help in the case a queue genuinely backs up (many resolves stacked, not just two near-simultaneous ones) — but do not describe it in contributor-facing docs as eliminating the twitch.
 
+#### Ready-to-implement fix, if the redundant command ever causes a real problem
+
+Do not reach for this pre-emptively — the redundant command has no correctness cost. Implement it if a real installation shows a visible reversal, hardware that dislikes a command reversed mid-start, or bus congestion from doubled commands.
+
+**The fix is a debounce, and it makes the existing check work rather than replacing it.** The check fails only because the earlier run reaches it before the later run has queued. Give it something to see: sleep briefly at the top of the run, so any sibling publishing in the same tick is sitting in the queue by the time the check happens.
+
+In `script.smarli_cover_resolve`, insert one step **between** the `wait_template` (own intent visible) and the existing `Skip if a fresher run is queued behind me` condition:
+
+```yaml
+- alias: Let same-tick siblings queue up before deciding whether to defer
+  # Without this, the coalescing check below almost never fires: this run
+  # reaches it in single-digit milliseconds, before a sibling contributor's
+  # run has even entered the queue. The delay costs every automated move a
+  # fraction of a second, which is imperceptible for covers, and buys a
+  # single command instead of two whenever contributors publish together.
+  delay:
+    milliseconds: 250
+```
+
+**Why this works.** `mode: queued` means a sibling cannot start while we sleep — it queues. When we wake, `current` reads 2, we return without writing or commanding, and the sibling (which sees the complete picture) issues the single correct command.
+
+**Cost.** Roughly 250 ms added to every automated cover move, and about 500 ms in the two-contributor case (each queued run serves its own debounce). Explicitly accepted by the product owner on 2026-07-26: a cover opening at 06:00:00.5 instead of 06:00:00.0 is unnoticeable. Nothing else is affected — manual detection markers are written by the mover _after_ resolution, the heartbeat gating is untouched, and the queue depth (`max: 50`) is nowhere near stressed by runs this short.
+
+**Tuning.** 250 ms is a starting value chosen to comfortably exceed the millisecond-scale gap between two contributors' publishes. If a contributor is ever slower to publish than the debounce, it simply misses the merge and behaves as today — the failure mode is the current behaviour, not a new one.
+
+**How to confirm it worked.** Re-run acceptance A4 (Task 5 procedure, ten fresh coincident-conflict reps): the pass condition changes from "correct final position, no suspension" to that plus **one** command in essentially every rep. Also re-run `test-resolver.ps1` (A1–A3) to confirm the target path is unaffected.
+
 ## 5. Contributor contract
 
 A contributor (any cover blueprint) must:
