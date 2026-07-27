@@ -12,6 +12,12 @@
 # Contents:
 #   - sensor.smarli_automation_tracker  central key-value store for automation
 #                                       state (survives restarts)
+#   - recorder exclude for the tracker  every write snapshots the whole `data`
+#                                       attribute into the recorder; restart
+#                                       restore uses HA's separate restore_state
+#                                       storage, so recorder history buys
+#                                       nothing here and only gets pricier as
+#                                       more families write into the tracker
 #
 # Feature-specific scripts/sensors live in their own package files
 # (smarli_<family>.yaml â€” e.g. smarli_cover.yaml). This file holds only the
@@ -30,6 +36,20 @@
 #     key following this `<owner>::<name>` grammar: it is how GC recovers the
 #     owner of a key without knowing any family's key names.
 # ============================================================================
+
+# ---------------------------------------------------------------------------
+# Recorder exclusion.
+# ---------------------------------------------------------------------------
+# This is a debug-only KV store, not user-facing data — no dashboard or history
+# graph needs it. Restart survival comes from HA's restore_state storage, which
+# is independent of the recorder, so excluding this entity from the recorder
+# loses nothing functionally while capping the cost of every tracker write
+# (which otherwise re-snapshots the whole `data` attribute into the database).
+# Developer Tools > States still shows the live `data` regardless.
+recorder:
+  exclude:
+    entities:
+      - sensor.smarli_automation_tracker
 
 template:
   - trigger:
