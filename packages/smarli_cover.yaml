@@ -244,7 +244,7 @@ script:
                Safe because a script cannot be executing on behalf of an automation that
                does not exist: `owner` is always the live caller's own id. #}
             {% if (owner | default('')) != '' and (intent | default({})) | count > 0 %}
-              {% set ns.d = dict(ns.d.items() | list + [(owner, intent)]) %}
+              {% set ns.d = dict(ns.d.items() | list + [(owner | string, intent)]) %}
             {% endif %}
             {{ ns.d }}
           covers: >
