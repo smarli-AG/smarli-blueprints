@@ -652,7 +652,7 @@ blueprint:
 # Triggers stay dumb (variables are not available in triggers); the decision
 # logic below only ever uses resolved variables.
 variables:
-  instance_id: "{{ this.attributes.id }}"
+  instance_id: "{{ this.attributes.id | string }}"
   now_ts: "{{ as_timestamp(now()) }}"
   # This blueprint's own namespace in the central tracker. Holds this instance's
   # brightness stabilizer bookkeeping keys: <id>::bright_since / <id>::dark_since.
