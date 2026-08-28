@@ -53,7 +53,7 @@
 #   [br]
 #   ---
 #   [br]
-#   _Version 1.0.1 | Erstellt durch Pascal_
+#   _Version 1.0.0_
 #
 # purpose_en: "Comfort"
 # purpose_de: "Komfort"
@@ -85,6 +85,7 @@ blueprint:
       1. Select if you want to turn off lights, media players or both.
       2. Select the button(s) that will trigger the automation.
       3. (Optional) Exclude specific lights or media players from being turned off.
+      4. (Optional) Choose if you want to add a delay before devices are turned off.
     </details>
 
 

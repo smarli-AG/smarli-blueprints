@@ -125,13 +125,12 @@ Rules:
 - Use an ISO date (`YYYY-MM-DD`).
 - List every change as its own `##` bullet, prefixed with a dash (`-`).
 
-**Version consistency rule.** The version and date of the newest entry must match, exactly, in three places:
+**Version consistency rule.** The version number of the newest entry here must match, exactly, in two other places:
 
-1. This release notes header.
-2. The version line inside `blueprint.description` (see [Blueprint metadata](#blueprint-metadata)).
-3. The version line inside `long_description_en` and `long_description_de` (see [Partner Engine metadata block](#partner-engine-metadata-block)).
+1. The version line inside `blueprint.description` (see [Blueprint metadata](#blueprint-metadata)).
+2. The version line inside `long_description_en` and `long_description_de` (see [Partner Engine metadata block](#partner-engine-metadata-block)).
 
-Bump all three together. A blueprint with a stale version number in one of these places is not fully specced.
+The date stays in this release notes header only — `blueprint.description` and `long_description_*` carry the version number alone, with no date. Bump the version in all three places together. A blueprint with a stale version number in one of these places is not fully specced.
 
 ## Partner Engine metadata block
 
@@ -163,7 +162,7 @@ This block sits between the release notes and the `blueprint:` key. It is entire
 #   [br]
 #   ---
 #   [br]
-#   _Version 1.0.0 | 2026-05-21_
+#   _Version 1.0.0_
 #
 # long_description_de: "..."
 #
@@ -204,7 +203,7 @@ Field reference:
 - Plain numbered lines (`1.`, `2.`, ...) for steps.
 - Plain `-` lines for an unordered list.
 - `---` for a horizontal rule, conventionally placed right before the version footer.
-- `_Version X.Y.Z | YYYY-MM-DD_` as the last line — italicized with underscores, and matching the release notes exactly (see the [version consistency rule](#release-notes)).
+- `_Version X.Y.Z_` as the last line — italicized with underscores, version number only, no date (see the [version consistency rule](#release-notes)).
 
 ## Blueprint metadata
 
@@ -218,7 +217,7 @@ blueprint:
 
     This automation will turn off all lights and media players in your home when a specified button is pressed.
 
-    *Version 1.0.0 | 2026-05-21*
+    *Version 1.0.0*
 
     <details>
     <summary><b>How to set it up</b></summary>
@@ -240,7 +239,7 @@ Rules:
 
 - `description` starts with a Markdown H1 (`#`) and an emoji, matching the blueprint's `name_en`.
 - `description` is always written in English, regardless of `long_description_de`. Home Assistant's own blueprint UI has no language switching, so there is only one version.
-- The version line uses standard Markdown italics with asterisks (`*Version X.Y.Z | YYYY-MM-DD*`) — this is HA's own renderer, not the Partner Engine's `[br]` markup. It must match the release notes exactly (see the [version consistency rule](#release-notes)).
+- The version line uses standard Markdown italics with asterisks (`*Version X.Y.Z*`, no date) — this is HA's own renderer, not the Partner Engine's `[br]` markup. It must match the release notes' version number (see the [version consistency rule](#release-notes)).
 - Wrap the setup steps in a `<details><summary><b>How to set it up</b></summary> ... </details>` block, so the technician can collapse it.
 - List every numbered step that corresponds to a real input the technician must look at.
 - End with this exact line, verbatim: `All input fields are required unless they are marked as \` (optional) \`.`

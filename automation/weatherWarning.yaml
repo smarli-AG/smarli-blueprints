@@ -47,7 +47,7 @@
 #   [br]
 #   ---
 #   [br]
-#   _Version 1.5.0 | 2025-09-24_
+#   _Version 1.5.0_
 #
 # long_description_de: |
 #   __Erhalte Benachrichtigungen über bevorstehende Wetterereignisse wie Regen, Gewitter, Schnee und mehr.__
@@ -89,7 +89,7 @@ blueprint:
 
     This automation will warn users about upcoming weather events so that they can leave their homes fully prepared.
 
-    *Version 1.4.0 | 2025-06-30*
+    *Version 1.5.0*
 
     <details>
     <summary><b>How to set it up</b></summary>
