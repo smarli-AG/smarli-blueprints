@@ -28,11 +28,11 @@
 #   1. Select the button that should trigger the automation
 #   2. Select if you want to turn off lights, media players or both
 #   3. (Optional) Exclude specific lights or media players from being turned off
-#   4. (Optional) Select a delay before turning off the selected devices
+#   4. (Optional) Choose if you want to add a delay before devices are turned off
 #   [br]
 #   ---
 #   [br]
-#   _Version 1.0.0 | Created by Pascal_
+#   _Version 1.0.0_
 #
 # long_description_de: |
 #   __Schalte alle Lichter und Medienplayer in deinem Zuhause mit nur einem Knopfdruck aus.__
@@ -49,7 +49,7 @@
 #   1. Wähle den Button aus, der die Automation auslösen soll
 #   2. Wähle ob du Lichter, Medienplayer oder beides ausschalten möchtest
 #   3. (Optional) Schliesse bestimmte Lichter oder Medienplayer vom Ausschalten aus
-#   4. (Optional) Wähle eine Verzögerung bevor die ausgewählten Geräte ausgeschaltet werden
+#   4. (Optional) Wähle aus, ob das Ausschalten der Geräte verzögert stattfinden soll
 #   [br]
 #   ---
 #   [br]
@@ -112,6 +112,8 @@ blueprint:
           #   description:
           #     en: Select the buttons that will trigger the "All Off" automation
           #     de: Wähle die Smart Buttons aus, welche die "Alles aus" Automation auslösen sollen
+          # optional: false
+          # display_if: true
           name: Smart Buttons
           description: Select the buttons that will trigger the all off automation
           selector:
@@ -142,6 +144,8 @@ blueprint:
           #   description:
           #     en: Select if the "all off" button should turn off lights, media players, or both.
           #     de: Wähle ob der "Alles aus" Button Lichter, Medienplayer oder beides ausschalten soll.
+          # optional: false
+          # display_if: true
           name: What should get turned off?
           description: Select if the "all off" button should turn off lights, media players, or both.
           selector:
@@ -206,6 +210,7 @@ blueprint:
           #     en: Add a delay before turning off the selected devices.
           #     de: Füge eine Verzögerung hinzu, bevor die ausgewahlten Geraete ausgeschaltet werden.
           # optional: true
+          # display_if: true
           name: Delay (optional)
           description: Add a delay before turning off the selected devices.
           selector:

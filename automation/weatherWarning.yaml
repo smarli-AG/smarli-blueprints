@@ -32,20 +32,18 @@
 # subtitle_de: "Handy-Benachrichtigung"
 #
 # short_description_en: "Get notified about upcoming weather events such as rain, storms, snow, and more."
-# short_description_de: "Erhalte Benachrichtigungen über bevorstehende Wetterereignisse wie Regen, Gewitter, Schnee und mehr."
+# short_description_de: "Werde über bevorstehende Wetterereignisse wie Regen, Gewitter, Schnee und mehr benachrichtigt."
 # long_description_en: |
 #   __Get notified about upcoming weather events such as rain, storms, snow, and more.__
 #   [br]
 #   Every morning, smarli. checks the weather forecast in your area and notifies you about any upcoming weather events so that you can leave your home fully prepared.
-#   This is done using the Weather Forecast provided by MeteoSwiss for your selected weather station.
 #   [br]
 #   [br]
 #   __How to set it up:__
-#   1. Select at what time the notification should be sent - this is the trigger
-#   2. Select the weather forecast that should be watched in case multiple are available. By default, MeteoSwiss will be used.
-#   3. Select which weather conditions you'd like to be informed about
-#   4. Select if a push notification should be sent to all users or only to specific devies
-#   5. If you like, update the texts that will be sent with the notification
+#   1. Select at what time the notification should be sent
+#   2. Select which weather conditions you'd like to be informed about
+#   3. Select if a push notification should be sent to all users or only to specific devies
+#   4. If you like, update the texts that will be sent with the notification
 #   [br]
 #   ---
 #   [br]
@@ -55,19 +53,17 @@
 #   __Erhalte Benachrichtigungen über bevorstehende Wetterereignisse wie Regen, Gewitter, Schnee und mehr.__
 #   [br]
 #   Jeden Morgen prüft smarli. die Wettervorhersage in deiner Umgebung und benachrichtigt dich über bevorstehende Wetterereignisse, damit du dein Zuhause stets bestens vorbereitet verlassen kannst.
-#   Dazu wird die Wettervorhersage von MeteoSchweiz für die zuvor gewählte Wetterstation verwendet.
 #   [br]
 #   [br]
 #   __Einrichtung der Automatisierung:__
-#   1. Wähle, wann die Benachrichtigung gesendet werden soll - das ist der Trigger
-#   2. Wähle die Wettervorhersage aus, die überwacht werden soll, falls mehrere verfügbar sind. Standardmässig wird MeteoSchweiz verwendet.
-#   3. Wähle aus, über welche Wetterereignisse du informiert werden möchtest
-#   4. Wähle aus, ob eine Push-Benachrichtigung an alle Nutzer oder nur an bestimmte Geräte gesendet werden soll
-#   5. Passe bei Bedarf die Texte an, die mit der Benachrichtigung gesendet werden sollen
+#   1. Wähle, um welche Uhrzeit die Benachrichtigung gesendet werden soll
+#   2. Wähle aus, über welche Wetterereignisse du informiert werden möchtest
+#   3. Wähle aus, ob eine Push-Benachrichtigung an alle Nutzer oder nur an bestimmte Geräte gesendet werden soll
+#   4. Passe bei Bedarf die Texte an, die mit der Benachrichtigung gesendet werden sollen
 #   [br]
 #   ---
 #   [br]
-#   _Version 1.5.0 | 2025-09-24_
+#   _Version 1.5.0_
 #
 # purpose_en: "Comfort"
 # purpose_de: "Komfort"
@@ -136,6 +132,7 @@ blueprint:
           #   description:
           #     en: The time to send the notification
           #     de: Die Zeit, an der die Benachrichtigung gesendet wird
+          # optional: false
           # display_if: true
           name: Time of notification
           description: The time to send the notification
@@ -156,13 +153,15 @@ blueprint:
           #   description:
           #     en: The weather prediction to check
           #     de: Die Wettervorhersage, die überprüft werden soll
-          # display_if: true
+          # optional: false
+          # display_if: false
           name: Weather Entity
           description: The weather entity to check
           selector:
             entity:
               filter:
                 domain: weather
+          default: weather.meteoschweiz
         weather_events:
           # translation:
           #   name:
@@ -171,6 +170,7 @@ blueprint:
           #   description:
           #     en: Which predicted weather events should trigger a notification?
           #     de: Welche vorhergesagten Wetterereignisse sollen eine Benachrichtigung auslösen?
+          # optional: false
           # display_if: true
           name: Weather Events
           description: Which predicted weather events should trigger a notification?
@@ -241,6 +241,7 @@ blueprint:
           #   description:
           #     en: Do you want to notify all devices or only specific ones?
           #     de: Möchtest du alle Geräte benachrichtigen oder nur bestimmte?
+          # optional: false
           # display_if: true
           name: Notification
           description: Who should be notified? It's easiest to just inform all notify devices, as this works even when customers change their mobile devices. But you can also specify specific devices. When notifying all devices (`notify.notify` action) this could also target other notify integrations such as Microsoft Teams. Still, this is the best option for most circumstances.
@@ -268,6 +269,7 @@ blueprint:
           #   description:
           #     en: If you set the scope to `Specific Devices`, which devices should be notified?
           #     de: Wenn du `Bestimmte Geräte` gewählt hast, welche Geräte sollen benachrichtigt werden?
+          # optional: false
           # display_if: notification_scope == "specific"
           name: Devices to Notify (optional)
           description: If the scope is set to `specific`, which devices should be notified?
@@ -288,6 +290,7 @@ blueprint:
           #   default:
           #     en: ☔ Rain Warning
           #     de: ☔ Regenwarnung
+          # optional: false
           # display_if: includes(weather_events, 'rainy')
           name: Notification Title "Rainy"
           description: Set the title of the notification that should be sent on rainy weather conditions.
@@ -305,6 +308,7 @@ blueprint:
           #   default:
           #     en: Rain is expected in your area today. Just to be safe, take an umbrella with you!
           #     de: Heute wird in deiner Umgebung Regen erwartet. Nimm sicherheitshalber einen Schirm mit!
+          # optional: false
           # display_if: includes(weather_events, 'rainy')
           name: Message "Rainy"
           description: Set the message that should be sent on rainy weather conditions.
@@ -324,6 +328,7 @@ blueprint:
           #   default:
           #     en: 🌧️ Heavy Rain Warning
           #     de: 🌧️ Starkregenwarnung
+          # optional: false
           # display_if: 'includes(weather_events, 'pouring')'
           name: Notification Title "Pouring"
           description: Set the title of the notification that should be sent on pouring weather conditions.
@@ -342,6 +347,7 @@ blueprint:
           #   default:
           #     en: Heavy rain is expected in your area today. You should definitely take an umbrella with you!
           #     de: Heute wird in deiner Umgebung starker Regen erwartet. Du solltest unbedingt einen Schirm mitnehmen!
+          # optional: false
           # display_if: 'includes(weather_events, 'pouring')'
           name: Message "Pouring"
           description: Set the message that should be sent on pouring weather conditions.
@@ -361,6 +367,7 @@ blueprint:
           #   default:
           #     en: ⚡ Lightning Warning
           #     de: ⚡ Blitzwarnung
+          # optional: false
           # display_if: includesAny(weather_events, ['lightning', 'lightning-rainy'])
           name: Notification Title "Lightning" and "Lightning, Rainy"
           description: Set the title of the notification that should be sent when there is lightning.
@@ -379,6 +386,7 @@ blueprint:
           #   default:
           #     en: Thunderstorms with lightning activity have been reported in your area. Be careful and stay indoors if possible!
           #     de: In deiner Umgebung wurden Gewitter mit Blitzaktivität gemeldet. Sei vorsichtig und bleibe nach Möglichkeit im Gebäude!
+          # optional: false
           # display_if: includesAny(weather_events, ['lightning', 'lightning-rainy'])
           name: Message "Lightning" and "Lightning, Rainy"
           description: Set the message that should be sent when there is lightning.
@@ -398,6 +406,7 @@ blueprint:
           #   default:
           #     en: 🧊 Hail Warning
           #     de: 🧊 Hagelschlag
+          # optional: false
           # display_if: includes(weather_events, 'hail')
           name: Notification Title "Hail"
           description: Set the title of the notification that should be sent when it hails.
@@ -416,6 +425,7 @@ blueprint:
           #   default:
           #     en: Hail is expected in your area. Protect your car if necessary and stay indoors if possible!
           #     de: In deiner Umgebung wird Hagelschlag erwartet. Schütze wenn nötig dein Auto und bleibe nach Möglichkeit im Gebäude!
+          # optional: false
           # display_if: includes(weather_events, 'hail')
           name: Message "Hail"
           description: Set the message that should be sent when it hails.
@@ -435,6 +445,7 @@ blueprint:
           #   default:
           #     en: ❄️ Snow Warning
           #     de: ❄️ Schneefall
+          # optional: false
           # display_if: includes(weather_events, 'snowy')
           name: Notification Title "Snowy"
           description: Set the title of the notification that should be sent when it snows.
@@ -453,6 +464,7 @@ blueprint:
           #   default:
           #     en: Snowfall is expected in your area. Be careful on the roads and dress warmly!
           #     de: Es wird in deiner Umgebung Schneefall erwartet. Sei vorsichtig auf den Strassen und zieh dich warm an!
+          # optional: false
           # display_if: includes(weather_events, 'snowy')
           name: Message "Snowy"
           description: Set the message that should be sent when it snows.
@@ -472,6 +484,7 @@ blueprint:
           #   default:
           #     en: 🌨️ Sleet Warning
           #     de: 🌨️ Schneeregen
+          # optional: false
           # display_if: includes(weather_events, 'snowy-rainy')
           name: Notification Title "Snowy, Rainy"
           description: Set the title of the notification that should be sent when there is snow and rain at the same time.
@@ -490,6 +503,7 @@ blueprint:
           #   default:
           #     en: Sleet is expected in your area. Roads can be slippery, be extra careful today!
           #     de: In deiner Umgebung wird Schneeregen erwartet. Strassen können rutschig sein, sei heute besonders vorsichtig!
+          # optional: false
           # display_if: includes(weather_events, 'snowy-rainy')
           name: Message "Snowy, Rainy"
           description: Set the message that should be sent when there is snow and rain at the same time.
@@ -509,6 +523,7 @@ blueprint:
           #   default:
           #     en: 🌁 Fog Warning
           #     de: 🌁 Nebelwarnung
+          # optional: false
           # display_if: includes(weather_events, 'fog')
           name: Notification Title "Fog"
           description: Set the title of the notification that should be sent when there is fog.
@@ -527,6 +542,7 @@ blueprint:
           #   default:
           #     en: Fog has been announced in your area. Be careful accordingly.
           #     de: In deiner Umgebung wurde Nebel angekündigt. Sei entsprechend vorsichtig.
+          # optional: false
           # display_if: includes(weather_events, 'fog')
           name: Message "Fog"
           description: Set the message that should be sent when there is fog.
