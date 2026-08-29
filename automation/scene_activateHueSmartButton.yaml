@@ -1,4 +1,7 @@
 # ! RELEASE NOTES
+## 1.1.0 | 2026-08-28
+## - Add missing Partner Engine optional/display_if annotations
+## - Rewrite long_description with correct Partner Engine markup
 ## 1.0.0 | 2025-11-26
 ## - initial release
 
@@ -15,8 +18,34 @@
 #
 # short_description_en: "Activate a scene with a single press of your Philips hue smart button."
 # short_description_de: "Aktiviere eine Szene durch das einfache Drücken Deines Philips hue Smart Buttons."
-# long_description_en: "The Scene Activation automation allows you to activate any scene in your home with the press of a button. This automation is made to be used with the Philips hue button."
-# long_description_de: "Die Automation zur Szenenaktivierung ermöglicht es Dir, jede Szene in Deinem Zuhause per Knopfdruck zu aktivieren. Dies Autoamtisierung ist für den Philips hue Button vorgesehen."
+# long_description_en: |
+#   __Activate a scene with a single press of your Philips hue smart button.__
+#   [br]
+#   The Scene Activation automation lets you activate any scene in your home with the press of a button. This automation is made for the Philips hue smart button.
+#   [br]
+#   [br]
+#   __How to set it up:__
+#   1. Select the Philips hue button that should trigger the scene
+#   2. Select the scene you want to activate
+#   3. (Optional) Add a delay before the scene activates
+#   [br]
+#   ---
+#   [br]
+#   _Version 1.1.0_
+# long_description_de: |
+#   __Aktiviere eine Szene durch das einfache Drücken Deines Philips hue Smart Buttons.__
+#   [br]
+#   Die Automation zur Szenenaktivierung ermöglicht es Dir, jede Szene in Deinem Zuhause per Knopfdruck zu aktivieren. Diese Automatisierung ist für den Philips hue Button vorgesehen.
+#   [br]
+#   [br]
+#   __Einrichtung der Automatisierung:__
+#   1. Wähle den Philips hue Button aus, welcher die Szene auslösen soll
+#   2. Wähle die Szene aus, die aktiviert werden soll
+#   3. (Optional) Füge eine Verzögerung hinzu, bevor die Szene aktiviert wird
+#   [br]
+#   ---
+#   [br]
+#   _Version 1.1.0_
 #
 # purpose_en: "Comfort"
 # purpose_de: "Komfort"
@@ -37,14 +66,16 @@ blueprint:
     # 🎨 smarli. Scene Activation with Philips hue button
 
     This automation will activate a selected scene when your Philips hue smart button is pressed.
+    This automation uses scripts, not native Home Assistant scenes, under the hood. Scripts support more features than scenes. Select the script that represents your scene under "Scene to Activate".
 
-    *Version 1.0.0 | 2025-11-26*
+    *Version 1.1.0*
 
     <details>
     <summary><b>How to set it up</b></summary>
 
       1. Select the Philips hue button that should trigger the scene
       2. Select the scene you want to activate
+      3. (Optional) Add a delay before the scene activates
     </details>
 
 
@@ -72,6 +103,8 @@ blueprint:
           #   description:
           #     en: Select the Philips hue smart button that should activate the scene.
           #     de: Wähle den Philips hue Button, welcher die Szene aktivieren soll.
+          # optional: false
+          # display_if: true
           name: Philips hue Button
           description: Select the Philips hue smart button that should activate the scene.
           selector:
@@ -100,6 +133,8 @@ blueprint:
           #   description:
           #     en: Select the scene that should be activated when the button is pressed.
           #     de: Wähle die Szene aus, die aktiviert werden soll, wenn der Button gedrückt wird.
+          # optional: false
+          # display_if: true
           name: Scene to Activate
           description: Select the scene that should be activated when the button is pressed.
           selector:
@@ -116,6 +151,7 @@ blueprint:
           #     en: Add a delay before activating the scene.
           #     de: Füge eine Verzögerung hinzu, bevor die Szene aktiviert wird.
           # optional: true
+          # display_if: true
           name: Delay (optional)
           description: Add a delay before activating the scene.
           selector:

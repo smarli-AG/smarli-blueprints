@@ -1,4 +1,7 @@
 # ! RELEASE NOTES
+## 1.1.0 | 2026-08-28
+## - Add missing Partner Engine optional/display_if annotations
+## - Rewrite long_description with correct Partner Engine markup
 ## 1.0.0 | 2025-11-26
 ## - initial release
 
@@ -15,8 +18,36 @@
 #
 # short_description_en: "Activate a scene using the Aqara wireless mini switch."
 # short_description_de: "Aktiviere eine Szene durch mithilfe des Aqara Wireless mini switch."
-# long_description_en: "The Scene Activation automation allows you to activate any scene in your home by using the Aqara wireless mini switch. This automation is made to be used with the T1 model."
-# long_description_de: "Die Automation zur Szenenaktivierung ermöglicht es Dir, jede Szene in Deinem Zuhause mithilfe des Aqara Wireless mini switches zu aktivieren. Dies Autoamtisierung ist für das Modell T1 vorgesehen."
+# long_description_en: |
+#   __Activate a scene using the Aqara Wireless mini switch.__
+#   [br]
+#   The Scene Activation automation lets you activate any scene in your home using the Aqara Wireless mini switch. This automation is made for the T1 model.
+#   [br]
+#   [br]
+#   __How to set it up:__
+#   1. Select the Aqara Wireless mini switch that should trigger the scene
+#   2. Select the type of button press that should trigger the scene
+#   3. Select the scene you want to activate
+#   4. (Optional) Add a delay before the scene activates
+#   [br]
+#   ---
+#   [br]
+#   _Version 1.1.0_
+# long_description_de: |
+#   __Aktiviere eine Szene mithilfe des Aqara Wireless mini switch.__
+#   [br]
+#   Die Automation zur Szenenaktivierung ermöglicht es Dir, jede Szene in Deinem Zuhause mithilfe des Aqara Wireless mini switch zu aktivieren. Diese Automatisierung ist für das Modell T1 vorgesehen.
+#   [br]
+#   [br]
+#   __Einrichtung der Automatisierung:__
+#   1. Wähle den Aqara Wireless mini switch aus, welcher die Szene auslösen soll
+#   2. Wähle die Art des Knopfdrucks aus, welche die Szene auslösen soll
+#   3. Wähle die Szene aus, die aktiviert werden soll
+#   4. (Optional) Füge eine Verzögerung hinzu, bevor die Szene aktiviert wird
+#   [br]
+#   ---
+#   [br]
+#   _Version 1.1.0_
 #
 # purpose_en: "Comfort"
 # purpose_de: "Komfort"
@@ -37,8 +68,9 @@ blueprint:
     # 🎨 smarli. Scene Activation with Aqara wireless mini switch
 
     This automation will activate a selected scene when your Aqara Wireless mini switch is pressed.
+    This automation uses scripts, not native Home Assistant scenes, under the hood. Scripts support more features than scenes. Select the script that represents your scene under "Scene to Activate".
 
-    *Version 1.0.0 | 2025-11-26*
+    *Version 1.1.0*
 
     <details>
     <summary><b>How to set it up</b></summary>
@@ -46,6 +78,7 @@ blueprint:
       1. Select the Aqara Wireless mini switch that should trigger the scene
       2. Select the type of button press that should trigger the scene
       3. Select the scene you want to activate
+      4. (Optional) Add a delay before the scene activates
     </details>
 
 
@@ -73,6 +106,8 @@ blueprint:
           #   description:
           #     en: Select the Aqara Wireless mini switch that should activate the scene.
           #     de: Wähle den Aqara Wireless mini switch, welcher die Szene aktivieren soll.
+          # optional: false
+          # display_if: true
           name: Aqara Wireless mini switch
           description: Select the Aqara Wireless mini switch that should activate the scene.
           selector:
@@ -90,6 +125,8 @@ blueprint:
           #   description:
           #     en: Select the type of button press that should activate the scene.
           #     de: Wähle die Art des Knopfdrucks, welcher die Szene aktivieren soll.
+          # optional: false
+          # display_if: true
           name: Button Press Type
           description: Select the type of button press that should activate the scene.
           selector:
@@ -140,6 +177,8 @@ blueprint:
           #   description:
           #     en: Select the scene that should be activated when the button is pressed.
           #     de: Wähle die Szene aus, die aktiviert werden soll, wenn der Button gedrückt wird.
+          # optional: false
+          # display_if: true
           name: Scene to Activate
           description: Select the scene that should be activated when the button is pressed.
           selector:
@@ -156,6 +195,7 @@ blueprint:
           #     en: Add a delay before activating the scene.
           #     de: Füge eine Verzögerung hinzu, bevor die Szene aktiviert wird.
           # optional: true
+          # display_if: true
           name: Delay (optional)
           description: Add a delay before activating the scene.
           selector:

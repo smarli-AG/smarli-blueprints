@@ -1,4 +1,8 @@
 # ! RELEASE NOTES
+## 1.1.0 | 2026-08-28
+## - Add missing Partner Engine optional/display_if annotations
+## - Rewrite long_description with correct Partner Engine markup
+## - Fix source_url pointing at the wrong blueprint file
 ## 1.0.0 | 2025-12-01
 ## - initial release
 
@@ -15,8 +19,36 @@
 #
 # short_description_en: "Activate a scene using the Philips hue Tap Dial."
 # short_description_de: "Aktiviere eine Szene durch mithilfe des Philips hue Tap Dial."
-# long_description_en: "The Scene Activation automation allows you to activate any scene in your home by using the Philips hue Tap Dial. You can assign any of the four buttons or the dial to activate the scene on short or long press, or on rotation respectively."
-# long_description_de: "Die Automation zur Szenenaktivierung ermöglicht es Dir, jede Szene in Deinem Zuhause mithilfe des Philips hue Tap Dials zu aktivieren. Du kannst jede der vier Tasten oder das Drehrad zur Auslösung der Szene durch kurzes oder langes Drücken, bzw. durch Drehen, konfigurieren."
+# long_description_en: |
+#   __Activate a scene using the Philips hue Tap Dial.__
+#   [br]
+#   The Scene Activation automation lets you activate any scene in your home using the Philips hue Tap Dial. Assign any of the four buttons or the dial to activate the scene on short or long press, or on rotation.
+#   [br]
+#   [br]
+#   __How to set it up:__
+#   1. Select the Philips hue Tap Dial that should trigger the scene
+#   2. Select the type of button press or rotation that should trigger the scene
+#   3. Select the scene you want to activate
+#   4. (Optional) Add a delay before the scene activates
+#   [br]
+#   ---
+#   [br]
+#   _Version 1.1.0_
+# long_description_de: |
+#   __Aktiviere eine Szene mithilfe des Philips hue Tap Dial.__
+#   [br]
+#   Die Automation zur Szenenaktivierung ermöglicht es Dir, jede Szene in Deinem Zuhause mithilfe des Philips hue Tap Dial zu aktivieren. Weise jeder der vier Tasten oder dem Drehrad die Auslösung der Szene durch kurzes oder langes Drücken, bzw. durch Drehen, zu.
+#   [br]
+#   [br]
+#   __Einrichtung der Automatisierung:__
+#   1. Wähle den Philips hue Tap Dial aus, welcher die Szene auslösen soll
+#   2. Wähle die Art des Knopfdrucks oder der Drehung aus, welche die Szene auslösen soll
+#   3. Wähle die Szene aus, die aktiviert werden soll
+#   4. (Optional) Füge eine Verzögerung hinzu, bevor die Szene aktiviert wird
+#   [br]
+#   ---
+#   [br]
+#   _Version 1.1.0_
 #
 # purpose_en: "Comfort"
 # purpose_de: "Komfort"
@@ -37,8 +69,9 @@ blueprint:
     # 🎨 smarli. Scene Activation with Philips hue Tap Dial
 
     This automation will activate a selected scene when the defined button on the Philips hue Tap Dial is pressed or the dial is rotated.
+    This automation uses scripts, not native Home Assistant scenes, under the hood. Scripts support more features than scenes. Select the script that represents your scene under "Scene to Activate".
 
-    *Version 1.0.0 | 2025-12-01*
+    *Version 1.1.0*
 
     <details>
     <summary><b>How to set it up</b></summary>
@@ -46,13 +79,14 @@ blueprint:
       1. Select the Philips hue Tap Dial that should trigger the scene
       2. Select the type of button press or rotation that should trigger the scene
       3. Select the scene you want to activate
+      4. (Optional) Add a delay before the scene activates
     </details>
 
 
     All input fields are required unless they are marked as ` (optional) `.
   domain: automation
   author: loocd [smarli. AG]
-  source_url: https://github.com/smarli-AG/smarli-blueprints/blob/main/automation/activateSceneSmartButton_aqaraWirelessMiniSwitch.yaml
+  source_url: https://github.com/smarli-AG/smarli-blueprints/blob/main/automation/activateSceneSmartButton_hueTapDial.yaml
   homeassistant:
     min_version: 2024.10.0
 
@@ -73,6 +107,8 @@ blueprint:
           #   description:
           #     en: Select the Philips hue Tap Dial that should activate the scene.
           #     de: Wähle den Philips hue Tap Dial, welcher die Szene aktivieren soll.
+          # optional: false
+          # display_if: true
           name: Philips hue Tap Dial
           description: Select the Philips hue Tap Dial that should activate the scene.
           selector:
@@ -90,6 +126,8 @@ blueprint:
           #   description:
           #     en: Select the type of interaction that should activate the scene.
           #     de: Wähle die Art der Interaktion, welche die Szene aktivieren soll.
+          # optional: false
+          # display_if: true
           name: Interaction Type
           description: Select the type of interaction that should activate the scene.
           selector:
@@ -179,6 +217,8 @@ blueprint:
           #   description:
           #     en: Select the scene that should be activated when the button is pressed.
           #     de: Wähle die Szene aus, die aktiviert werden soll, wenn der Button gedrückt wird.
+          # optional: false
+          # display_if: true
           name: Scene to Activate
           description: Select the scene that should be activated when the button is pressed.
           selector:
@@ -195,6 +235,7 @@ blueprint:
           #     en: Add a delay before activating the scene.
           #     de: Füge eine Verzögerung hinzu, bevor die Szene aktiviert wird.
           # optional: true
+          # display_if: true
           name: Delay (optional)
           description: Add a delay before activating the scene.
           selector:

@@ -1,4 +1,8 @@
 # ! RELEASE NOTES
+## 1.1.0 | 2026-08-28
+## - Add missing Partner Engine optional/display_if annotations
+## - Rewrite long_description with correct Partner Engine markup
+## - Fix description text that wrongly implied scripts are not used
 ## 1.0.0 | 2025-11-26
 ## - initial release
 
@@ -16,15 +20,33 @@
 # short_description_en: "Activate a scene with a single press of your preferred smarli. relay."
 # short_description_de: "Aktiviere eine Szene durch das einfache Drücken Deines bevorzugten smarli. relays."
 # long_description_en: |
-#   # Header
-#
-#   Second paragraph **after** a blank line.
-#
-#   Third paragraph continues here.
-#
-#   - bullet
-#   - points
-# long_description_de: "Die Automation zur Szenenaktivierung ermöglicht es Dir, jede Szene in Deinem Zuhause per Knopfdruck zu aktivieren. Dies funktioniert mit jedem smarli. dimmer. Es können beliebig viele smarli. dimmer ausgewählt werden."
+#   __Activate a scene with a single press of your preferred smarli. relay.__
+#   [br]
+#   The Scene Activation automation lets you activate any scene in your home with a single button press. Select as many smarli. relays as you like.
+#   [br]
+#   [br]
+#   __How to set it up:__
+#   1. Select the smarli. relays that should trigger the scene
+#   2. Select the scene you want to activate
+#   3. (Optional) Add a delay before the scene activates
+#   [br]
+#   ---
+#   [br]
+#   _Version 1.1.0_
+# long_description_de: |
+#   __Aktiviere eine Szene durch das einfache Drücken Deines bevorzugten smarli. relays.__
+#   [br]
+#   Die Automation zur Szenenaktivierung ermöglicht es Dir, jede Szene in Deinem Zuhause per Knopfdruck zu aktivieren. Wähle beliebig viele smarli. relays aus.
+#   [br]
+#   [br]
+#   __Einrichtung der Automatisierung:__
+#   1. Wähle die smarli. relays aus, welche die Szene auslösen sollen
+#   2. Wähle die Szene aus, die aktiviert werden soll
+#   3. (Optional) Füge eine Verzögerung hinzu, bevor die Szene aktiviert wird
+#   [br]
+#   ---
+#   [br]
+#   _Version 1.1.0_
 #
 # purpose_en: "Comfort"
 # purpose_de: "Komfort"
@@ -44,16 +66,17 @@ blueprint:
   description: >
     # 🎨 smarli. Scene Activation with smarli. smart buttons
 
-    This automation will activate a selected scene when any of your configured smarli. dimmers are pressed. The scene activates on any state change of the dimmer (on→off or off→on).
-    Please beware that this doesn't use scripts below the hood. Reason being that scripts support far more features than scenes.
+    This automation activates a selected scene when any of your configured smarli. smart buttons is pressed. The scene activates on any state change of the button (on→off or off→on).
+    This automation uses scripts, not native Home Assistant scenes, under the hood. Scripts support more features than scenes. Select the script that represents your scene under "Scene to Activate".
 
-    *Version 1.0.0 | 2025-11-26*
+    *Version 1.1.0*
 
     <details>
     <summary><b>How to set it up</b></summary>
 
-      1. Select the smarli. dimmers that should trigger the scene
+      1. Select the smarli. smart buttons that should trigger the scene
       2. Select the scene you want to activate
+      3. (Optional) Add a delay before the scene activates
     </details>
 
 
@@ -81,6 +104,8 @@ blueprint:
           #   description:
           #     en: Select the smarli. relays that should activate the scene.
           #     de: Wähle die smarli. relays aus, welche die Szene aktivieren sollen.
+          # optional: false
+          # display_if: true
           name: smarli. Smart Buttons
           description: Select the smarli. relays that should activate the scene.
           selector:
@@ -110,6 +135,8 @@ blueprint:
           #   description:
           #     en: Select the scene that should be activated when the button is pressed.
           #     de: Wähle die Szene aus, die aktiviert werden soll, wenn der Button gedrückt wird.
+          # optional: false
+          # display_if: true
           name: Scene to Activate
           description: Select the scene that should be activated when the button is pressed.
           selector:
@@ -126,6 +153,7 @@ blueprint:
           #     en: Add a delay before activating the scene.
           #     de: Füge eine Verzögerung hinzu, bevor die Szene aktiviert wird.
           # optional: true
+          # display_if: true
           name: Delay (optional)
           description: Add a delay before activating the scene.
           selector:
