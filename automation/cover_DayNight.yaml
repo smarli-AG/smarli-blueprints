@@ -184,22 +184,52 @@ blueprint:
       description: These inputs are used to set the automation triggers
       input:
         daynight_cycle_method:
+          # translation:
+          #   name:
+          #     en: Day-Night-Cycle Method
+          #     de: Methode für den Tag-Nacht-Zyklus
+          #   description:
+          #     en: Which method should control the day-night cycle? The covers open in the morning and close at night. Only the settings for the method you choose are shown.
+          #     de: Welche Methode soll den Tag-Nacht-Zyklus steuern? Die Storen öffnen am Morgen und schliessen am Abend. Es werden nur die Einstellungen der gewählten Methode angezeigt.
+          # optional: false
+          # display_if: true
           name: Day-Night-Cycle Method
           description: >
             Based on which method should the day-night cycle (opening covers in the morning, closing them at night) operate?
-            Go ahead and jump down to the section that relates to your chosen method.
+            Only the inputs that belong to the method you choose are relevant.
           selector:
             select:
               options:
                 - label: Sunrise/Sunset
+                  # translation:
+                  #   label:
+                  #     en: Sunrise/Sunset
+                  #     de: Sonnenaufgang/Sonnenuntergang
                   value: sun
                 - label: Time
+                  # translation:
+                  #   label:
+                  #     en: Time
+                  #     de: Uhrzeit
                   value: time
                 - label: Brightness
+                  # translation:
+                  #   label:
+                  #     en: Brightness
+                  #     de: Helligkeit
                   value: brightness
           default: sun
 
         workday_tracker:
+          # translation:
+          #   name:
+          #     en: Workday Tracker
+          #     de: Arbeitstag-Sensor
+          #   description:
+          #     en: Entity that tracks whether today is a workday. Use it to set different opening times on workdays and non-workdays. If it is not set, every day counts as a non-workday.
+          #     de: Entität, die erfasst, ob heute ein Arbeitstag ist. Damit kannst Du unterschiedliche Öffnungszeiten für Arbeitstage und arbeitsfreie Tage festlegen. Ohne diese Angabe gilt jeder Tag als arbeitsfreier Tag.
+          # optional: true
+          # display_if: true
           name: Workday Tracker (optional)
           description: >
             Entity used to track whether or not today is a workday. This can be used to differentiate between opening times on workdays vs non-workdays.
@@ -211,6 +241,15 @@ blueprint:
                 - domain: binary_sensor
           default: binary_sensor.workday_sensor
         workday_tomorrow_tracker:
+          # translation:
+          #   name:
+          #     en: Workday Tomorrow Tracker
+          #     de: Arbeitstag-Sensor für morgen
+          #   description:
+          #     en: Entity that tracks whether tomorrow is a workday. Use it to set different closing times depending on tomorrow. If it is not set, every day counts as a non-workday.
+          #     de: Entität, die erfasst, ob morgen ein Arbeitstag ist. Damit kannst Du unterschiedliche Schliesszeiten je nach morgigem Tag festlegen. Ohne diese Angabe gilt jeder Tag als arbeitsfreier Tag.
+          # optional: true
+          # display_if: true
           name: Workday Tomorrow Tracker (optional)
           description: >
             Entity used to track whether or not tomorrow is a workday. This can be used to differentiate between closing times if tomorrow is a workday vs a non-workday.
@@ -223,6 +262,15 @@ blueprint:
           default: binary_sensor.workday_tomorrow_sensor
 
         sunrise_offset:
+          # translation:
+          #   name:
+          #     en: Sunrise Offset
+          #     de: Verschiebung Sonnenaufgang
+          #   description:
+          #     en: Shift the opening away from the actual sunrise. Use a negative value to open before sunrise. The sun integration supplies the sunrise time.
+          #     de: Verschiebe das Öffnen gegenüber dem tatsächlichen Sonnenaufgang. Ein negativer Wert öffnet vor dem Sonnenaufgang. Die Sonnenaufgangszeit liefert die Sun-Integration.
+          # optional: true
+          # display_if: daynight_cycle_method == 'sun'
           name: Sunrise Offset (optional)
           description: If required, offset the opening from the actual sunrise time. Time of sunrise is delivered by the sun integration.
           selector:
@@ -232,6 +280,15 @@ blueprint:
               unit_of_measurement: minutes
           default: 0
         sunrise_offset_helper:
+          # translation:
+          #   name:
+          #     en: Sunrise Offset Helper
+          #     de: Helfer Verschiebung Sonnenaufgang
+          #   description:
+          #     en: Instead of setting the sunrise offset in this automation, use a number helper (minutes).
+          #     de: Statt die Verschiebung in dieser Automation zu setzen, kannst Du einen Number-Helfer (Minuten) verwenden.
+          # optional: true
+          # display_if: false
           name: Sunrise Offset Helper (optional)
           description: Instead of setting a sunrise offset within this automation, you can use a number helper (minutes) to set the sunrise offset.
           selector:
@@ -241,6 +298,15 @@ blueprint:
           default: ""
 
         sunset_offset:
+          # translation:
+          #   name:
+          #     en: Sunset Offset
+          #     de: Verschiebung Sonnenuntergang
+          #   description:
+          #     en: Shift the closing away from the actual sunset. Use a negative value to close before sunset. The sun integration supplies the sunset time.
+          #     de: Verschiebe das Schliessen gegenüber dem tatsächlichen Sonnenuntergang. Ein negativer Wert schliesst vor dem Sonnenuntergang. Die Sonnenuntergangszeit liefert die Sun-Integration.
+          # optional: true
+          # display_if: daynight_cycle_method == 'sun'
           name: Sunset Offset (optional)
           description: If required, offset the closing from the actual sunset time. Time of sunset is delivered by the sun integration.
           selector:
@@ -250,6 +316,15 @@ blueprint:
               unit_of_measurement: minutes
           default: 0
         sunset_offset_helper:
+          # translation:
+          #   name:
+          #     en: Sunset Offset Helper
+          #     de: Helfer Verschiebung Sonnenuntergang
+          #   description:
+          #     en: Instead of setting the sunset offset in this automation, use a number helper (minutes).
+          #     de: Statt die Verschiebung in dieser Automation zu setzen, kannst Du einen Number-Helfer (Minuten) verwenden.
+          # optional: true
+          # display_if: false
           name: Sunset Offset Helper (optional)
           description: Instead of setting a sunset offset within this automation, you can use a number helper (minutes) to set the sunset offset.
           selector:
@@ -259,12 +334,30 @@ blueprint:
           default: ""
 
         time_open_workday:
+          # translation:
+          #   name:
+          #     en: Open Time on Workdays
+          #     de: Öffnungszeit an Arbeitstagen
+          #   description:
+          #     en: At what time should the covers open on workdays?
+          #     de: Um welche Uhrzeit sollen die Storen an Arbeitstagen öffnen?
+          # optional: false
+          # display_if: daynight_cycle_method == 'time'
           name: Open Time on Workdays (optional)
           description: Time to open covers on workdays, if `Day-Night-Cycle Method` is set to `Time`.
           selector:
             time:
           default: "06:00:00"
         time_open_workday_helper:
+          # translation:
+          #   name:
+          #     en: Open Time on Workdays Helper
+          #     de: Helfer Öffnungszeit an Arbeitstagen
+          #   description:
+          #     en: Instead of setting the opening time in this automation, use a datetime helper (time only).
+          #     de: Statt die Öffnungszeit in dieser Automation zu setzen, kannst Du einen Datetime-Helfer (nur Zeit) verwenden.
+          # optional: true
+          # display_if: false
           name: Open Time on Workdays Helper (optional)
           description: Instead of setting the opening time within this automation, you can use a datetime helper (time only) to set the open time.
           selector:
@@ -273,12 +366,30 @@ blueprint:
                 - domain: input_datetime
           default: ""
         time_open_non_workday:
+          # translation:
+          #   name:
+          #     en: Open Time on Non-Workdays
+          #     de: Öffnungszeit an arbeitsfreien Tagen
+          #   description:
+          #     en: At what time should the covers open on non-workdays?
+          #     de: Um welche Uhrzeit sollen die Storen an arbeitsfreien Tagen öffnen?
+          # optional: false
+          # display_if: daynight_cycle_method == 'time'
           name: Open Time on Non-Workdays (optional)
           description: Time to open covers on non-workdays, if `Day-Night-Cycle Method` is set to `Time`.
           selector:
             time:
           default: "07:00:00"
         time_open_non_workday_helper:
+          # translation:
+          #   name:
+          #     en: Open Time on Non-Workdays Helper
+          #     de: Helfer Öffnungszeit an arbeitsfreien Tagen
+          #   description:
+          #     en: Instead of setting the opening time in this automation, use a datetime helper (time only).
+          #     de: Statt die Öffnungszeit in dieser Automation zu setzen, kannst Du einen Datetime-Helfer (nur Zeit) verwenden.
+          # optional: true
+          # display_if: false
           name: Open Time on Non-Workdays Helper (optional)
           description: Instead of setting the opening time within this automation, you can use a datetime helper (time only) to set the open time.
           selector:
@@ -288,12 +399,30 @@ blueprint:
           default: ""
 
         time_close_workday_tomorrow:
+          # translation:
+          #   name:
+          #     en: Close Time if Tomorrow is a Workday
+          #     de: Schliesszeit wenn morgen ein Arbeitstag ist
+          #   description:
+          #     en: At what time should the covers close if tomorrow is a workday?
+          #     de: Um welche Uhrzeit sollen die Storen schliessen, wenn morgen ein Arbeitstag ist?
+          # optional: false
+          # display_if: daynight_cycle_method == 'time'
           name: Close Time if tomorrow is a Workday (optional)
           description: Time to close covers if tomorrow is a workday, if `Day-Night-Cycle Method` is set to `Time`.
           selector:
             time:
           default: "21:00:00"
         time_close_workday_tomorrow_helper:
+          # translation:
+          #   name:
+          #     en: Close Time if Tomorrow is a Workday Helper
+          #     de: Helfer Schliesszeit wenn morgen ein Arbeitstag ist
+          #   description:
+          #     en: Instead of setting the closing time in this automation, use a datetime helper (time only).
+          #     de: Statt die Schliesszeit in dieser Automation zu setzen, kannst Du einen Datetime-Helfer (nur Zeit) verwenden.
+          # optional: true
+          # display_if: false
           name: Close Time if Tomorrow is a Workday Helper (optional)
           description: Instead of setting the closing time within this automation, you can use a datetime helper (time only) to set the close time.
           selector:
@@ -302,12 +431,30 @@ blueprint:
                 - domain: input_datetime
           default: ""
         time_close_non_workday_tomorrow:
+          # translation:
+          #   name:
+          #     en: Close Time if Tomorrow is not a Workday
+          #     de: Schliesszeit wenn morgen kein Arbeitstag ist
+          #   description:
+          #     en: At what time should the covers close if tomorrow is not a workday?
+          #     de: Um welche Uhrzeit sollen die Storen schliessen, wenn morgen kein Arbeitstag ist?
+          # optional: false
+          # display_if: daynight_cycle_method == 'time'
           name: Close Time if tomorrow is not a Workday (optional)
           description: Time to close covers if tomorrow is not a workday, if `Day-Night Cycle Method` is set to `Time`.
           selector:
             time:
           default: "21:00:00"
         time_close_non_workday_tomorrow_helper:
+          # translation:
+          #   name:
+          #     en: Close Time if Tomorrow is not a Workday Helper
+          #     de: Helfer Schliesszeit wenn morgen kein Arbeitstag ist
+          #   description:
+          #     en: Instead of setting the closing time in this automation, use a datetime helper (time only).
+          #     de: Statt die Schliesszeit in dieser Automation zu setzen, kannst Du einen Datetime-Helfer (nur Zeit) verwenden.
+          # optional: true
+          # display_if: false
           name: Close Time if Tomorrow is not a Workday Helper (optional)
           description: Instead of setting the closing time within this automation, you can use a datetime helper (time only) to set the close time.
           selector:
@@ -317,6 +464,15 @@ blueprint:
           default: ""
 
         brightness_sensor:
+          # translation:
+          #   name:
+          #     en: Brightness Sensor
+          #     de: Helligkeitssensor
+          #   description:
+          #     en: Which brightness sensor should the automation read? Without this sensor the brightness method cannot work.
+          #     de: Welchen Helligkeitssensor soll die Automation auslesen? Ohne diesen Sensor funktioniert die Helligkeits-Methode nicht.
+          # optional: false
+          # display_if: daynight_cycle_method == 'brightness'
           name: Brightness Sensor
           description: Brightness sensor entity. Required if `Day-Night-Cycle Method` is set to `Brightness`.
           selector:
@@ -326,6 +482,15 @@ blueprint:
                   device_class: illuminance
           default: ""
         lux_sensor_delay:
+          # translation:
+          #   name:
+          #     en: Brightness Sensor Stabilizer
+          #     de: Verzögerung Helligkeitssensor
+          #   description:
+          #     en: How long must the sensor stay above or below the threshold before the covers move? This prevents constant back-and-forth, for example when a cloud passes in front of the sun.
+          #     de: Wie lange muss der Sensor über oder unter dem Schwellenwert bleiben, bevor die Storen fahren? Das verhindert ständiges Hin und Her, zum Beispiel wenn eine Wolke vor die Sonne zieht.
+          # optional: true
+          # display_if: daynight_cycle_method == 'brightness'
           name: Brightness Sensor Stabilizer (optional)
           description: How long does the brightness sensor need to be above/below the defined threshold before the covers move? This avoids frequent back-and-forth switching (e.g. if a cloud passes in front of the sun).
           selector:
@@ -333,6 +498,15 @@ blueprint:
           default: "00:15:00"
 
         brightness_open:
+          # translation:
+          #   name:
+          #     en: Brightness to Open
+          #     de: Helligkeit zum Öffnen
+          #   description:
+          #     en: At which brightness level should the covers open?
+          #     de: Ab welcher Helligkeit sollen die Storen öffnen?
+          # optional: false
+          # display_if: daynight_cycle_method == 'brightness'
           name: Brightness to Open (optional)
           description: Brightness level to open covers, if `Day-Night Cycle Method` is set to `Brightness`.
           selector:
@@ -343,6 +517,15 @@ blueprint:
               mode: box
           default: 500
         brightness_open_helper:
+          # translation:
+          #   name:
+          #     en: Brightness Open Helper
+          #     de: Helfer Helligkeit zum Öffnen
+          #   description:
+          #     en: Instead of setting the brightness to open in this automation, use a number helper.
+          #     de: Statt die Helligkeit zum Öffnen in dieser Automation zu setzen, kannst Du einen Number-Helfer verwenden.
+          # optional: true
+          # display_if: false
           name: Brightness Open Helper (optional)
           description: Instead of setting the brightness to open within this automation, you can use a number helper to set the brightness to open.
           selector:
@@ -352,6 +535,15 @@ blueprint:
           default: ""
 
         brightness_close:
+          # translation:
+          #   name:
+          #     en: Brightness to Close
+          #     de: Helligkeit zum Schliessen
+          #   description:
+          #     en: At which brightness level should the covers close? This value must be lower than the brightness to open.
+          #     de: Ab welcher Helligkeit sollen die Storen schliessen? Dieser Wert muss tiefer sein als die Helligkeit zum Öffnen.
+          # optional: false
+          # display_if: daynight_cycle_method == 'brightness'
           name: Brightness to Close (optional)
           description: Brightness level to close covers, if `Day-Night Cycle Method` is set to `Brightness`. Must be below `Brightness to Open` (hysteresis).
           selector:
@@ -362,6 +554,15 @@ blueprint:
               mode: box
           default: 30
         brightness_close_helper:
+          # translation:
+          #   name:
+          #     en: Brightness Close Helper
+          #     de: Helfer Helligkeit zum Schliessen
+          #   description:
+          #     en: Instead of setting the brightness to close in this automation, use a number helper.
+          #     de: Statt die Helligkeit zum Schliessen in dieser Automation zu setzen, kannst Du einen Number-Helfer verwenden.
+          # optional: true
+          # display_if: false
           name: Brightness Close Helper (optional)
           description: Instead of setting the brightness to close within this automation, you can use a number helper to set the brightness to close.
           selector:
@@ -371,6 +572,15 @@ blueprint:
           default: ""
 
         should_use_earliest_open:
+          # translation:
+          #   name:
+          #     en: Use Earliest Open Time
+          #     de: Früheste Öffnungszeit verwenden
+          #   description:
+          #     en: Do you want to set a time before which the covers must not open? The covers stay closed until that time, even if the chosen method already wants to open them.
+          #     de: Möchtest Du eine Zeit festlegen, vor der die Storen nicht öffnen dürfen? Die Storen bleiben bis zu dieser Zeit geschlossen, auch wenn die gewählte Methode bereits öffnen möchte.
+          # optional: false
+          # display_if: true
           name: Use Earliest Open Time
           description: >
             Do you want to set a time at which the covers should open at the earliest?
@@ -381,12 +591,30 @@ blueprint:
             boolean:
           default: false
         earliest_open_workday:
+          # translation:
+          #   name:
+          #     en: Earliest Open Time on Workdays
+          #     de: Früheste Öffnungszeit an Arbeitstagen
+          #   description:
+          #     en: Before this time, the covers do not open on workdays.
+          #     de: Vor dieser Zeit öffnen die Storen an Arbeitstagen nicht.
+          # optional: false
+          # display_if: should_use_earliest_open == true
           name: Earliest Open Time on Workdays (optional)
           description: Earliest time to open covers on workdays. Only relevant if `Use Earliest Open Time` is set to `true`.
           selector:
             time:
           default: "07:00:00"
         earliest_open_workday_helper:
+          # translation:
+          #   name:
+          #     en: Earliest Open Time Workday Helper
+          #     de: Helfer früheste Öffnungszeit an Arbeitstagen
+          #   description:
+          #     en: Instead of setting the earliest open time in this automation, use a datetime helper (time only).
+          #     de: Statt die früheste Öffnungszeit in dieser Automation zu setzen, kannst Du einen Datetime-Helfer (nur Zeit) verwenden.
+          # optional: true
+          # display_if: false
           name: Earliest Open Time Workday Helper (optional)
           description: Instead of setting the earliest open time on workdays within this automation, you can use a datetime helper (time only).
           selector:
@@ -395,12 +623,30 @@ blueprint:
                 - domain: input_datetime
           default: ""
         earliest_open_non_workday:
+          # translation:
+          #   name:
+          #     en: Earliest Open Time on Non-Workdays
+          #     de: Früheste Öffnungszeit an arbeitsfreien Tagen
+          #   description:
+          #     en: Before this time, the covers do not open on non-workdays.
+          #     de: Vor dieser Zeit öffnen die Storen an arbeitsfreien Tagen nicht.
+          # optional: false
+          # display_if: should_use_earliest_open == true
           name: Earliest Open Time on Non-Workdays (optional)
           description: Earliest time to open covers on non-workdays. Only relevant if `Use Earliest Open Time` is set to `true`.
           selector:
             time:
           default: "09:00:00"
         earliest_open_non_workday_helper:
+          # translation:
+          #   name:
+          #     en: Earliest Open Time Non-Workday Helper
+          #     de: Helfer früheste Öffnungszeit an arbeitsfreien Tagen
+          #   description:
+          #     en: Instead of setting the earliest open time in this automation, use a datetime helper (time only).
+          #     de: Statt die früheste Öffnungszeit in dieser Automation zu setzen, kannst Du einen Datetime-Helfer (nur Zeit) verwenden.
+          # optional: true
+          # display_if: false
           name: Earliest Open Time Non-Workday Helper (optional)
           description: Instead of setting the earliest open time on non-workdays within this automation, you can use a datetime helper (time only).
           selector:
@@ -410,6 +656,15 @@ blueprint:
           default: ""
 
         should_use_earliest_close:
+          # translation:
+          #   name:
+          #     en: Use Earliest Close Time
+          #     de: Früheste Schliesszeit verwenden
+          #   description:
+          #     en: Do you want to set a time before which the covers must not close? The covers stay open until that time, even if the chosen method already wants to close them.
+          #     de: Möchtest Du eine Zeit festlegen, vor der die Storen nicht schliessen dürfen? Die Storen bleiben bis zu dieser Zeit offen, auch wenn die gewählte Methode bereits schliessen möchte.
+          # optional: false
+          # display_if: true
           name: Use Earliest Close Time
           description: >
             Do you want to set a time at which the covers should close at the earliest?
@@ -420,12 +675,30 @@ blueprint:
             boolean:
           default: false
         earliest_close_workday_tomorrow:
+          # translation:
+          #   name:
+          #     en: Earliest Close Time if Tomorrow is a Workday
+          #     de: Früheste Schliesszeit wenn morgen ein Arbeitstag ist
+          #   description:
+          #     en: Before this time, the covers do not close if tomorrow is a workday.
+          #     de: Vor dieser Zeit schliessen die Storen nicht, wenn morgen ein Arbeitstag ist.
+          # optional: false
+          # display_if: should_use_earliest_close == true
           name: Earliest Close Time if Tomorrow is a Workday (optional)
           description: Earliest time to close covers if tomorrow is a workday. Only relevant if `Use Earliest Close Time` is set to `true`.
           selector:
             time:
           default: "22:00:00"
         earliest_close_workday_tomorrow_helper:
+          # translation:
+          #   name:
+          #     en: Earliest Close Time Workday Helper
+          #     de: Helfer früheste Schliesszeit an Arbeitstagen
+          #   description:
+          #     en: Instead of setting the earliest close time in this automation, use a datetime helper (time only).
+          #     de: Statt die früheste Schliesszeit in dieser Automation zu setzen, kannst Du einen Datetime-Helfer (nur Zeit) verwenden.
+          # optional: true
+          # display_if: false
           name: Earliest Close Time Workday Helper (optional)
           description: Instead of setting the earliest close time within this automation, you can use a datetime helper (time only).
           selector:
@@ -434,12 +707,30 @@ blueprint:
                 - domain: input_datetime
           default: ""
         earliest_close_non_workday_tomorrow:
+          # translation:
+          #   name:
+          #     en: Earliest Close Time if Tomorrow is a Non-Workday
+          #     de: Früheste Schliesszeit wenn morgen kein Arbeitstag ist
+          #   description:
+          #     en: Before this time, the covers do not close if tomorrow is not a workday.
+          #     de: Vor dieser Zeit schliessen die Storen nicht, wenn morgen kein Arbeitstag ist.
+          # optional: false
+          # display_if: should_use_earliest_close == true
           name: Earliest Close Time if Tomorrow is a Non-Workday (optional)
           description: Earliest time to close covers if tomorrow is not a workday. Only relevant if `Use Earliest Close Time` is set to `true`.
           selector:
             time:
           default: "23:00:00"
         earliest_close_non_workday_tomorrow_helper:
+          # translation:
+          #   name:
+          #     en: Earliest Close Time Non-Workday Helper
+          #     de: Helfer früheste Schliesszeit an arbeitsfreien Tagen
+          #   description:
+          #     en: Instead of setting the earliest close time in this automation, use a datetime helper (time only).
+          #     de: Statt die früheste Schliesszeit in dieser Automation zu setzen, kannst Du einen Datetime-Helfer (nur Zeit) verwenden.
+          # optional: true
+          # display_if: false
           name: Earliest Close Time Non-Workday Helper (optional)
           description: Instead of setting the earliest close time within this automation, you can use a datetime helper (time only).
           selector:
@@ -449,6 +740,15 @@ blueprint:
           default: ""
 
         should_use_latest_open:
+          # translation:
+          #   name:
+          #     en: Use Latest Open Time
+          #     de: Späteste Öffnungszeit verwenden
+          #   description:
+          #     en: Do you want to set a time at which the covers open at the latest? The covers open at that time even if the chosen method does not want to open them yet.
+          #     de: Möchtest Du eine Zeit festlegen, zu der die Storen spätestens öffnen? Die Storen öffnen dann zu dieser Zeit, auch wenn die gewählte Methode noch nicht öffnen möchte.
+          # optional: false
+          # display_if: true
           name: Use Latest Open Time
           description: >
             Do you want to set a time at which the covers should open at the latest, if they
@@ -462,12 +762,30 @@ blueprint:
             boolean:
           default: false
         latest_open_workday:
+          # translation:
+          #   name:
+          #     en: Latest Open Time on Workdays
+          #     de: Späteste Öffnungszeit an Arbeitstagen
+          #   description:
+          #     en: At this time the covers open on workdays at the latest.
+          #     de: Zu dieser Zeit öffnen die Storen an Arbeitstagen spätestens.
+          # optional: false
+          # display_if: should_use_latest_open == true
           name: Latest Open Time on Workdays (optional)
           description: Latest time to open covers on workdays. Only relevant if `Use Latest Open Time` is set to `true`.
           selector:
             time:
           default: "07:00:00"
         latest_open_workday_helper:
+          # translation:
+          #   name:
+          #     en: Latest Open Time Workday Helper
+          #     de: Helfer späteste Öffnungszeit an Arbeitstagen
+          #   description:
+          #     en: Instead of setting the latest open time in this automation, use a datetime helper (time only).
+          #     de: Statt die späteste Öffnungszeit in dieser Automation zu setzen, kannst Du einen Datetime-Helfer (nur Zeit) verwenden.
+          # optional: true
+          # display_if: false
           name: Latest Open Time Workday Helper (optional)
           description: Instead of setting the latest open time on workdays within this automation, you can use a datetime helper (time only).
           selector:
@@ -476,12 +794,30 @@ blueprint:
                 - domain: input_datetime
           default: ""
         latest_open_non_workday:
+          # translation:
+          #   name:
+          #     en: Latest Open Time on Non-Workdays
+          #     de: Späteste Öffnungszeit an arbeitsfreien Tagen
+          #   description:
+          #     en: At this time the covers open on non-workdays at the latest.
+          #     de: Zu dieser Zeit öffnen die Storen an arbeitsfreien Tagen spätestens.
+          # optional: false
+          # display_if: should_use_latest_open == true
           name: Latest Open Time on Non-Workdays (optional)
           description: Latest time to open covers on non-workdays. Only relevant if `Use Latest Open Time` is set to `true`.
           selector:
             time:
           default: "09:00:00"
         latest_open_non_workday_helper:
+          # translation:
+          #   name:
+          #     en: Latest Open Time Non-Workday Helper
+          #     de: Helfer späteste Öffnungszeit an arbeitsfreien Tagen
+          #   description:
+          #     en: Instead of setting the latest open time in this automation, use a datetime helper (time only).
+          #     de: Statt die späteste Öffnungszeit in dieser Automation zu setzen, kannst Du einen Datetime-Helfer (nur Zeit) verwenden.
+          # optional: true
+          # display_if: false
           name: Latest Open Time Non-Workday Helper (optional)
           description: Instead of setting the latest open time on non-workdays within this automation, you can use a datetime helper (time only).
           selector:
@@ -491,6 +827,15 @@ blueprint:
           default: ""
 
         should_use_latest_close:
+          # translation:
+          #   name:
+          #     en: Use Latest Close Time
+          #     de: Späteste Schliesszeit verwenden
+          #   description:
+          #     en: Do you want to set a time at which the covers close at the latest? The covers close at that time even if the chosen method does not want to close them yet.
+          #     de: Möchtest Du eine Zeit festlegen, zu der die Storen spätestens schliessen? Die Storen schliessen dann zu dieser Zeit, auch wenn die gewählte Methode noch nicht schliessen möchte.
+          # optional: false
+          # display_if: true
           name: Use Latest Close Time
           description: >
             Do you want to set a time at which the covers should close at the latest, if they
@@ -505,12 +850,30 @@ blueprint:
             boolean:
           default: false
         latest_close_workday_tomorrow:
+          # translation:
+          #   name:
+          #     en: Latest Close Time if Tomorrow is a Workday
+          #     de: Späteste Schliesszeit wenn morgen ein Arbeitstag ist
+          #   description:
+          #     en: At this time the covers close at the latest, if tomorrow is a workday.
+          #     de: Zu dieser Zeit schliessen die Storen spätestens, wenn morgen ein Arbeitstag ist.
+          # optional: false
+          # display_if: should_use_latest_close == true
           name: Latest Close Time if Tomorrow is a Workday (optional)
           description: Latest time to close covers if tomorrow is a workday. Only relevant if `Use Latest Close Time` is set to `true`.
           selector:
             time:
           default: "22:00:00"
         latest_close_workday_tomorrow_helper:
+          # translation:
+          #   name:
+          #     en: Latest Close Time Workday Helper
+          #     de: Helfer späteste Schliesszeit an Arbeitstagen
+          #   description:
+          #     en: Instead of setting the latest close time in this automation, use a datetime helper (time only).
+          #     de: Statt die späteste Schliesszeit in dieser Automation zu setzen, kannst Du einen Datetime-Helfer (nur Zeit) verwenden.
+          # optional: true
+          # display_if: false
           name: Latest Close Time Workday Helper (optional)
           description: Instead of setting the latest close time within this automation, you can use a datetime helper (time only).
           selector:
@@ -519,12 +882,30 @@ blueprint:
                 - domain: input_datetime
           default: ""
         latest_close_non_workday_tomorrow:
+          # translation:
+          #   name:
+          #     en: Latest Close Time if Tomorrow is a Non-Workday
+          #     de: Späteste Schliesszeit wenn morgen kein Arbeitstag ist
+          #   description:
+          #     en: At this time the covers close at the latest, if tomorrow is not a workday.
+          #     de: Zu dieser Zeit schliessen die Storen spätestens, wenn morgen kein Arbeitstag ist.
+          # optional: false
+          # display_if: should_use_latest_close == true
           name: Latest Close Time if Tomorrow is a Non-Workday (optional)
           description: Latest time to close covers if tomorrow is not a workday. Only relevant if `Use Latest Close Time` is set to `true`.
           selector:
             time:
           default: "23:00:00"
         latest_close_non_workday_tomorrow_helper:
+          # translation:
+          #   name:
+          #     en: Latest Close Time Non-Workday Helper
+          #     de: Helfer späteste Schliesszeit an arbeitsfreien Tagen
+          #   description:
+          #     en: Instead of setting the latest close time in this automation, use a datetime helper (time only).
+          #     de: Statt die späteste Schliesszeit in dieser Automation zu setzen, kannst Du einen Datetime-Helfer (nur Zeit) verwenden.
+          # optional: true
+          # display_if: false
           name: Latest Close Time Non-Workday Helper (optional)
           description: Instead of setting the latest close time within this automation, you can use a datetime helper (time only).
           selector:
@@ -539,6 +920,15 @@ blueprint:
       description: These inputs are used to set the automation conditions
       input:
         should_suspend_after_manual_interaction:
+          # translation:
+          #   name:
+          #     en: Suspend After Manual Interaction
+          #     de: Aussetzen nach manueller Bedienung
+          #   description:
+          #     en: If somebody operates a cover by hand, should the automation leave that cover alone for a while? Manual control means the app, the UI, a wall switch, or stopping a cover mid-move. All other covers keep automating.
+          #     de: Soll die Automation eine Store in Ruhe lassen, wenn jemand sie von Hand bedient? Manuelle Bedienung heisst App, Oberfläche, Wandschalter oder das Stoppen während der Fahrt. Alle anderen Storen laufen normal weiter.
+          # optional: false
+          # display_if: true
           name: Suspend After Manual Interaction
           description: >
             If covers are controlled manually, suspend the automation for the
@@ -551,6 +941,15 @@ blueprint:
             boolean:
           default: true
         suspension_duration:
+          # translation:
+          #   name:
+          #     en: Suspension Duration
+          #     de: Dauer der Aussetzung
+          #   description:
+          #     en: How long should the automation leave a manually operated cover alone? The cover keeps its manual position until the next scheduled transition after this duration has expired.
+          #     de: Wie lange soll die Automation eine von Hand bediente Store in Ruhe lassen? Die Store behält ihre manuelle Position bis zum nächsten geplanten Wechsel, nachdem diese Dauer abgelaufen ist.
+          # optional: false
+          # display_if: should_suspend_after_manual_interaction == true
           name: Suspension Duration (optional)
           description: If suspension after manual interaction is turned on, this setting specifies how long the suspension should last.
           selector:
@@ -558,6 +957,15 @@ blueprint:
           default: "00:30:00"
 
         weather_events:
+          # translation:
+          #   name:
+          #     en: Weather Events to Prevent Closing
+          #     de: Wetterereignisse die das Schliessen verhindern
+          #   description:
+          #     en: Which weather events should prevent the covers from closing? The automation checks the current conditions and the forecast for the next hour. Weather only blocks closing - opening is always safe. The automation closes the covers as soon as the weather clears.
+          #     de: Welche Wetterereignisse sollen das Schliessen der Storen verhindern? Die Automation prüft das aktuelle Wetter und die Vorhersage für die nächste Stunde. Wetter blockiert nur das Schliessen - das Öffnen ist immer unbedenklich. Die Automation schliesst die Storen, sobald sich das Wetter beruhigt hat.
+          # optional: true
+          # display_if: true
           name: Weather Events to Prevent Closing (optional)
           description: >
             Which weather events (current or forecast within the next hour) should prevent the
@@ -572,25 +980,70 @@ blueprint:
               mode: list
               options:
                 - label: High Wind Speeds
+                  # translation:
+                  #   label:
+                  #     en: High Wind Speeds
+                  #     de: Hohe Windgeschwindigkeiten
                   value: "windy"
                 - label: Rainy
+                  # translation:
+                  #   label:
+                  #     en: Rainy
+                  #     de: Regen
                   value: "rainy"
                 - label: Pouring
+                  # translation:
+                  #   label:
+                  #     en: Pouring
+                  #     de: Starkregen
                   value: "pouring"
                 - label: Lightning
+                  # translation:
+                  #   label:
+                  #     en: Lightning
+                  #     de: Blitzschlag
                   value: "lightning"
                 - label: Lightning, rainy
+                  # translation:
+                  #   label:
+                  #     en: Lightning and rainy
+                  #     de: Blitzschlag mit Regen
                   value: "lightning-rainy"
                 - label: Hail
+                  # translation:
+                  #   label:
+                  #     en: Hail
+                  #     de: Hagel
                   value: "hail"
                 - label: Snowy
+                  # translation:
+                  #   label:
+                  #     en: Snowy
+                  #     de: Schnee
                   value: "snowy"
                 - label: Snowy, rainy
+                  # translation:
+                  #   label:
+                  #     en: Snowy and rainy
+                  #     de: Schneeregen
                   value: "snowy-rainy"
                 - label: Fog
+                  # translation:
+                  #   label:
+                  #     en: Fog
+                  #     de: Nebel
                   value: "fog"
           default: []
         weather_entity:
+          # translation:
+          #   name:
+          #     en: Weather Entity
+          #     de: Wetter-Entität
+          #   description:
+          #     en: Which weather entity should the automation check? Without it, the selected weather events cannot block the closing.
+          #     de: Welche Wetter-Entität soll die Automation prüfen? Ohne sie können die gewählten Wetterereignisse das Schliessen nicht verhindern.
+          # optional: false
+          # display_if: not (isEmpty(weather_events))
           name: Weather Entity (optional)
           description: The weather entity to check in order to block the closing of the covers. This is required if you want to block the closing of the covers based on weather conditions/forecasts.
           selector:
@@ -599,8 +1052,20 @@ blueprint:
                 - domain: weather
           default: ""
         rain_sensor:
+          # translation:
+          #   name:
+          #     en: Rain Sensor
+          #     de: Regensensor
+          #   description:
+          #     en: If you have one, add a separate moisture sensor as a real-time check for rain. It blocks closing while it reports moisture, but only because you selected a rain-type weather event above.
+          #     de: Falls vorhanden, ergänze einen separaten Feuchtigkeitssensor als Echtzeit-Prüfung für Regen. Er verhindert das Schliessen, solange er Feuchtigkeit meldet - allerdings nur, weil Du oben ein Regen-Wetterereignis gewählt hast.
+          # optional: true
+          # display_if: includesAny(weather_events, ['rainy', 'pouring', 'lightning', 'lightning-rainy', 'snowy-rainy'])
           name: Rain Sensor (optional)
-          description: If available, specify a separate moisture sensor to be used to track if it's currently raining. Blocks closing while `on`, independently of the selected weather events. Must be of device_class `moisture`.
+          description: >
+            If available, specify a separate moisture sensor to be used to track if it's currently raining.
+            Blocks closing while `on`, but only if you selected a rain-type weather event above
+            (rainy, pouring, lightning, lightning-rainy or snowy-rainy). Must be of device_class `moisture`.
           selector:
             entity:
               filter:
@@ -608,8 +1073,20 @@ blueprint:
                   device_class: moisture
           default: ""
         wind_sensor:
+          # translation:
+          #   name:
+          #     en: Wind Sensor
+          #     de: Windsensor
+          #   description:
+          #     en: If you have one, add a separate wind sensor as a real-time check for wind speed. It blocks closing above the threshold, but only because you selected "High Wind Speeds" above.
+          #     de: Falls vorhanden, ergänze einen separaten Windsensor als Echtzeit-Prüfung der Windgeschwindigkeit. Er verhindert das Schliessen oberhalb des Schwellenwerts - allerdings nur, weil Du oben "Hohe Windgeschwindigkeiten" gewählt hast.
+          # optional: true
+          # display_if: includes(weather_events, 'windy')
           name: Wind Sensor (optional)
-          description: If available, specify a separate wind sensor to be used to track current wind speeds. Blocks closing above the threshold, independently of the selected weather events. Must be of device_class `wind_speed`.
+          description: >
+            If available, specify a separate wind sensor to be used to track current wind speeds.
+            Blocks closing above the threshold, but only if you selected `High Wind Speeds` above.
+            Must be of device_class `wind_speed`.
           selector:
             entity:
               filter:
@@ -617,6 +1094,15 @@ blueprint:
                   device_class: wind_speed
           default: ""
         wind_speed_threshold:
+          # translation:
+          #   name:
+          #     en: Wind Speed Threshold to Prevent Closing
+          #     de: Windgeschwindigkeit die das Schliessen verhindert
+          #   description:
+          #     en: Above which wind speed should the covers stay open?
+          #     de: Ab welcher Windgeschwindigkeit sollen die Storen offen bleiben?
+          # optional: true
+          # display_if: includes(weather_events, 'windy')
           name: Wind Speed Threshold to Prevent Closing (optional)
           description: At what wind speed should the covers be prevented from closing?
           selector:
@@ -626,6 +1112,15 @@ blueprint:
               unit_of_measurement: km/h
           default: 35
         wind_speed_threshold_helper:
+          # translation:
+          #   name:
+          #     en: Wind Speed Threshold Helper
+          #     de: Helfer Windgeschwindigkeit
+          #   description:
+          #     en: Instead of setting the wind speed threshold in this automation, use a number helper.
+          #     de: Statt den Schwellenwert in dieser Automation zu setzen, kannst Du einen Number-Helfer verwenden.
+          # optional: true
+          # display_if: false
           name: Wind Speed Threshold Helper (optional)
           description: Instead of setting the wind speed threshold within this automation, you can use a number helper to set the wind speed threshold.
           selector:
@@ -640,6 +1135,15 @@ blueprint:
       description: These inputs are used to set the actions.
       input:
         cover_entity:
+          # translation:
+          #   name:
+          #     en: Cover(s)
+          #     de: Store(n)
+          #   description:
+          #     en: Which covers should this automation control? Select individual covers rather than cover groups, so manual operation is detected reliably. Please note that covers can close while people are outside. Leave the covers of balcony and garden doors out, so nobody gets locked out.
+          #     de: Welche Storen soll diese Automation steuern? Wähle einzelne Storen statt Storen-Gruppen, damit die manuelle Bedienung zuverlässig erkannt wird. Beachte, dass Storen schliessen können, während sich Personen draussen befinden. Lass die Storen von Balkon- und Gartentüren weg, damit sich niemand aussperrt.
+          # optional: false
+          # display_if: true
           name: Cover(s)
           description: >
             The cover entities to automate. Please select individual covers rather than
