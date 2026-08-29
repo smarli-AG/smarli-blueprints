@@ -83,7 +83,7 @@ blueprint:
     All input fields are required unless they are marked as ` (optional) `.
   domain: automation
   author: loocd [smarli. AG]
-  source_url: https://github.com/smarli-AG/smarli-blueprints/blob/main/automation/activateSceneSmartButton_smarliRelay.yaml
+  source_url: https://github.com/smarli-AG/smarli-blueprints/blob/main/automation/scene_activateSmarliRelay.yaml
   homeassistant:
     min_version: 2025.4.0 # support for model_id in device selector
 

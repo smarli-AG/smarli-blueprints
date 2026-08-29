@@ -111,7 +111,7 @@ blueprint:
     All input fields are required unless they are marked as ` (optional) `.
   domain: automation
   author: loocd [smarli. AG]
-  source_url: https://github.com/smarli-AG/smarli-blueprints/blob/main/automation/weatherWarning.yaml
+  source_url: https://github.com/smarli-AG/smarli-blueprints/blob/main/automation/weather_Warning.yaml
   homeassistant:
     min_version: 2024.11.3
 

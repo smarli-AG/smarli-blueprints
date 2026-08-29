@@ -6,6 +6,85 @@
 # backstop für cover movement ist 3min - oder gibt es überhaupt storen, die länger brauchen?
 # wo soll die default grenze für brightness to open und brightness to close sein?
 
+# ! RELEASE NOTES
+## 3.1.0 | 2026-08-29
+## - Add Partner Engine metadata block and release notes header
+## - Add translation/optional/display_if annotations to every input
+## - Consolidate input sections into the four documented sections
+## - Correct rain/wind sensor descriptions to match the actual blocking logic
+## - Fix source_url after the file was renamed to cover_DayNight.yaml
+## 3.0.0 | 2026-07-24
+## - Central resolver: contributors publish intents, one script commands the covers
+## - Suspension after manual interaction is resolved centrally across automations
+
+# ================
+# Partner Engine
+# ================
+# icon: "window-shutter-auto"
+#
+# name_en: "Cover Day-Night Cycle"
+# name_de: "Storen Tag-Nacht-Zyklus"
+# subtitle_en: "Sunrise, Time or Brightness"
+# subtitle_de: "Sonnenstand, Zeit oder Helligkeit"
+#
+# short_description_en: "Open and close your covers automatically, based on sunrise, a fixed time or brightness."
+# short_description_de: "Öffne und schliesse Deine Storen automatisch, basierend auf Sonnenstand, Uhrzeit oder Helligkeit."
+# long_description_en: |
+#   __Open and close your covers automatically, based on sunrise, a fixed time or brightness.__
+#   [br]
+#   The Day-Night Cycle automation opens your covers in the morning and closes them at night. Choose one of three methods: sunrise/sunset, a fixed time, or a brightness sensor.
+#   [br]
+#   You can set earliest and latest times, so the covers never move too early or too late. Bad weather prevents the covers from closing. The automation closes them as soon as the weather clears.
+#   [br]
+#   If somebody operates a cover by hand, the automation leaves that cover alone for a set duration. All other covers keep working as usual.
+#   [br]
+#   [br]
+#   __How to set it up:__
+#   1. Choose the method for the day-night cycle
+#   2. Configure the settings for the method you chose
+#   3. (Optional) Set the earliest and latest times for opening and closing
+#   4. Choose whether manual operation suspends the automation, and for how long
+#   5. (Optional) Choose the weather events that prevent the covers from closing
+#   6. Select the covers that should be automated
+#   [br]
+#   ---
+#   [br]
+#   _Version 3.1.0_
+# long_description_de: |
+#   __Öffne und schliesse Deine Storen automatisch, basierend auf Sonnenstand, Uhrzeit oder Helligkeit.__
+#   [br]
+#   Die Tag-Nacht-Zyklus Automation öffnet Deine Storen am Morgen und schliesst sie am Abend. Wähle eine von drei Methoden: Sonnenaufgang/Sonnenuntergang, eine feste Uhrzeit oder einen Helligkeitssensor.
+#   [br]
+#   Du kannst früheste und späteste Zeiten festlegen, damit die Storen nie zu früh oder zu spät fahren. Schlechtes Wetter verhindert das Schliessen. Die Automation schliesst die Storen, sobald sich das Wetter beruhigt hat.
+#   [br]
+#   Wenn jemand eine Store von Hand bedient, lässt die Automation diese Store für eine bestimmte Dauer in Ruhe. Alle anderen Storen laufen normal weiter.
+#   [br]
+#   [br]
+#   __Einrichtung der Automatisierung:__
+#   1. Wähle die Methode für den Tag-Nacht-Zyklus
+#   2. Konfiguriere die Einstellungen für die gewählte Methode
+#   3. (Optional) Lege die frühesten und spätesten Zeiten für das Öffnen und Schliessen fest
+#   4. Wähle, ob eine manuelle Bedienung die Automation aussetzt, und für wie lange
+#   5. (Optional) Wähle die Wetterereignisse, die das Schliessen verhindern sollen
+#   6. Wähle die Storen aus, die automatisiert werden sollen
+#   [br]
+#   ---
+#   [br]
+#   _Version 3.1.0_
+#
+# purpose_en: "Comfort"
+# purpose_de: "Komfort"
+#
+# keywords_en: [cover, blind, shutter, day night, sunrise, sunset, brightness, shading]
+# keywords_de: [store, storen, rollladen, beschattung, tag nacht, sonnenaufgang, sonnenuntergang, helligkeit]
+#
+# events_en: [waking up, going to bed, sunrise, sunset]
+# events_de: [Aufstehen, ins Bett gehen, Sonnenaufgang, Sonnenuntergang]
+#
+# highlight: true
+#
+# deploy: true
+
 blueprint:
   ############
   # Metadata #
@@ -21,7 +100,25 @@ blueprint:
     duration — a manually moved cover keeps its position until the next
     scheduled transition after the suspension has expired.
 
-    *Version 3.0.0 | 2026-07-24*
+    *Version 3.1.0*
+
+    <details>
+    <summary><b>How to set it up</b></summary>
+
+      1. Choose the method for the day-night cycle (sunrise/sunset, time or brightness).
+
+      2. Configure the settings for the method you chose.
+
+      3. (Optional) Set the earliest and latest times for opening and closing.
+
+      4. Choose whether manual operation suspends the automation, and for how long.
+
+      5. (Optional) Choose the weather events that prevent the covers from closing.
+
+      6. Select the covers that should be automated.
+
+      7. Add additional triggers, conditions, or actions manually - this is for experienced users only.
+    </details>
 
     <details>
     <summary><b>How it works</b></summary>
@@ -73,7 +170,7 @@ blueprint:
     All input fields are required unless they are marked as ` (optional) `.
   domain: automation
   author: loocd [smarli. AG]
-  source_url: https://github.com/smarli-AG/smarli-blueprints/blob/main/automation/coversDayNight.yaml
+  source_url: https://github.com/smarli-AG/smarli-blueprints/blob/main/automation/cover_DayNight.yaml
   homeassistant:
     min_version: 2024.10.0
 
