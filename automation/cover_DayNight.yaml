@@ -178,12 +178,10 @@ blueprint:
   # User Inputs #
   ###############
   input:
-    trigger_inputs_general:
-      name: Trigger Inputs GENERAL
+    trigger_inputs:
+      name: Trigger Inputs
       icon: mdi:star-box-multiple
-      description: |
-        These inputs are used to set the general setup for the automation triggers
-
+      description: These inputs are used to set the automation triggers
       input:
         daynight_cycle_method:
           name: Day-Night-Cycle Method
@@ -224,14 +222,6 @@ blueprint:
                 - domain: binary_sensor
           default: binary_sensor.workday_tomorrow_sensor
 
-    trigger_inputs_sun:
-      name: Trigger Inputs SUNRISE/SUNSET METHOD
-      icon: mdi:weather-sunny
-      collapsed: true
-      description: |
-        These inputs are used to set the automation triggers for the sunrise/sunset method
-
-      input:
         sunrise_offset:
           name: Sunrise Offset (optional)
           description: If required, offset the opening from the actual sunrise time. Time of sunrise is delivered by the sun integration.
@@ -268,14 +258,6 @@ blueprint:
                 - domain: input_number
           default: ""
 
-    trigger_inputs_time:
-      name: Trigger Inputs TIME METHOD
-      icon: mdi:clock
-      collapsed: true
-      description: |
-        These inputs are used to set the automation triggers for time-based method.
-
-      input:
         time_open_workday:
           name: Open Time on Workdays (optional)
           description: Time to open covers on workdays, if `Day-Night-Cycle Method` is set to `Time`.
@@ -334,14 +316,6 @@ blueprint:
                 - domain: input_datetime
           default: ""
 
-    trigger_inputs_brightness:
-      name: Trigger Inputs BRIGHTNESS METHOD
-      icon: mdi:brightness-7
-      collapsed: true
-      description: |
-        These inputs are used to set the automation triggers for brightness-based method.
-
-      input:
         brightness_sensor:
           name: Brightness Sensor
           description: Brightness sensor entity. Required if `Day-Night-Cycle Method` is set to `Brightness`.
@@ -396,19 +370,13 @@ blueprint:
                 - domain: input_number
           default: ""
 
-    trigger_inputs_earliest_open_close:
-      name: Trigger Inputs EARLIEST OPEN/CLOSE
-      icon: mdi:clock-alert
-      collapsed: true
-      description: |
-        If desired, these inputs set earliest opening/closing times. The covers will not
-        open/close before the time you set here, even if the chosen method has already
-        reached its opening/closing point — they move once the earliest time is reached.
-
-      input:
         should_use_earliest_open:
           name: Use Earliest Open Time
-          description: Do you want to set a time at which the covers should open at the earliest?
+          description: >
+            Do you want to set a time at which the covers should open at the earliest?
+
+            The covers will not open before the time you set, even if the chosen method has
+            already reached its opening point. They open once the earliest time is reached.
           selector:
             boolean:
           default: false
@@ -443,7 +411,11 @@ blueprint:
 
         should_use_earliest_close:
           name: Use Earliest Close Time
-          description: Do you want to set a time at which the covers should close at the earliest?
+          description: >
+            Do you want to set a time at which the covers should close at the earliest?
+
+            The covers will not close before the time you set, even if the chosen method has
+            already reached its closing point. They close once the earliest time is reached.
           selector:
             boolean:
           default: false
@@ -476,24 +448,16 @@ blueprint:
                 - domain: input_datetime
           default: ""
 
-    trigger_inputs_latest_open_close:
-      name: Trigger Inputs LATEST OPEN/CLOSE
-      icon: mdi:clock-alert
-      collapsed: true
-      description: |
-        If desired, these inputs set latest opening/closing times
-        if the chosen method has not reached its opening/closing point yet.
-
-        For example, if it is still bright out at 9pm, you could use this section so that
-        the covers close at 9pm at the latest. But if the brightness reaches the closing
-        threshold before 9pm, the covers will close at that earlier time.
-
-        Please beware that the latest times should be after the earliest times.
-
-      input:
         should_use_latest_open:
           name: Use Latest Open Time
-          description: Do you want to set a time at which the covers should open at the latest, if they have not been opened before?
+          description: >
+            Do you want to set a time at which the covers should open at the latest, if they
+            have not been opened before?
+
+            The covers open at this time even if the chosen method has not reached its opening
+            point yet. If the method reaches its opening point earlier, the covers open earlier.
+
+            Please beware that the latest time should be after the earliest time.
           selector:
             boolean:
           default: false
@@ -528,7 +492,15 @@ blueprint:
 
         should_use_latest_close:
           name: Use Latest Close Time
-          description: Do you want to set a time at which the covers should close at the latest, if they have not been closed before?
+          description: >
+            Do you want to set a time at which the covers should close at the latest, if they
+            have not been closed before?
+
+            For example, if it is still bright outside at 9pm, set 9pm here so the covers close
+            at 9pm at the latest. If the brightness reaches the closing threshold before 9pm,
+            the covers close at that earlier time.
+
+            Please beware that the latest time should be after the earliest time.
           selector:
             boolean:
           default: false
@@ -561,22 +533,20 @@ blueprint:
                 - domain: input_datetime
           default: ""
 
-    condition_inputs_suspension:
-      name: Condition Inputs SUSPENSION AFTER MANUAL INTERACTION
-      icon: mdi:cancel
-      description: >
-        These inputs configure the suspension after manual control. If a cover is
-        operated manually (app, UI, wall switch or stopping it mid-move), this
-        automation leaves that cover alone for the suspension duration. The cover
-        keeps its manual position until the next scheduled transition after the
-        suspension has expired. Other covers keep automating.
-
+    condition_inputs:
+      name: Condition Inputs
+      icon: mdi:help-box-multiple
+      description: These inputs are used to set the automation conditions
       input:
         should_suspend_after_manual_interaction:
           name: Suspend After Manual Interaction
           description: >
             If covers are controlled manually, suspend the automation for the
             affected cover for a specified amount of time (see `Suspension Duration`).
+
+            Manual control means the app, the UI, a wall switch, or stopping a cover mid-move.
+            The cover keeps its manual position until the next scheduled transition after the
+            suspension has expired. All other covers keep automating.
           selector:
             boolean:
           default: true
@@ -587,19 +557,15 @@ blueprint:
             time:
           default: "00:30:00"
 
-    condition_inputs_weather:
-      name: Condition Inputs WEATHER EVENTS
-      icon: mdi:weather-lightning
-      description: >
-        These inputs are used to set the automation conditions related to weather events.
-        Weather events only prevent the covers from CLOSING (opening is always safe).
-        While blocked, the automation retries every minute and closes the covers as
-        soon as the weather clears.
-
-      input:
         weather_events:
           name: Weather Events to Prevent Closing (optional)
-          description: Which weather events (current or forecast within the next hour) should prevent the covers from closing? Requires the `Weather Entity` to be set.
+          description: >
+            Which weather events (current or forecast within the next hour) should prevent the
+            covers from closing? Requires the `Weather Entity` to be set.
+
+            Weather events only prevent the covers from CLOSING - opening is always safe. While
+            blocked, the automation retries every minute and closes the covers as soon as the
+            weather clears.
           selector:
             select:
               multiple: true
