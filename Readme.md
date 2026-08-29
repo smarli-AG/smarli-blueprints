@@ -432,6 +432,24 @@ custom_inputs: # leave these as is - should be present in any blueprint
 
 This section exists so an experienced technician can extend a blueprint's behavior without needing a blueprint edit. See [Automation body](#automation-body) for how these three inputs get wired into `triggers`/`conditions`/`actions`.
 
+**Exception: per-phase custom inputs.** A blueprint with two or more distinct action phases may split each of the three inputs per phase, because a single generic hook cannot express "run this after opening" versus "run this after closing". `cover_DayNight.yaml` does exactly that, with six inputs instead of three:
+
+```yaml
+custom_opening_triggers / custom_closing_triggers
+custom_opening_conditions / custom_closing_conditions
+custom_opening_actions / custom_closing_actions
+```
+
+Rules when you take this exception:
+
+- Split **all three** kinds consistently — don't split only the actions.
+- Keep the section name, `icon`, `collapsed: true`, and the **WATCH OUT!** description boilerplate unchanged.
+- Name each input `custom_<phase>_<kind>`, and say in its `description` which phase it belongs to.
+- If a custom trigger must be attributable to a phase, state the required trigger id in the description (e.g. "Make sure each one of them has the trigger id `custom_open`."), because the automation body branches on `trigger.id`.
+- Still no `optional`/`display_if`/`translation` annotations — the Danger Zone stays unannotated in every blueprint.
+
+Take the exception only when the phases really are distinct. A blueprint with one action path uses the standard three inputs verbatim.
+
 ## Variables translation
 
 ```yaml
