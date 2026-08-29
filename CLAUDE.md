@@ -20,14 +20,16 @@ This split exists so this file stays cheap to load regardless of how many famili
 
 ## Blueprint families
 
-| Family | Status | Shared package | Architecture doc |
-| --- | --- | --- | --- |
-| Cover automation | Built (`coversDayNight.yaml`); `shade` planned | `packages/smarli_cover.yaml` | `docs/cover-architecture.md` |
-| Scene activation via smart button | Built (4 hardware variants) | — (self-contained) | — |
-| All off | Built | — (self-contained) | — |
-| Weather warning | Built | — (self-contained) | — |
-| Camera notifications | Planned | — | — |
-| Battery warnings | Planned | — | — |
+All blueprint files live in one flat location, `automation/` — they are **not** split into per-family subfolders. Instead, every blueprint's filename starts with its family's prefix, so families stay identifiable and sort together without a folder move:
+
+| Family | Filename prefix | Status | Shared package | Architecture doc |
+| --- | --- | --- | --- | --- |
+| Cover automation | `cover` | Built (`cover_DayNight.yaml`); `shade` planned | `packages/smarli_cover.yaml` | `docs/cover-architecture.md` |
+| Scene activation via smart button | `scene` | Built (4 hardware variants) | — (self-contained) | — |
+| All off | `allOff` | Built | — (self-contained) | — |
+| Weather warning | `weather` | Built | — (self-contained) | — |
+| Camera notifications | `camera` | Planned | — | — |
+| Battery warnings | `battery` | Planned | — | — |
 
 **When to add a row and a doc:** the moment a family grows shared package logic, its own tracker namespace, or a non-obvious detection/arbitration contract. A family that stays a single self-contained blueprint doesn't need one — its logic is fully visible in the one file.
 
@@ -40,6 +42,45 @@ This split exists so this file stays cheap to load regardless of how many famili
 ## General blueprint-engineering conventions
 
 - **Prefer a `device` selector/trigger over an `entity` selector/state trigger whenever an input targets specific hardware.** A `device` selector's filter can constrain by `manufacturer`, `model`, and `model_id` — precise enough to scope a blueprint to one exact product (e.g. `model_id: "S-ZB-1RE1-R251"` for the smarli. relay). An `entity` selector's filter is limited to `domain`/`device_class`/`integration` — it cannot distinguish one hardware model from another on the same integration, so a blueprint built for one product could silently match unrelated hardware. Resolve the device down to its entities in `trigger_variables` (`device_entities()`) when the automation still needs entity IDs, rather than asking the user to pick entities directly.
+
+### Smarli. relay button-press pattern
+
+Used by `allOff_smarliRelay.yaml` and `scene_activateSmarliRelay.yaml` — reach for this whenever a future blueprint is triggered by a smarli. relay. A smarli. relay reports as a toggling `switch` entity, not a discrete button-press event the way Zigbee/Hue remotes do — pressing it just flips `on`/`off`. To fire on **any** press of **any** selected relay (the device selector allows `multiple: true`, e.g. several relays wired to trigger the same scene), resolve the device(s) to their switch entities in `trigger_variables`, then watch the **parity** of how many are currently on:
+
+```yaml
+trigger_variables:
+  smart_buttons: !input smart_buttons
+  smart_buttons_entities: >
+    {{ smart_buttons | map('device_entities') | sum(start=[]) | select('match', '^switch\.') | list }}
+
+triggers:
+  - trigger: template
+    value_template: >
+      {% set count_on = smart_buttons_entities | select('is_state', 'on') | list | count %}
+      {{ count_on % 2 == 0 }}
+  - trigger: template
+    value_template: >
+      {% set count_on = smart_buttons_entities | select('is_state', 'on') | list | count %}
+      {{ count_on % 2 == 1 }}
+
+conditions:
+  - condition: or
+    conditions:
+      - condition: template
+        value_template: "{{ trigger.platform != 'template' }}"
+      - condition: template
+        value_template: >
+          {{ trigger.from_state.state in ['on', 'off']
+             and trigger.to_state.state in ['on', 'off']
+             and trigger.from_state.state != trigger.to_state.state }}
+```
+
+Why this shape:
+
+- **Any single toggle, by any watched relay, flips the total on-count's parity.** A template trigger fires on a false→true edge of its `value_template`. Pairing "count is even" and "count is odd" as two separate triggers means exactly one of them fires on every single toggle of every watched relay, regardless of direction (on→off or off→on) and regardless of which relay in the group changed — that is what lets one `multiple: true` input represent "any of these buttons was pressed."
+- **The condition reimplements the `not_from`/`not_to: [unavailable, unknown]` guard for a template trigger.** A plain state trigger can filter unavailable/unknown transitions declaratively; a template trigger can't, so the condition does it by hand — it only lets the automation run when the specific entity that caused the re-evaluation (`trigger.from_state`/`to_state`, which a template trigger exposes the same as a state trigger) made a genuine `on`↔`off` transition, not e.g. `unavailable`→`on` after a Zigbee reconnect.
+- **`trigger.platform != 'template'`** lets any custom trigger (a different platform) through unconditionally — the guard only needs to filter the two template triggers this pattern owns.
+- **Known limit:** this only tells you *that* one of the watched relays toggled, not *which one* — with `multiple: true`, pressing relay A and pressing relay B are indistinguishable from this trigger alone. Fine for "any of these buttons does the same thing" (all-off, one shared scene); not suitable if different buttons in the same input must do different things — that needs separate inputs, one relay each.
 
 ## State tracking: central tracker sensor, not predefined helpers
 
@@ -108,7 +149,7 @@ HA constraint driving this: automation `variables:` are **not available in trigg
 - **Gate the heartbeat in `conditions:`** (e.g. `trigger.id != 'heartbeat' or transition_needed`) so condition-failed runs don't spam logbook/traces.
 - **Compare against your own last-published intent, not the entity's live state**, when deciding whether a transition is needed — comparing against live state re-asserts the target and fights manual overrides.
 
-See `docs/cover-architecture.md` for the fully worked implementation of this pattern (`coversDayNight.yaml`).
+See `docs/cover-architecture.md` for the fully worked implementation of this pattern (`cover_DayNight.yaml`).
 
 ## HA / Jinja traps (each one cost a runtime bug here)
 
