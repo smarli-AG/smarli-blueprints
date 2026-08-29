@@ -24,7 +24,7 @@ C:\Users\Pascal\smarli-ha-test\
     automations.yaml     test rig + blueprint instances + resolver stubs
     virtual.yaml         hass-virtual cover definitions
     packages/            smarli_core.yaml + smarli_cover.yaml (copied from the repo)
-    blueprints/automation/smarli/coversDayNight.yaml   (copied from the repo)
+    blueprints/automation/smarli/cover_DayNight.yaml   (copied from the repo)
     custom_components/   virtual, swissweather
     listen.py, mint.py   run inside the container via `docker exec` (they use HA's bundled aiohttp)
 ```
@@ -84,7 +84,7 @@ Edit files **in the repo**, then copy them in. Package changes need a full resta
 $D = "C:\Users\Pascal\smarli-ha-test\config"
 copy C:\Users\Pascal\GIT\smarli-blueprints\packages\smarli_core.yaml  "$D\packages\"
 copy C:\Users\Pascal\GIT\smarli-blueprints\packages\smarli_cover.yaml "$D\packages\"
-copy C:\Users\Pascal\GIT\smarli-blueprints\automation\coversDayNight.yaml "$D\blueprints\automation\smarli\coversDayNight.yaml"
+copy C:\Users\Pascal\GIT\smarli-blueprints\automation\cover_DayNight.yaml "$D\blueprints\automation\smarli\cover_DayNight.yaml"
 docker restart smarli-ha-test
 ```
 
