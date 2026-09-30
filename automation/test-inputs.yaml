@@ -92,7 +92,7 @@ blueprint:
               device:
                 - integration: mqtt
                   manufacturer: smarli.
-                  model: Phase dimmer gen 1
+                  model: dimmer
               multiple: true
         boolean:
           # translation:
