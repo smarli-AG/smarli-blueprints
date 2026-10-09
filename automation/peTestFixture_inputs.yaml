@@ -2,6 +2,7 @@
 ## 1.1.0 | 2026-10-09
 ## - Set up as a complete Partner Engine test fixture: one input per selector type
 ## - Every input is optional, with annotations, a default and translated select options
+## - German input names translated
 ## 1.0.0 | 2025-10-10
 ## - Initial test fixture
 
@@ -80,7 +81,7 @@ blueprint:
           # translation:
           #   name:
           #     en: area as optional input
-          #     de: Lorem Ipsum
+          #     de: Bereich als optionale Eingabe
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -96,7 +97,7 @@ blueprint:
           # translation:
           #   name:
           #     en: area with device filter and multiple
-          #     de: Lorem Ipsum
+          #     de: Bereich mit Gerätefilter und Mehrfachauswahl
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -116,7 +117,7 @@ blueprint:
           # translation:
           #   name:
           #     en: boolean
-          #     de: Lorem Ipsum
+          #     de: Boolescher Wert
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -131,7 +132,7 @@ blueprint:
           # translation:
           #   name:
           #     en: color temperature
-          #     de: Lorem Ipsum
+          #     de: Farbtemperatur
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -149,7 +150,7 @@ blueprint:
           # translation:
           #   name:
           #     en: date
-          #     de: Lorem Ipsum
+          #     de: Datum
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -164,7 +165,7 @@ blueprint:
           # translation:
           #   name:
           #     en: device
-          #     de: Lorem Ipsum
+          #     de: Gerät
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -180,7 +181,7 @@ blueprint:
           # translation:
           #   name:
           #     en: device with entity filter and multiple
-          #     de: Lorem Ipsum
+          #     de: Gerät mit Entitätsfilter und Mehrfachauswahl
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -198,7 +199,7 @@ blueprint:
           # translation:
           #   name:
           #     en: duration
-          #     de: Lorem Ipsum
+          #     de: Dauer
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -215,7 +216,7 @@ blueprint:
           # translation:
           #   name:
           #     en: duration with days and milliseconds
-          #     de: Lorem Ipsum
+          #     de: Dauer mit Tagen und Millisekunden
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -232,7 +233,7 @@ blueprint:
           # translation:
           #   name:
           #     en: entity
-          #     de: Lorem Ipsum
+          #     de: Entität
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -248,7 +249,7 @@ blueprint:
           # translation:
           #   name:
           #     en: entity with filter
-          #     de: Lorem Ipsum
+          #     de: Entität mit Filter
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -267,7 +268,7 @@ blueprint:
           # translation:
           #   name:
           #     en: language
-          #     de: Lorem Ipsum
+          #     de: Sprache
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -286,7 +287,7 @@ blueprint:
           # translation:
           #   name:
           #     en: location
-          #     de: Lorem Ipsum
+          #     de: Standort
           #   description:
           #     en: Latitude and Longitude for any address can be discovered here: https://www.latlong.net/
           #     de: Längen- und Breitengrade für eine beliebige Adresse können hier gefunden werden: https://www.latlong.net/
@@ -303,7 +304,7 @@ blueprint:
           # translation:
           #   name:
           #     en: number box
-          #     de: Lorem Ipsum
+          #     de: Zahlenfeld
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -323,7 +324,7 @@ blueprint:
           # translation:
           #   name:
           #     en: number with min/max/step/slider/unit
-          #     de: Lorem Ipsum
+          #     de: Zahl mit Min/Max/Schritt/Schieberegler/Einheit
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -343,7 +344,7 @@ blueprint:
           # translation:
           #   name:
           #     en: color_rgb
-          #     de: Lorem Ipsum
+          #     de: RGB-Farbe
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -358,7 +359,7 @@ blueprint:
           # translation:
           #   name:
           #     en: select dropdown
-          #     de: Lorem Ipsum
+          #     de: Auswahl-Dropdown
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -396,7 +397,7 @@ blueprint:
           # translation:
           #   name:
           #     en: select list
-          #     de: Lorem Ipsum
+          #     de: Auswahlliste
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -434,7 +435,7 @@ blueprint:
           # translation:
           #   name:
           #     en: select list with multiple
-          #     de: Lorem Ipsum
+          #     de: Auswahlliste mit Mehrfachauswahl
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -472,7 +473,7 @@ blueprint:
           # translation:
           #   name:
           #     en: select list with multiple with custom values
-          #     de: Lorem Ipsum
+          #     de: Auswahlliste mit Mehrfachauswahl und eigenen Werten
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -510,7 +511,7 @@ blueprint:
           # translation:
           #   name:
           #     en: select dropdown with multiple with custom values
-          #     de: Lorem Ipsum
+          #     de: Auswahl-Dropdown mit Mehrfachauswahl und eigenen Werten
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -548,7 +549,7 @@ blueprint:
           # translation:
           #   name:
           #     en: text with type street address and autocomplete
-          #     de: Lorem Ipsum
+          #     de: Text vom Typ Strassenadresse mit Autovervollständigung
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -567,7 +568,7 @@ blueprint:
           # translation:
           #   name:
           #     en: text with type email and autocomplete
-          #     de: Lorem Ipsum
+          #     de: Text vom Typ E-Mail mit Autovervollständigung
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -586,7 +587,7 @@ blueprint:
           # translation:
           #   name:
           #     en: text with type email and autocomplete and multiple
-          #     de: Lorem Ipsum
+          #     de: Text vom Typ E-Mail mit Autovervollständigung und Mehrfachauswahl
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -605,7 +606,7 @@ blueprint:
           # translation:
           #   name:
           #     en: text with multiline address
-          #     de: Lorem Ipsum
+          #     de: Mehrzeiliger Text für Adresse
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -624,7 +625,7 @@ blueprint:
           # translation:
           #   name:
           #     en: text prefix/suffix
-          #     de: Lorem Ipsum
+          #     de: Text mit Präfix/Suffix
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -643,7 +644,7 @@ blueprint:
           # translation:
           #   name:
           #     en: text date
-          #     de: Lorem Ipsum
+          #     de: Text vom Typ Datum
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -660,7 +661,7 @@ blueprint:
           # translation:
           #   name:
           #     en: text url
-          #     de: Lorem Ipsum
+          #     de: Text vom Typ URL
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -677,7 +678,7 @@ blueprint:
           # translation:
           #   name:
           #     en: text number
-          #     de: Lorem Ipsum
+          #     de: Text vom Typ Zahl
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -694,7 +695,7 @@ blueprint:
           # translation:
           #   name:
           #     en: text tel
-          #     de: Lorem Ipsum
+          #     de: Text vom Typ Telefon
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
@@ -711,7 +712,7 @@ blueprint:
           # translation:
           #   name:
           #     en: time
-          #     de: Lorem Ipsum
+          #     de: Uhrzeit
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
