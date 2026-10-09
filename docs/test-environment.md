@@ -1,6 +1,6 @@
 # smarli. Blueprints — Docker Home Assistant test environment
 
-A local, disposable Home Assistant instance used to test the cover blueprints and packages at
+A local, disposable Home Assistant instance used to test the cover blueprints and the `ha-packages` packages together at
 **runtime**, because `check_config` catches almost none of what actually breaks: Jinja errors,
 wrong filter arity, non-boolean template conditions and event-ordering races all pass config
 validation and fail only when a template renders.
@@ -23,8 +23,8 @@ C:\Users\Pascal\smarli-ha-test\
     configuration.yaml
     automations.yaml     test rig + blueprint instances + resolver stubs
     virtual.yaml         hass-virtual cover definitions
-    packages/            smarli_core.yaml + smarli_cover.yaml (copied from the repo)
-    blueprints/automation/smarli/cover_DayNight.yaml   (copied from the repo)
+    packages/            smarli_core.yaml + smarli_cover.yaml (copied from the ha-packages repo)
+    blueprints/automation/smarli/cover_DayNight.yaml   (copied from this repo)
     custom_components/   virtual, swissweather
     listen.py, mint.py   run inside the container via `docker exec` (they use HA's bundled aiohttp)
 ```
@@ -77,13 +77,19 @@ Start-Sleep 15   # entities finish registering after the API responds
 
 ## Deploying repo changes
 
-Edit files **in the repo**, then copy them in. Package changes need a full restart; changes to
-`automations.yaml` alone can use `HA-Call automation reload @{}`.
+The test instance combines **two repos**: blueprints from `smarli-blueprints` and packages from
+[`ha-packages`](https://github.com/smarli-AG/ha-packages) (local checkout
+`C:\Users\Pascal\GIT\ha-packages`). Edit files **in their repos**, then copy them in. Package
+changes need a full restart; changes to `automations.yaml` alone can use
+`HA-Call automation reload @{}`.
+
+Before a test run, check which branch each repo is on. The instance runs whatever was last copied,
+so a stale package copy tests the wrong pairing.
 
 ```powershell
 $D = "C:\Users\Pascal\smarli-ha-test\config"
-copy C:\Users\Pascal\GIT\smarli-blueprints\packages\smarli_core.yaml  "$D\packages\"
-copy C:\Users\Pascal\GIT\smarli-blueprints\packages\smarli_cover.yaml "$D\packages\"
+copy C:\Users\Pascal\GIT\ha-packages\packages\smarli_core.yaml  "$D\packages\"
+copy C:\Users\Pascal\GIT\ha-packages\packages\smarli_cover.yaml "$D\packages\"
 copy C:\Users\Pascal\GIT\smarli-blueprints\automation\cover_DayNight.yaml "$D\blueprints\automation\smarli\cover_DayNight.yaml"
 docker restart smarli-ha-test
 ```
@@ -167,6 +173,19 @@ Note the id and the entity_id differ: HA derives the entity_id from the **alias*
   entry whose `attributes.id` still resolves — which is exactly why the tracker GC filters out
   `unavailable` automations. They are harmless; they also make useful fixtures for GC tests.
 
+- **TODO (noted 2026-10-09): revisit the test setup after the split into two repos.** Nothing is
+  changed yet; the copy steps in [Deploying repo changes](#deploying-repo-changes) still apply.
+  Open points:
+  - _Mount instead of copy._ Bind-mount `C:\Users\Pascal\GIT\ha-packages\packages` into
+    `/config/packages`, so the instance cannot run a stale package copy. Not tried yet.
+  - _A mount only tests the checked-out version._ Whatever branch or commit `ha-packages` has
+    checked out is what runs, and nothing shows which one that is. Before this is adopted, the
+    setup needs a guard that records or checks the `ha-packages` ref (branch, commit, tag) at test
+    start, so a run cannot silently pair the blueprint with the wrong package version.
+  - _Version contract._ Tag `ha-packages` releases and state the needed version in the blueprint's
+    release notes, so the pairing under test is explicit.
+  - _Where the suite lives._ The test scripts sit outside both repos, tied to one machine.
+
 ## Gotchas that have each cost a debugging session
 
 - **Any REST or WebSocket service call carries a `user_id`**, so manual detection reads it as a
@@ -242,4 +261,4 @@ Note the id and the entity_id differ: HA derives the entity_id from the **alias*
    write `virtual.yaml`; add `virtual:` to `configuration.yaml`.
 5. Vendor `custom_components/swissweather/` (needs only `requests`) and drive its config flow
    headlessly with postcode 8001.
-6. Copy the repo's `packages/` and the blueprint in, recreate `automations.yaml`, restart.
+6. Copy `packages/` from the `ha-packages` repo and the blueprint from this repo in, recreate `automations.yaml`, restart.

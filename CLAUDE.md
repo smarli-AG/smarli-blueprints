@@ -11,10 +11,13 @@ This split exists so this file stays cheap to load regardless of how many famili
 
 ### Blueprint file cheat-sheet (quick recall only — `Readme.md` is authoritative)
 
-> **Maintenance note:** this cheat-sheet duplicates a slice of `Readme.md` on purpose, as a fast path for the common case. That means it can drift. Whenever `Readme.md`'s rules change — a field added/removed, the `optional`/`display_if` semantics change, the versioning rule changes — update **both** files in the same edit. If they ever disagree, `Readme.md` wins and this section is wrong.
+> **Maintenance note:** this cheat-sheet duplicates a slice of `Readme.md` on purpose, as a fast path for the common case. That means it can drift. Whenever `Readme.md`'s rules change — a field added/removed, the `optional`/`display_if` semantics change, the versioning rule changes — update **both** files, and `ci/check-blueprints.js`, in the same edit. If they ever disagree, `Readme.md` wins and this section is wrong.
+>
+> **Run `./ci/checks.sh` after editing any blueprint**, and `./ci/check-release.sh` before proposing a merge into `main`. See `Readme.md` → Checks.
 
 - Partner Engine header fields: `icon`, `name_en`/`de`, `subtitle_en`/`de`, `short_description_en`/`de`, `long_description_en`/`de`, `purpose_en`/`de` (only `Comfort`/`Komfort`, `Energy`/`Energie`, `Security`/`Sicherheit` for now), `keywords_en`/`de`, `events_en`/`de`, `highlight`, `deploy`, and `is_smart_button` (only for a blueprint whose entire job is activating a scene from a button press — not for every button-triggered blueprint).
 - Every real input needs `# optional: true|false` and `# display_if: <expr>` set explicitly, never omitted. `optional` judges the Partner Engine's own requiredness at the moment the input is visible — independent of Home Assistant's own `(optional)` suffix in `name:`, which can disagree (e.g. a field with `default: []` is HA-optional but Partner-Engine-required once its `display_if` makes it visible).
+- An input with `optional: true`, or with any `display_if` other than the literal `true`, needs a `default:` — otherwise HA rejects the automation when the input stays empty or hidden.
 - The version number of the newest `RELEASE NOTES` entry must match, exactly, in `blueprint.description` and in both `long_description_en`/`de` — but the date stays in `RELEASE NOTES` only; the other three carry the version number alone, no date.
 - `blueprint.description` is always English; `author` is the actual person, followed by `[smarli. AG]`.
 
@@ -30,6 +33,7 @@ All blueprint files live in one flat location, `automation/` — they are **not*
 | Weather warning | `weather` | Built | — (self-contained) | — |
 | Camera notifications | `camera` | Planned | — | — |
 | Battery warnings | `battery` | Planned | — | — |
+| Partner Engine test fixtures (not for customers) | `peTestFixture_` | Built (`inputs`, `minimal`) | — | `Readme.md` → Checks |
 
 **When to add a row and a doc:** the moment a family grows shared package logic, its own tracker namespace, or a non-obvious detection/arbitration contract. A family that stays a single self-contained blueprint doesn't need one — its logic is fully visible in the one file.
 

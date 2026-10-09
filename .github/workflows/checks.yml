@@ -1,0 +1,51 @@
+# CI for the blueprints. Two jobs.
+#
+#   checks   every pull request, and main. Runs ci/checks.sh: file checks and
+#            the Readme.md rules for every blueprint.
+#   release  pull requests into main only. Runs ci/check-release.sh: a changed
+#            blueprint needs a higher version.
+#
+# This file does not define what "broken" means. The two scripts do, and a
+# developer runs both on a laptop. This file only runs them on GitHub.
+#
+# A red run blocks nothing on its own. To make it a gate, protect main in the
+# repository settings and require the "checks" and "release" status checks.
+
+name: checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A new push supersedes the run for the old one instead of queueing behind it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: ./ci/checks.sh
+
+  release:
+    # Only on the way into main. A pull request between two working branches
+    # is not a release and should not be judged as one.
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # The full history, because the script compares against main.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: ./ci/check-release.sh
