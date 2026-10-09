@@ -1,3 +1,4 @@
+# checks: allow release-notes, version, author, source-url, variables, annotation
 # ! RELEASE NOTES
 ## 1.0.0 | YYYY-MM-DD
 ## - add release notes here

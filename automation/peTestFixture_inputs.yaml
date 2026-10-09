@@ -1,6 +1,9 @@
 # ! RELEASE NOTES
-## 1.0.0 | YYYY-MM-DD
-## - add release notes here
+## 1.1.0 | 2026-10-09
+## - Set up as a complete Partner Engine test fixture: one input per selector type
+## - Every input is optional, with annotations, a default and translated select options
+## 1.0.0 | 2025-10-10
+## - Initial test fixture
 
 # ================
 # Partner Engine
@@ -14,8 +17,18 @@
 #
 # short_description_en: "Get notified about upcoming weather events such as rain, storms, snow, and more."
 # short_description_de: "Erhalte Benachrichtigungen über bevorstehende Wetterereignisse wie Regen, Gewitter, Schnee und mehr."
-# long_description_en: "Every morning, smarli. checks the weather forecast in your area and notifies you about any upcoming weather events so that you can leave your home fully prepared."
-# long_description_de: "Jeden Morgen prüft smarli. die Wettervorhersage in deiner Umgebung und benachrichtigt dich über bevorstehende Wetterereignisse, damit du dein Zuhause stets bestens vorbereitet verlassen kannst."
+# long_description_en: |
+#   Every morning, smarli. checks the weather forecast in your area and notifies you about any upcoming weather events so that you can leave your home fully prepared.
+#   [br]
+#   ---
+#   [br]
+#   _Version 1.1.0_
+# long_description_de: |
+#   Jeden Morgen prüft smarli. die Wettervorhersage in deiner Umgebung und benachrichtigt dich über bevorstehende Wetterereignisse, damit du dein Zuhause stets bestens vorbereitet verlassen kannst.
+#   [br]
+#   ---
+#   [br]
+#   _Version 1.1.0_
 #
 # purpose_en: "Comfort"
 # purpose_de: "Komfort"
@@ -33,23 +46,24 @@ blueprint:
   ############
   name: Test Inputs
   description: >
-    # This is the H1, repeat the name, but add an emoji at the beginning (e.g. 🔔 smarli. Weather Warning)
+    # 🧪 Test Inputs
 
-    Add a short description of what the automation will achieve.
+    Partner Engine test fixture. It has one input for each selector type, and
+    every input is optional with a default. It does nothing when it runs.
 
-    *Version x.x.x | YYYY-MM-DD*
+    *Version 1.1.0*
 
     <details>
     <summary><b>How to set it up</b></summary>
 
-      1. Here add a couple of steps that need to be followed when setting up the automation based on this blueprint.
+      1. Leave every input empty, or fill in any of them. The automation saves either way.
     </details>
 
 
     All input fields are required unless they are marked as ` (optional) `.
   domain: automation
-  author: your-github-user [smarli. AG]
-  source_url: https://github.com/smarli-AG/smarli-blueprints/blob/main/automation/test-inputs.yaml
+  author: loocd [smarli. AG]
+  source_url: https://github.com/smarli-AG/smarli-blueprints/blob/main/automation/peTestFixture_inputs.yaml
   homeassistant:
     min_version: 2024.11.3
 
@@ -71,12 +85,13 @@ blueprint:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
           # optional: true
-          name: area
+          # display_if: true
+          name: area (optional)
           description: add short description
           selector:
             area:
               multiple: false
-          default:
+          default: ""
         area2:
           # translation:
           #   name:
@@ -85,7 +100,9 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: area with device filter and multiple
+          # optional: true
+          # display_if: true
+          name: area with device filter and multiple (optional)
           description: add short description
           selector:
             area:
@@ -94,6 +111,7 @@ blueprint:
                   manufacturer: smarli.
                   model: Phase dimmer gen 1
               multiple: true
+          default: []
         boolean:
           # translation:
           #   name:
@@ -102,10 +120,13 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: boolean
+          # optional: true
+          # display_if: true
+          name: boolean (optional)
           description: add short description
           selector:
             boolean:
+          default: false
         color_temp:
           # translation:
           #   name:
@@ -114,13 +135,16 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: color temperature_warm
+          # optional: true
+          # display_if: true
+          name: color temperature_warm (optional)
           description: add short description
           selector:
             color_temp:
               unit: kelvin
               min: 2700
               max: 6500
+          default: 2700
         date:
           # translation:
           #   name:
@@ -129,10 +153,13 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: date
+          # optional: true
+          # display_if: true
+          name: date (optional)
           description: add short description
           selector:
             date:
+          default: ""
         device:
           # translation:
           #   name:
@@ -141,11 +168,14 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: device
+          # optional: true
+          # display_if: true
+          name: device (optional)
           description: add short description
           selector:
             device:
               multiple: false
+          default: ""
         device2:
           # translation:
           #   name:
@@ -154,13 +184,16 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: device with entity filter and multiple
+          # optional: true
+          # display_if: true
+          name: device with entity filter and multiple (optional)
           description: add short description
           selector:
             device:
               entity:
                 - domain: light
               multiple: true
+          default: []
         duration:
           # translation:
           #   name:
@@ -169,12 +202,15 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: duration
+          # optional: true
+          # display_if: true
+          name: duration (optional)
           description: add short description
           selector:
             duration:
               enable_day: false
               enable_millisecond: false
+          default: {hours: 0, minutes: 0, seconds: 0}
         duration2:
           # translation:
           #   name:
@@ -183,12 +219,15 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: duration with days
+          # optional: true
+          # display_if: true
+          name: duration with days (optional)
           description: add short description
           selector:
             duration:
               enable_day: true
               enable_millisecond: true
+          default: {days: 0, hours: 0, minutes: 0, seconds: 0, milliseconds: 0}
         entity:
           # translation:
           #   name:
@@ -197,11 +236,14 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: entity
+          # optional: true
+          # display_if: true
+          name: entity (optional)
           description: add short description
           selector:
             entity:
               multiple: false
+          default: ""
         entity2:
           # translation:
           #   name:
@@ -210,7 +252,9 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: entity with filter
+          # optional: true
+          # display_if: true
+          name: entity with filter (optional)
           description: add short description
           selector:
             entity:
@@ -218,6 +262,7 @@ blueprint:
                 - integration: mqtt
                   domain: sensor
                   device_class: power
+          default: ""
         language:
           # translation:
           #   name:
@@ -226,7 +271,9 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: language
+          # optional: true
+          # display_if: true
+          name: language (optional)
           description: add short description
           selector:
             language:
@@ -234,6 +281,7 @@ blueprint:
                 - de-CH
                 - en-GB
               native_name: true
+          default: ""
         location:
           # translation:
           #   name:
@@ -242,11 +290,14 @@ blueprint:
           #   description:
           #     en: Latitude and Longitude for any address can be discovered here: https://www.latlong.net/
           #     de: Längen- und Breitengrade für eine beliebige Adresse können hier gefunden werden: https://www.latlong.net/
-          name: location
+          # optional: true
+          # display_if: true
+          name: location (optional)
           description: "Latitude and Longitude for any address can be discovered here: https://www.latlong.net/"
           selector:
             location:
               radius: true
+          default: {latitude: 47.3769, longitude: 8.5417, radius: 100}
 
         number:
           # translation:
@@ -256,7 +307,9 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: number box
+          # optional: true
+          # display_if: true
+          name: number box (optional)
           description: add short description
           selector:
             number:
@@ -265,6 +318,7 @@ blueprint:
               max: 110
               step: 0.0001
               unit_of_measurement: "%%%"
+          default: 12
         number2:
           # translation:
           #   name:
@@ -273,7 +327,9 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: number with min/max/step/slider/unit
+          # optional: true
+          # display_if: true
+          name: number with min/max/step/slider/unit (optional)
           description: add short description
           selector:
             number:
@@ -282,6 +338,7 @@ blueprint:
               max: 150
               step: 0.4
               unit_of_measurement: "kelvin"
+          default: 12
         color_rgb:
           # translation:
           #   name:
@@ -290,10 +347,13 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: color_rgb
+          # optional: true
+          # display_if: true
+          name: color_rgb (optional)
           description: add short description
           selector:
             color_rgb:
+          default: [255, 255, 255]
         select:
           # translation:
           #   name:
@@ -302,20 +362,36 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
+          # optional: true
+          # display_if: true
+          name: select dropdown (optional)
           description: add short description
           selector:
             select:
               options:
                 - label: Option 1
+                  # translation:
+                  #   label:
+                  #     en: Option 1
+                  #     de: Option 1
                   value: option_1
                 - label: Option 2
+                  # translation:
+                  #   label:
+                  #     en: Option 2
+                  #     de: Option 2
                   value: option_2
                 - label: Option 3
+                  # translation:
+                  #   label:
+                  #     en: Option 3
+                  #     de: Option 3
                   value: option_3
               custom_value: false
               multiple: false
               mode: dropdown
               sort: false
+          default: option_1
         select-list:
           # translation:
           #   name:
@@ -324,21 +400,36 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: select list
+          # optional: true
+          # display_if: true
+          name: select list (optional)
           description: add short description
           selector:
             select:
               options:
                 - label: Option 1
+                  # translation:
+                  #   label:
+                  #     en: Option 1
+                  #     de: Option 1
                   value: option_1
                 - label: Option 2
+                  # translation:
+                  #   label:
+                  #     en: Option 2
+                  #     de: Option 2
                   value: option_2
                 - label: Option 3
+                  # translation:
+                  #   label:
+                  #     en: Option 3
+                  #     de: Option 3
                   value: option_3
               custom_value: false
               multiple: false
               mode: list
               sort: false
+          default: option_1
         select2:
           # translation:
           #   name:
@@ -347,21 +438,36 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: select list with multiple
+          # optional: true
+          # display_if: true
+          name: select list with multiple (optional)
           description: add short description
           selector:
             select:
               options:
                 - label: Option 1
+                  # translation:
+                  #   label:
+                  #     en: Option 1
+                  #     de: Option 1
                   value: option_1
                 - label: Option 2
+                  # translation:
+                  #   label:
+                  #     en: Option 2
+                  #     de: Option 2
                   value: option_2
                 - label: Option 3
+                  # translation:
+                  #   label:
+                  #     en: Option 3
+                  #     de: Option 3
                   value: option_3
               custom_value: false
               multiple: true
               mode: list
               sort: false
+          default: []
         select3:
           # translation:
           #   name:
@@ -370,21 +476,36 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: select list with multiple with custom values
+          # optional: true
+          # display_if: true
+          name: select list with multiple with custom values (optional)
           description: add short description
           selector:
             select:
               options:
                 - label: Option 1
+                  # translation:
+                  #   label:
+                  #     en: Option 1
+                  #     de: Option 1
                   value: option_1
                 - label: Option 2
+                  # translation:
+                  #   label:
+                  #     en: Option 2
+                  #     de: Option 2
                   value: option_2
                 - label: Option 3
+                  # translation:
+                  #   label:
+                  #     en: Option 3
+                  #     de: Option 3
                   value: option_3
               custom_value: true
               multiple: true
               mode: list
               sort: false
+          default: []
         select4:
           # translation:
           #   name:
@@ -393,21 +514,36 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: select list with multiple with custom values
+          # optional: true
+          # display_if: true
+          name: select list with multiple with custom values (optional)
           description: add short description
           selector:
             select:
               options:
                 - label: Option 1
+                  # translation:
+                  #   label:
+                  #     en: Option 1
+                  #     de: Option 1
                   value: option_1
                 - label: Option 2
+                  # translation:
+                  #   label:
+                  #     en: Option 2
+                  #     de: Option 2
                   value: option_2
                 - label: Option 3
+                  # translation:
+                  #   label:
+                  #     en: Option 3
+                  #     de: Option 3
                   value: option_3
               custom_value: true
               multiple: true
               mode: dropdown
               sort: false
+          default: []
         text:
           # translation:
           #   name:
@@ -416,7 +552,9 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: text with type street address and autocomplete
+          # optional: true
+          # display_if: true
+          name: text with type street address and autocomplete (optional)
           description: add short description
           selector:
             text:
@@ -424,6 +562,7 @@ blueprint:
               multiple: false
               type: text
               autocomplete: address-line1
+          default: ""
         textemail:
           # translation:
           #   name:
@@ -432,7 +571,9 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: text with type email and autocomplete
+          # optional: true
+          # display_if: true
+          name: text with type email and autocomplete (optional)
           description: add short description
           selector:
             text:
@@ -440,6 +581,7 @@ blueprint:
               multiple: false
               type: email
               autocomplete: email
+          default: ""
         text2:
           # translation:
           #   name:
@@ -448,7 +590,9 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: text with type email and autocomplete and multiple
+          # optional: true
+          # display_if: true
+          name: text with type email and autocomplete and multiple (optional)
           description: add short description
           selector:
             text:
@@ -456,6 +600,7 @@ blueprint:
               multiple: true
               type: email
               autocomplete: email
+          default: []
         text3:
           # translation:
           #   name:
@@ -464,7 +609,9 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: text with multiline address
+          # optional: true
+          # display_if: true
+          name: text with multiline address (optional)
           description: add short description
           selector:
             text:
@@ -472,6 +619,7 @@ blueprint:
               multiple: false
               type: text
               autocomplete: street-address
+          default: ""
         text4:
           # translation:
           #   name:
@@ -480,7 +628,9 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: text prefix/suffix
+          # optional: true
+          # display_if: true
+          name: text prefix/suffix (optional)
           description: add short description
           selector:
             text:
@@ -488,6 +638,7 @@ blueprint:
               type: text
               prefix: abc
               suffix: xyz
+          default: ""
         text6:
           # translation:
           #   name:
@@ -496,12 +647,15 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: text date
+          # optional: true
+          # display_if: true
+          name: text date (optional)
           description: add short description
           selector:
             text:
               multiple: false
               type: date
+          default: ""
         texturl:
           # translation:
           #   name:
@@ -510,12 +664,15 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: text url
+          # optional: true
+          # display_if: true
+          name: text url (optional)
           description: add short description
           selector:
             text:
               multiple: false
               type: url
+          default: ""
         textnumber:
           # translation:
           #   name:
@@ -524,12 +681,15 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: text number
+          # optional: true
+          # display_if: true
+          name: text number (optional)
           description: add short description
           selector:
             text:
               multiple: false
               type: number
+          default: ""
         texttel:
           # translation:
           #   name:
@@ -538,12 +698,15 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: text tel
+          # optional: true
+          # display_if: true
+          name: text tel (optional)
           description: add short description
           selector:
             text:
               multiple: false
               type: tel
+          default: ""
         time:
           # translation:
           #   name:
@@ -552,10 +715,13 @@ blueprint:
           #   description:
           #     en: Lorem Ipsum dolor sit amet
           #     de: Lorem Ipsum dolor sit amet
-          name: time
+          # optional: true
+          # display_if: true
+          name: time (optional)
           description: add short description
           selector:
             time:
+          default: "00:00:00"
 
     condition_inputs:
       name: Condition Inputs
@@ -606,6 +772,7 @@ blueprint:
 #########################
 
 # this is required in order to use inputs as variables within templates
+variables: {}
 
 ##############
 # Automation #
