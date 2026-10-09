@@ -38,7 +38,7 @@ Keep the two separate. A field can be optional on one side and required on the o
 
 ## Architecture overview
 
-Shared logic lives in Home Assistant **packages**, not in blueprints. A blueprint is a single YAML file and cannot ship its own entities — supporting entities and shared scripts ship as package files (`smarli_<family>.yaml`, layered over a common `smarli_core.yaml`), included by the Grundinstanz.
+Shared logic lives in Home Assistant **packages**, not in blueprints. A blueprint is a single YAML file and cannot ship its own entities — supporting entities and shared scripts ship as package files (`smarli_<family>.yaml`, layered over a common `smarli_core.yaml`), included by the Grundinstanz. The packages live in a separate repository, [`smarli-AG/ha-packages`](https://github.com/smarli-AG/ha-packages). This repo holds only the blueprints.
 
 These packages act as **coordinators**, not configuration holders:
 

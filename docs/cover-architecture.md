@@ -1,6 +1,6 @@
 # Cover Blueprint Architecture
 
-This is the architecture reference for the cover automation family: `cover_DayNight.yaml` today, a `shade` family planned. Read it before touching cover logic or `packages/smarli_cover.yaml`.
+This is the architecture reference for the cover automation family: `cover_DayNight.yaml` today, a `shade` family planned. Read it before touching cover logic or `packages/smarli_cover.yaml` (in the separate [`smarli-AG/ha-packages`](https://github.com/smarli-AG/ha-packages) repo, not this one).
 
 It assumes the cross-family conventions in the root `CLAUDE.md` — the tracker sensor, the package delivery-split principle, and the heartbeat-evaluator design pattern — and covers only what's specific to covers.
 
@@ -59,7 +59,7 @@ cover_day_night:  <automation_id>::bright_since | ::dark_since
 
 **Suspension duration is cover-level, not automation-level.** Several automations watch one cover and all fire on the same wall-switch press, so `script.smarli_cover_suspend` takes the **maximum** `suspension_duration` across active intents naming that cover (falling back to the caller's value only while no intent names it yet); an automation with suspension turned off contributes 0.
 
-## Cover-family package: `packages/smarli_cover.yaml`
+## Cover-family package: `packages/smarli_cover.yaml` (repo `ha-packages`)
 
 - `script.smarli_cover_manual_check` — detection layers 1+2. Called from each blueprint's `cover_state_changed` branch, which forwards `trigger.entity_id` and context fields (scripts cannot see `trigger`).
 - `script.smarli_cover_suspend` — resolves suspension duration centrally (see above). Called by both `manual_check` (layers 1–2) and `smarli_cover_move`'s settle audit (layer 3), so both writers agree on how long a suspension lasts.

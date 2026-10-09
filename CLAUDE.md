@@ -24,7 +24,7 @@ All blueprint files live in one flat location, `automation/` — they are **not*
 
 | Family | Filename prefix | Status | Shared package | Architecture doc |
 | --- | --- | --- | --- | --- |
-| Cover automation | `cover` | Built (`cover_DayNight.yaml`); `shade` planned | `packages/smarli_cover.yaml` | `docs/cover-architecture.md` |
+| Cover automation | `cover` | Built (`cover_DayNight.yaml`); `shade` planned | `smarli_cover.yaml` (in `ha-packages`) | `docs/cover-architecture.md` |
 | Scene activation via smart button | `scene` | Built (4 hardware variants) | — (self-contained) | — |
 | All off | `allOff` | Built | — (self-contained) | — |
 | Weather warning | `weather` | Built | — (self-contained) | — |
@@ -37,7 +37,7 @@ All blueprint files live in one flat location, `automation/` — they are **not*
 
 - Blueprints are publicly importable, but only smarli.-managed instances matter. These are guaranteed to have: the smarli. "Grundinstanz" packages, Mosquitto (MQTT), and HACS.
 - End users do **not** have admin access — they cannot edit automations or blueprints. Anything a user should adjust must be exposed as a frontend entity.
-- Supporting entities ship as **package** files, split by blueprint family (`smarli_<family>.yaml`) over a shared `smarli_core.yaml` foundation (Grundinstanz includes them all; retrofits get the core plus the relevant feature package(s) to drop into `config/packages/`). A blueprint is a single YAML and cannot ship entities itself.
+- Supporting entities ship as **package** files, split by blueprint family (`smarli_<family>.yaml`) over a shared `smarli_core.yaml` foundation (Grundinstanz includes them all; retrofits get the core plus the relevant feature package(s) to drop into `config/packages/`). A blueprint is a single YAML and cannot ship entities itself. **The packages do not live in this repo.** They live in [`smarli-AG/ha-packages`](https://github.com/smarli-AG/ha-packages) — see [Delivery split](#delivery-split-grundinstanz-package-vs-blueprint).
 
 ## General blueprint-engineering conventions
 
@@ -116,9 +116,11 @@ For hidden/internal state in any blueprint, use the single central **trigger-bas
 
 ## Delivery split: Grundinstanz package vs. blueprint
 
+**Two repos.** Blueprints live here. Every package, and any other config shared by all customer instances, lives in [`smarli-AG/ha-packages`](https://github.com/smarli-AG/ha-packages) under its `packages/` directory. A blueprint that needs a new or changed package script or entity needs a matching change in `ha-packages`. Land the package side first: technicians import blueprints directly, while packages roll out with the Grundinstanz. See `docs/test-environment.md` for testing both repos together.
+
 **Trigger distributed, logic centralized.** Blueprints keep entity-scoped state triggers on their own devices (self-registering: the set of watched entities is derived from the set of automations), but all shared logic lives in **package files**, shipped with the Grundinstanz. Packages are split by blueprint family, `smarli_<family>.yaml`, over a single foundation file — HA merges same-domain sections (`script:`, `template:`, …) across all package files at load, so multiple files each carrying a `script:` block is expected, not a conflict (entity/object IDs must stay unique, which the `smarli_` prefix guarantees):
 
-- `packages/smarli_core.yaml` — the **foundation every family reads**: `sensor.smarli_automation_tracker`, the KV store. Nothing family-specific goes here.
+- `packages/smarli_core.yaml` (in `ha-packages`) — the **foundation every family reads**: `sensor.smarli_automation_tracker`, the KV store. Nothing family-specific goes here.
 - Each family with shared logic gets its own `smarli_<family>.yaml` — see the [Blueprint families](#blueprint-families) table above for what exists and where its detail lives.
 - Genuinely cross-family state stays in the tracker's `shared` namespace, in `smarli_core.yaml`.
 
