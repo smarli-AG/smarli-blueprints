@@ -11,6 +11,8 @@
 # - Language support by creating dictionaries with non-editable texts and tying them into the language entity
 
 # ! RELEASE NOTES
+## 1.5.1 | 2026-10-09
+## - Fix source_url to match the renamed file
 ## 1.5.0 | 2025-09-24
 ## - Add Partner Engine data
 ## 1.4.0 | 2025-06-30
@@ -47,7 +49,7 @@
 #   [br]
 #   ---
 #   [br]
-#   _Version 1.5.0_
+#   _Version 1.5.1_
 #
 # long_description_de: |
 #   __Erhalte Benachrichtigungen über bevorstehende Wetterereignisse wie Regen, Gewitter, Schnee und mehr.__
@@ -63,7 +65,7 @@
 #   [br]
 #   ---
 #   [br]
-#   _Version 1.5.0_
+#   _Version 1.5.1_
 #
 # purpose_en: "Comfort"
 # purpose_de: "Komfort"
@@ -89,7 +91,7 @@ blueprint:
 
     This automation will warn users about upcoming weather events so that they can leave their homes fully prepared.
 
-    *Version 1.5.0*
+    *Version 1.5.1*
 
     <details>
     <summary><b>How to set it up</b></summary>

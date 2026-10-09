@@ -1,4 +1,6 @@
 # ! RELEASE NOTES
+## 1.1.1 | 2026-10-09
+## - Fix source_url to match the renamed file
 ## 1.1.0 | 2026-08-28
 ## - Add missing Partner Engine optional/display_if annotations
 ## - Rewrite long_description with correct Partner Engine markup
@@ -32,7 +34,7 @@
 #   [br]
 #   ---
 #   [br]
-#   _Version 1.1.0_
+#   _Version 1.1.1_
 # long_description_de: |
 #   __Aktiviere eine Szene mithilfe des Aqara Wireless mini switch.__
 #   [br]
@@ -47,7 +49,7 @@
 #   [br]
 #   ---
 #   [br]
-#   _Version 1.1.0_
+#   _Version 1.1.1_
 #
 # purpose_en: "Comfort"
 # purpose_de: "Komfort"
@@ -70,7 +72,7 @@ blueprint:
     This automation will activate a selected scene when your Aqara Wireless mini switch is pressed.
     This automation uses scripts, not native Home Assistant scenes, under the hood. Scripts support more features than scenes. Select the script that represents your scene under "Scene to Activate".
 
-    *Version 1.1.0*
+    *Version 1.1.1*
 
     <details>
     <summary><b>How to set it up</b></summary>
