@@ -24,17 +24,17 @@
 #
 # name_en: "Cover Day-Night Cycle"
 # name_de: "Storen Tag-Nacht-Zyklus"
-# subtitle_en: "Sunrise, Time or Brightness"
+# subtitle_en: "Sun, Time or Brightness"
 # subtitle_de: "Sonnenstand, Zeit oder Helligkeit"
 #
-# short_description_en: "Open and close your covers automatically, based on sunrise, a fixed time or brightness."
+# short_description_en: "Open and close your covers automatically, based on sunrise/sunset, a fixed time or brightness."
 # short_description_de: "Öffne und schliesse Deine Storen automatisch, basierend auf Sonnenstand, Uhrzeit oder Helligkeit."
 # long_description_en: |
-#   __Open and close your covers automatically, based on sunrise, a fixed time or brightness.__
+#   __Open and close your covers automatically, based on sunrise/sunset, a fixed time or brightness.__
 #   [br]
-#   The Day-Night Cycle automation opens your covers in the morning and closes them at night. Choose one of three methods: sunrise/sunset, a fixed time, or a brightness sensor.
+#   The Day-Night Cycle automation opens your covers in the morning and closes them at night. Choose one of three methods: sunrise/sunset (including offsets), a fixed time, or a brightness sensor.
 #   [br]
-#   You can set earliest and latest times, so the covers never move too early or too late. Bad weather prevents the covers from closing. The automation closes them as soon as the weather clears.
+#   You can set earliest and latest times, so the covers never move too early or too late. If desired, bad weather prevents the covers from extending to prevent damage. The automation closes them as soon as the weather clears.
 #   [br]
 #   If somebody operates a cover by hand, the automation leaves that cover alone for a set duration. All other covers keep working as usual.
 #   [br]
@@ -44,7 +44,7 @@
 #   2. Configure the settings for the method you chose
 #   3. (Optional) Set the earliest and latest times for opening and closing
 #   4. Choose whether manual operation suspends the automation, and for how long
-#   5. (Optional) Choose the weather events that prevent the covers from closing
+#   5. (Optional) Choose the weather events that prevent the covers from extending
 #   6. Select the covers that should be automated
 #   [br]
 #   ---
@@ -53,9 +53,9 @@
 # long_description_de: |
 #   __Öffne und schliesse Deine Storen automatisch, basierend auf Sonnenstand, Uhrzeit oder Helligkeit.__
 #   [br]
-#   Die Tag-Nacht-Zyklus Automation öffnet Deine Storen am Morgen und schliesst sie am Abend. Wähle eine von drei Methoden: Sonnenaufgang/Sonnenuntergang, eine feste Uhrzeit oder einen Helligkeitssensor.
+#   Die Tag-Nacht-Zyklus Automation öffnet Deine Storen am Morgen und schliesst sie am Abend. Wähle eine von drei Methoden: Sonnenaufgang/Sonnenuntergang (inklusive Offsets), eine feste Uhrzeit oder einen Helligkeitssensor.
 #   [br]
-#   Du kannst früheste und späteste Zeiten festlegen, damit die Storen nie zu früh oder zu spät fahren. Schlechtes Wetter verhindert das Schliessen. Die Automation schliesst die Storen, sobald sich das Wetter beruhigt hat.
+#   Du kannst früheste und späteste Zeiten festlegen, damit die Storen nie zu früh oder zu spät fahren. Falls gewünscht, verhindert schlechtes Wetter das Ausfahren, um Schäden zu vermeiden. Die Automation schliesst die Storen, sobald sich das Wetter beruhigt hat.
 #   [br]
 #   Wenn jemand eine Store von Hand bedient, lässt die Automation diese Store für eine bestimmte Dauer in Ruhe. Alle anderen Storen laufen normal weiter.
 #   [br]
@@ -65,7 +65,7 @@
 #   2. Konfiguriere die Einstellungen für die gewählte Methode
 #   3. (Optional) Lege die frühesten und spätesten Zeiten für das Öffnen und Schliessen fest
 #   4. Wähle, ob eine manuelle Bedienung die Automation aussetzt, und für wie lange
-#   5. (Optional) Wähle die Wetterereignisse, die das Schliessen verhindern sollen
+#   5. (Optional) Wähle die Wetterereignisse, die das Ausfahren verhindern sollen
 #   6. Wähle die Storen aus, die automatisiert werden sollen
 #   [br]
 #   ---
@@ -75,8 +75,8 @@
 # purpose_en: "Comfort"
 # purpose_de: "Komfort"
 #
-# keywords_en: [cover, blind, shutter, day night, sunrise, sunset, brightness, shading]
-# keywords_de: [store, storen, rollladen, beschattung, tag nacht, sonnenaufgang, sonnenuntergang, helligkeit]
+# keywords_en: [cover, blind, shutter, day/night, sunrise, sunset, brightness, shading]
+# keywords_de: [store, storen, rollladen, beschattung, tag/nacht, sonnenaufgang, sonnenuntergang, helligkeit, Beschattung]
 #
 # events_en: [waking up, going to bed, sunrise, sunset]
 # events_de: [Aufstehen, ins Bett gehen, Sonnenaufgang, Sonnenuntergang]
@@ -93,12 +93,19 @@ blueprint:
   description: >
     # 🌞 smarli. Cover Control Day-Night-Cycle
 
-    Control covers based on the day-night-cycle. Based on either sunrise/sunset,
-    time or brightness. Prevents automatically closing the covers in case of
-    current or upcoming weather events. Detects manual operation (app, UI, wall
-    switch, mid-move stop) and suspends the affected cover for a configurable
-    duration — a manually moved cover keeps its position until the next
-    scheduled transition after the suspension has expired.
+    Open and close your covers automatically, based on sunrise/sunset, a fixed
+    time or brightness.
+
+    The automation opens your covers in the morning and closes them at night.
+    Choose one of three methods: sunrise/sunset (including offsets), a fixed
+    time, or a brightness sensor.
+
+    You can set earliest and latest times, so the covers never move too early or
+    too late. If desired, bad weather prevents the covers from extending to
+    prevent damage. The automation closes them as soon as the weather clears.
+
+    If somebody operates a cover by hand, the automation leaves that cover alone
+    for a set duration. All other covers keep working as usual.
 
     *Version 3.1.0*
 
@@ -113,7 +120,7 @@ blueprint:
 
       4. Choose whether manual operation suspends the automation, and for how long.
 
-      5. (Optional) Choose the weather events that prevent the covers from closing.
+      5. (Optional) Choose the weather events that prevent the covers from extending.
 
       6. Select the covers that should be automated.
 
@@ -147,7 +154,8 @@ blueprint:
       `sensor.smarli_automation_tracker` (Core),
       `script.smarli_cover_manual_check` and `script.smarli_cover_resolve` (Cover).
       To retrofit an older instance, copy both `packages/smarli_core.yaml` and
-      `packages/smarli_cover.yaml` from this repository into `config/packages/`.
+      `packages/smarli_cover.yaml` from the `smarli-AG/ha-packages` repository
+      into `config/packages/`.
 
     </details>
 
@@ -162,7 +170,7 @@ blueprint:
         reporting an opening/closing state cannot be detected as manual.
       - Weather forecast blocking checks the next hourly forecast entry, and only
         if the weather entity supports hourly forecasts (otherwise only current
-        conditions block closing).
+        conditions block extending).
 
     </details>
 
@@ -189,14 +197,13 @@ blueprint:
           #     en: Day-Night-Cycle Method
           #     de: Methode für den Tag-Nacht-Zyklus
           #   description:
-          #     en: Which method should control the day-night cycle? The covers open in the morning and close at night. Only the settings for the method you choose are shown.
-          #     de: Welche Methode soll den Tag-Nacht-Zyklus steuern? Die Storen öffnen am Morgen und schliessen am Abend. Es werden nur die Einstellungen der gewählten Methode angezeigt.
+          #     en: Which method should control the day-night cycle? The covers open in the morning and close at night.
+          #     de: Welche Methode soll den Tag-Nacht-Zyklus steuern? Die Storen öffnen am Morgen und schliessen am Abend.
           # optional: false
           # display_if: true
           name: Day-Night-Cycle Method
           description: >
             Based on which method should the day-night cycle (opening covers in the morning, closing them at night) operate?
-            Only the inputs that belong to the method you choose are relevant.
           selector:
             select:
               options:
@@ -229,7 +236,7 @@ blueprint:
           #     en: Entity that tracks whether today is a workday. Use it to set different opening times on workdays and non-workdays. If it is not set, every day counts as a non-workday.
           #     de: Entität, die erfasst, ob heute ein Arbeitstag ist. Damit kannst Du unterschiedliche Öffnungszeiten für Arbeitstage und arbeitsfreie Tage festlegen. Ohne diese Angabe gilt jeder Tag als arbeitsfreier Tag.
           # optional: true
-          # display_if: true
+          # display_if: false
           name: Workday Tracker (optional)
           description: >
             Entity used to track whether or not today is a workday. This can be used to differentiate between opening times on workdays vs non-workdays.
@@ -249,7 +256,7 @@ blueprint:
           #     en: Entity that tracks whether tomorrow is a workday. Use it to set different closing times depending on tomorrow. If it is not set, every day counts as a non-workday.
           #     de: Entität, die erfasst, ob morgen ein Arbeitstag ist. Damit kannst Du unterschiedliche Schliesszeiten je nach morgigem Tag festlegen. Ohne diese Angabe gilt jeder Tag als arbeitsfreier Tag.
           # optional: true
-          # display_if: true
+          # display_if: false
           name: Workday Tomorrow Tracker (optional)
           description: >
             Entity used to track whether or not tomorrow is a workday. This can be used to differentiate between closing times if tomorrow is a workday vs a non-workday.
