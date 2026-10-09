@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+#
+# Runs the same checks as CI before every commit. Enable it once per clone:
+#
+#   git config core.hooksPath .githooks
+#
+# It checks the working tree, not only what is staged, the same as the
+# controller's hook. Skip it in an emergency with: git commit --no-verify
+# CI still runs the checks, so a skipped hook only moves the failure later.
+
+exec "$(git rev-parse --show-toplevel)/ci/checks.sh"

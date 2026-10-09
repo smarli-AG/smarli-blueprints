@@ -1,6 +1,6 @@
 # Cover Blueprint Architecture
 
-This is the architecture reference for the cover automation family: `coversDayNight.yaml` today, a `shade` family planned. Read it before touching cover logic or `packages/smarli_cover.yaml`.
+This is the architecture reference for the cover automation family: `cover_DayNight.yaml` today, a `shade` family planned. Read it before touching cover logic or `packages/smarli_cover.yaml` (in the separate [`smarli-AG/ha-packages`](https://github.com/smarli-AG/ha-packages) repo, not this one).
 
 It assumes the cross-family conventions in the root `CLAUDE.md` — the tracker sensor, the package delivery-split principle, and the heartbeat-evaluator design pattern — and covers only what's specific to covers.
 
@@ -59,7 +59,7 @@ cover_day_night:  <automation_id>::bright_since | ::dark_since
 
 **Suspension duration is cover-level, not automation-level.** Several automations watch one cover and all fire on the same wall-switch press, so `script.smarli_cover_suspend` takes the **maximum** `suspension_duration` across active intents naming that cover (falling back to the caller's value only while no intent names it yet); an automation with suspension turned off contributes 0.
 
-## Cover-family package: `packages/smarli_cover.yaml`
+## Cover-family package: `packages/smarli_cover.yaml` (repo `ha-packages`)
 
 - `script.smarli_cover_manual_check` — detection layers 1+2. Called from each blueprint's `cover_state_changed` branch, which forwards `trigger.entity_id` and context fields (scripts cannot see `trigger`).
 - `script.smarli_cover_suspend` — resolves suspension duration centrally (see above). Called by both `manual_check` (layers 1–2) and `smarli_cover_move`'s settle audit (layer 3), so both writers agree on how long a suspension lasts.
@@ -68,7 +68,7 @@ cover_day_night:  <automation_id>::bright_since | ::dark_since
 
 **Cover targets are always numeric positions 0–100 — never `'open'`/`'closed'`.** There is no "just open it" in this system: every target a contributor publishes into its intent (and every value stored in the moving marker) is an explicit position — `100` = open, `0` = closed, anything between = partial. The move script translates the number per cover: `SET_POSITION`-capable covers (`supported_features` bit `4`) get `set_cover_position`; binary covers open if the target ≥ `binary_threshold` (default 50), else close. This keeps one code path for all cover hardware. **Future cover blueprints MUST pass numbers and rely on this fallback — do not reintroduce string-based open/close handling.** (Consequence: transition detection compares the numeric target, so a published intent's `targets` must store the position value, never a coarse label — a string vocabulary can't distinguish 40 from 70.)
 
-## `coversDayNight.yaml`: applying the heartbeat-evaluator pattern
+## `cover_DayNight.yaml`: applying the heartbeat-evaluator pattern
 
 This implements the general heartbeat-evaluator pattern (see root `CLAUDE.md`) for the day-night cycle specifically:
 

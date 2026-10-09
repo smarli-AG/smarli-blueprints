@@ -1,0 +1,5 @@
+# Shell scripts and git hooks must keep LF line endings. With core.autocrlf=true
+# on Windows they would otherwise be checked out with CRLF, and bash fails on
+# the stray \r ("$'\r': command not found").
+*.sh        text eol=lf
+.githooks/* text eol=lf

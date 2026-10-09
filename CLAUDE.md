@@ -11,10 +11,13 @@ This split exists so this file stays cheap to load regardless of how many famili
 
 ### Blueprint file cheat-sheet (quick recall only — `Readme.md` is authoritative)
 
-> **Maintenance note:** this cheat-sheet duplicates a slice of `Readme.md` on purpose, as a fast path for the common case. That means it can drift. Whenever `Readme.md`'s rules change — a field added/removed, the `optional`/`display_if` semantics change, the versioning rule changes — update **both** files in the same edit. If they ever disagree, `Readme.md` wins and this section is wrong.
+> **Maintenance note:** this cheat-sheet duplicates a slice of `Readme.md` on purpose, as a fast path for the common case. That means it can drift. Whenever `Readme.md`'s rules change — a field added/removed, the `optional`/`display_if` semantics change, the versioning rule changes — update **both** files, and `ci/check-blueprints.js`, in the same edit. If they ever disagree, `Readme.md` wins and this section is wrong.
+>
+> **Run `./ci/checks.sh` after editing any blueprint**, and `./ci/check-release.sh` before proposing a merge into `main`. See `Readme.md` → Checks.
 
 - Partner Engine header fields: `icon`, `name_en`/`de`, `subtitle_en`/`de`, `short_description_en`/`de`, `long_description_en`/`de`, `purpose_en`/`de` (only `Comfort`/`Komfort`, `Energy`/`Energie`, `Security`/`Sicherheit` for now), `keywords_en`/`de`, `events_en`/`de`, `highlight`, `deploy`, and `is_smart_button` (only for a blueprint whose entire job is activating a scene from a button press — not for every button-triggered blueprint).
 - Every real input needs `# optional: true|false` and `# display_if: <expr>` set explicitly, never omitted. `optional` judges the Partner Engine's own requiredness at the moment the input is visible — independent of Home Assistant's own `(optional)` suffix in `name:`, which can disagree (e.g. a field with `default: []` is HA-optional but Partner-Engine-required once its `display_if` makes it visible).
+- An input with `optional: true`, or with any `display_if` other than the literal `true`, needs a `default:` — otherwise HA rejects the automation when the input stays empty or hidden.
 - The version number of the newest `RELEASE NOTES` entry must match, exactly, in `blueprint.description` and in both `long_description_en`/`de` — but the date stays in `RELEASE NOTES` only; the other three carry the version number alone, no date.
 - `blueprint.description` is always English; `author` is the actual person, followed by `[smarli. AG]`.
 
@@ -24,12 +27,13 @@ All blueprint files live in one flat location, `automation/` — they are **not*
 
 | Family | Filename prefix | Status | Shared package | Architecture doc |
 | --- | --- | --- | --- | --- |
-| Cover automation | `cover` | Built (`cover_DayNight.yaml`); `shade` planned | `packages/smarli_cover.yaml` | `docs/cover-architecture.md` |
+| Cover automation | `cover` | Built (`cover_DayNight.yaml`); `shade` planned | `smarli_cover.yaml` (in `ha-packages`) | `docs/cover-architecture.md` |
 | Scene activation via smart button | `scene` | Built (4 hardware variants) | — (self-contained) | — |
 | All off | `allOff` | Built | — (self-contained) | — |
 | Weather warning | `weather` | Built | — (self-contained) | — |
 | Camera notifications | `camera` | Planned | — | — |
 | Battery warnings | `battery` | Planned | — | — |
+| Partner Engine test fixtures (not for customers) | `peTestFixture_` | Built (`inputs`, `minimal`) | — | `Readme.md` → Checks |
 
 **When to add a row and a doc:** the moment a family grows shared package logic, its own tracker namespace, or a non-obvious detection/arbitration contract. A family that stays a single self-contained blueprint doesn't need one — its logic is fully visible in the one file.
 
@@ -37,7 +41,7 @@ All blueprint files live in one flat location, `automation/` — they are **not*
 
 - Blueprints are publicly importable, but only smarli.-managed instances matter. These are guaranteed to have: the smarli. "Grundinstanz" packages, Mosquitto (MQTT), and HACS.
 - End users do **not** have admin access — they cannot edit automations or blueprints. Anything a user should adjust must be exposed as a frontend entity.
-- Supporting entities ship as **package** files, split by blueprint family (`smarli_<family>.yaml`) over a shared `smarli_core.yaml` foundation (Grundinstanz includes them all; retrofits get the core plus the relevant feature package(s) to drop into `config/packages/`). A blueprint is a single YAML and cannot ship entities itself.
+- Supporting entities ship as **package** files, split by blueprint family (`smarli_<family>.yaml`) over a shared `smarli_core.yaml` foundation (Grundinstanz includes them all; retrofits get the core plus the relevant feature package(s) to drop into `config/packages/`). A blueprint is a single YAML and cannot ship entities itself. **The packages do not live in this repo.** They live in [`smarli-AG/ha-packages`](https://github.com/smarli-AG/ha-packages) — see [Delivery split](#delivery-split-grundinstanz-package-vs-blueprint).
 
 ## General blueprint-engineering conventions
 
@@ -116,9 +120,11 @@ For hidden/internal state in any blueprint, use the single central **trigger-bas
 
 ## Delivery split: Grundinstanz package vs. blueprint
 
+**Two repos.** Blueprints live here. Every package, and any other config shared by all customer instances, lives in [`smarli-AG/ha-packages`](https://github.com/smarli-AG/ha-packages) under its `packages/` directory. A blueprint that needs a new or changed package script or entity needs a matching change in `ha-packages`. Land the package side first: technicians import blueprints directly, while packages roll out with the Grundinstanz. See `docs/test-environment.md` for testing both repos together.
+
 **Trigger distributed, logic centralized.** Blueprints keep entity-scoped state triggers on their own devices (self-registering: the set of watched entities is derived from the set of automations), but all shared logic lives in **package files**, shipped with the Grundinstanz. Packages are split by blueprint family, `smarli_<family>.yaml`, over a single foundation file — HA merges same-domain sections (`script:`, `template:`, …) across all package files at load, so multiple files each carrying a `script:` block is expected, not a conflict (entity/object IDs must stay unique, which the `smarli_` prefix guarantees):
 
-- `packages/smarli_core.yaml` — the **foundation every family reads**: `sensor.smarli_automation_tracker`, the KV store. Nothing family-specific goes here.
+- `packages/smarli_core.yaml` (in `ha-packages`) — the **foundation every family reads**: `sensor.smarli_automation_tracker`, the KV store. Nothing family-specific goes here.
 - Each family with shared logic gets its own `smarli_<family>.yaml` — see the [Blueprint families](#blueprint-families) table above for what exists and where its detail lives.
 - Genuinely cross-family state stays in the tracker's `shared` namespace, in `smarli_core.yaml`.
 

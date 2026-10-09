@@ -34,11 +34,12 @@ Keep the two separate. A field can be optional on one side and required on the o
   - [Danger Zone: custom inputs](#danger-zone-custom-inputs)
   - [Variables translation](#variables-translation)
   - [Automation body](#automation-body)
+  - [Checks](#checks)
   - [Home Assistant reference links](#home-assistant-reference-links)
 
 ## Architecture overview
 
-Shared logic lives in Home Assistant **packages**, not in blueprints. A blueprint is a single YAML file and cannot ship its own entities — supporting entities and shared scripts ship as package files (`smarli_<family>.yaml`, layered over a common `smarli_core.yaml`), included by the Grundinstanz.
+Shared logic lives in Home Assistant **packages**, not in blueprints. A blueprint is a single YAML file and cannot ship its own entities — supporting entities and shared scripts ship as package files (`smarli_<family>.yaml`, layered over a common `smarli_core.yaml`), included by the Grundinstanz. The packages live in a separate repository, [`smarli-AG/ha-packages`](https://github.com/smarli-AG/ha-packages). This repo holds only the blueprints.
 
 These packages act as **coordinators**, not configuration holders:
 
@@ -319,6 +320,12 @@ These are two different, independent optionality mechanisms. Do not confuse them
 
 **`display_if` — the `# display_if:` comment.** An expression (see the [reference](#display_if-expression-reference) below) that decides whether the Partner Engine shows this input at all, given the values of previously-answered inputs. Set it to `true` for an input that should always be shown. If missing, the input is treated as always shown.
 
+**Rule: an input that can stay empty needs a `default:`.** This applies when `# optional:` is `true`, or when `# display_if:` is anything other than the literal `true` — `false` and conditional expressions alike. Home Assistant treats an input without a `default:` as required. If the Partner Engine hides the input, or the user leaves it empty, nothing supplies a value, and Home Assistant rejects the automation.
+
+> **Example.** `sunrise_offset` (in `cover_DayNight.yaml`) has `display_if: daynight_cycle_method == 'sun'`. When the technician picks the `time` method, the input is hidden. Its `default:` is what lets the automation save anyway.
+
+`ci/checks.sh` enforces this rule — see [Checks](#checks).
+
 ## Select option translations
 
 `select` selectors need a translation on every option, not just on the input itself:
@@ -432,6 +439,24 @@ custom_inputs: # leave these as is - should be present in any blueprint
 
 This section exists so an experienced technician can extend a blueprint's behavior without needing a blueprint edit. See [Automation body](#automation-body) for how these three inputs get wired into `triggers`/`conditions`/`actions`.
 
+**Exception: per-phase custom inputs.** A blueprint with two or more distinct action phases may split each of the three inputs per phase, because a single generic hook cannot express "run this after opening" versus "run this after closing". `cover_DayNight.yaml` does exactly that, with six inputs instead of three:
+
+```yaml
+custom_opening_triggers / custom_closing_triggers
+custom_opening_conditions / custom_closing_conditions
+custom_opening_actions / custom_closing_actions
+```
+
+Rules when you take this exception:
+
+- Split **all three** kinds consistently — don't split only the actions.
+- Keep the section name, `icon`, `collapsed: true`, and the **WATCH OUT!** description boilerplate unchanged.
+- Name each input `custom_<phase>_<kind>`, and say in its `description` which phase it belongs to.
+- If a custom trigger must be attributable to a phase, state the required trigger id in the description (e.g. "Make sure each one of them has the trigger id `custom_open`."), because the automation body branches on `trigger.id`.
+- Still no `optional`/`display_if`/`translation` annotations — the Danger Zone stays unannotated in every blueprint.
+
+Take the exception only when the phases really are distinct. A blueprint with one action path uses the standard three inputs verbatim.
+
 ## Variables translation
 
 ```yaml
@@ -481,6 +506,58 @@ Rules:
 - Merge custom triggers with `- triggers: !input custom_triggers` (a nested trigger list), **not** `- !input custom_triggers`. The nested form is what allows an empty list of custom triggers to be a no-op instead of a schema error. It requires HA ≥ 2024.10 — see [Blueprint metadata](#blueprint-metadata).
 - Wrap custom conditions in `condition: and`, so they combine with the blueprint's own conditions rather than replacing them.
 - Run custom actions last, guarded by `{{ custom_actions is not none }}`, so an empty list of custom actions is a no-op.
+
+## Checks
+
+Most rules in this Readme are checked automatically. The setup copies the one in the `smarli_controller` repository: one script defines what "broken" means, and three places run it.
+
+| Script | What it checks | Where it runs |
+| --- | --- | --- |
+| `ci/checks.sh` | Group `files`: merge-conflict markers, tab indentation in YAML. Group `blueprints`: every `automation/*.yaml` against this Readme, through `ci/check-blueprints.js`. | By hand, in the pre-commit hook, and in CI on every pull request and on `main`. |
+| `ci/check-release.sh` | A blueprint that differs from `main` needs a higher version in its release notes. Edits to the dev notes above `# ! RELEASE NOTES` do not count. | By hand, and in CI on pull requests into `main`. |
+
+Run them:
+
+```bash
+./ci/checks.sh                # every group
+./ci/checks.sh blueprints     # one group
+./ci/check-release.sh         # compares against origin/main — run "git fetch" first
+```
+
+Needs: Git Bash (on Windows) and Node.js. No packages to install.
+
+**On Windows, run these commands in a Git Bash terminal, not in PowerShell.** PowerShell cannot run a script without a file extension and asks which app should open it. From PowerShell, call Git's bash explicitly instead:
+
+```powershell
+& "C:\Program Files\Git\bin\bash.exe" ci/checks.sh
+```
+
+**Enable the pre-commit hook once per clone:**
+
+```bash
+git config core.hooksPath .githooks
+```
+
+`git config` works in any terminal. The setting is per clone and is never committed, so every person runs it once in each clone. Git does not let a repository turn on its own hooks, because a hook runs code on your machine.
+
+The hook runs `ci/checks.sh` before every commit, from any terminal or the VS Code commit button, and stops the commit when a check fails. `git commit --no-verify` skips it. CI still runs the same checks.
+
+**CI only blocks a merge when GitHub requires it.** Protect `main` in the repository settings and require the `checks` and `release` status checks. Without that, a red run is only information.
+
+**Partner Engine test fixtures.** A file in `automation/` whose name starts with `peTestFixture_` (e.g. `peTestFixture_inputs.yaml`) is a test fixture for the Partner Engine, not a blueprint for customers. A fixture runs through every rule, the same as a real blueprint. It may break a rule on purpose, but only by naming that rule's ID in one line above `blueprint:`:
+
+```yaml
+# checks: allow annotation, version
+```
+
+- Every problem with a listed ID is then ignored. Everything else still fails.
+- An ID that no problem matches any more also fails, so the list cannot go stale.
+- A real blueprint cannot use `allow`.
+- The check prints each problem's rule ID in brackets, e.g. `[annotation]`.
+
+Put a deliberate break in a fixture's `allow` line. Fix every other break.
+
+**When a rule in this Readme changes, change `ci/check-blueprints.js` in the same commit.** Each rule in that file names the Readme section it enforces. If the two disagree, this Readme wins.
 
 ## Home Assistant reference links
 
