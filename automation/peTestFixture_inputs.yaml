@@ -1,4 +1,7 @@
+# checks: allow input-unused
 # ! RELEASE NOTES
+## 1.1.1 | 2026-10-12
+## - Remove trailing spaces in the Danger Zone description
 ## 1.1.0 | 2026-10-09
 ## - Set up as a complete Partner Engine test fixture: one input per selector type
 ## - Every input is optional, with annotations, a default and translated select options
@@ -23,13 +26,13 @@
 #   [br]
 #   ---
 #   [br]
-#   _Version 1.1.0_
+#   _Version 1.1.1_
 # long_description_de: |
 #   Jeden Morgen prüft smarli. die Wettervorhersage in deiner Umgebung und benachrichtigt dich über bevorstehende Wetterereignisse, damit du dein Zuhause stets bestens vorbereitet verlassen kannst.
 #   [br]
 #   ---
 #   [br]
-#   _Version 1.1.0_
+#   _Version 1.1.1_
 #
 # purpose_en: "Comfort"
 # purpose_de: "Komfort"
@@ -52,7 +55,7 @@ blueprint:
     Partner Engine test fixture. It has one input for each selector type, and
     every input is optional with a default. It does nothing when it runs.
 
-    *Version 1.1.0*
+    *Version 1.1.1*
 
     <details>
     <summary><b>How to set it up</b></summary>
@@ -738,9 +741,9 @@ blueprint:
       name: "DANGER ZONE: Additional Custom Inputs"
       icon: mdi:alert
       description: >-
-        **WATCH OUT!**  
+        **WATCH OUT!**
 
-        This is advanced functionality and should only be used if you know what you're doing!  
+        This is advanced functionality and should only be used if you know what you're doing!
 
 
         Use this section to define custom triggers and conditions, as well as actions that will run at the end of the automation.
