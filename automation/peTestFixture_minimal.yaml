@@ -1,6 +1,6 @@
-# checks: allow release-notes, version, author, source-url, variables, annotation
+# checks: allow release-notes, version, author, source-url, variables, annotation, input-unused
 # ! RELEASE NOTES
-## 1.0.0 | YYYY-MM-DD
+## 1.0.1 | YYYY-MM-DD
 ## - add release notes here
 
 # ================
@@ -89,9 +89,9 @@ blueprint:
       name: "DANGER ZONE: Additional Custom Inputs"
       icon: mdi:alert
       description: >-
-        **WATCH OUT!**  
+        **WATCH OUT!**
 
-        This is advanced functionality and should only be used if you know what you're doing!  
+        This is advanced functionality and should only be used if you know what you're doing!
 
 
         Use this section to define custom triggers and conditions, as well as actions that will run at the end of the automation.

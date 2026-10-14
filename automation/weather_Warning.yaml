@@ -11,6 +11,9 @@
 # - Language support by creating dictionaries with non-editable texts and tying them into the language entity
 
 # ! RELEASE NOTES
+## 1.5.2 | 2026-10-12
+## - Fix display_if of the Pouring inputs: remove the quotes around the whole expression
+## - Remove trailing spaces in the Danger Zone description
 ## 1.5.1 | 2026-10-09
 ## - Fix source_url to match the renamed file
 ## 1.5.0 | 2025-09-24
@@ -49,7 +52,7 @@
 #   [br]
 #   ---
 #   [br]
-#   _Version 1.5.1_
+#   _Version 1.5.2_
 #
 # long_description_de: |
 #   __Erhalte Benachrichtigungen über bevorstehende Wetterereignisse wie Regen, Gewitter, Schnee und mehr.__
@@ -65,7 +68,7 @@
 #   [br]
 #   ---
 #   [br]
-#   _Version 1.5.1_
+#   _Version 1.5.2_
 #
 # purpose_en: "Comfort"
 # purpose_de: "Komfort"
@@ -91,7 +94,7 @@ blueprint:
 
     This automation will warn users about upcoming weather events so that they can leave their homes fully prepared.
 
-    *Version 1.5.1*
+    *Version 1.5.2*
 
     <details>
     <summary><b>How to set it up</b></summary>
@@ -331,7 +334,7 @@ blueprint:
           #     en: 🌧️ Heavy Rain Warning
           #     de: 🌧️ Starkregenwarnung
           # optional: false
-          # display_if: 'includes(weather_events, 'pouring')'
+          # display_if: includes(weather_events, 'pouring')
           name: Notification Title "Pouring"
           description: Set the title of the notification that should be sent on pouring weather conditions.
           selector:
@@ -350,7 +353,7 @@ blueprint:
           #     en: Heavy rain is expected in your area today. You should definitely take an umbrella with you!
           #     de: Heute wird in deiner Umgebung starker Regen erwartet. Du solltest unbedingt einen Schirm mitnehmen!
           # optional: false
-          # display_if: 'includes(weather_events, 'pouring')'
+          # display_if: includes(weather_events, 'pouring')
           name: Message "Pouring"
           description: Set the message that should be sent on pouring weather conditions.
           selector:
@@ -557,9 +560,9 @@ blueprint:
       name: "DANGER ZONE: Additional Custom Inputs"
       icon: mdi:alert
       description: >-
-        **WATCH OUT!**  
+        **WATCH OUT!**
 
-        This is advanced functionality and should only be used if you know what you're doing!  
+        This is advanced functionality and should only be used if you know what you're doing!
 
 
         Use this section to define custom triggers and conditions, as well as actions that will run at the end of the automation.
