@@ -173,6 +173,9 @@ Note the id and the entity_id differ: HA derives the entity_id from the **alias*
   entry whose `attributes.id` still resolves — which is exactly why the tracker GC filters out
   `unavailable` automations. They are harmless; they also make useful fixtures for GC tests.
 
+- **Superseded by [runtime-testing-plan.md](runtime-testing-plan.md) (2026-10-14).** That plan
+  moves this environment into the repo and answers the open points below. On 2026-10-14 the
+  folder `C:\Users\Pascal\smarli-ha-test\` did not exist on Pascal's current machine.
 - **TODO (noted 2026-10-09): revisit the test setup after the split into two repos.** Nothing is
   changed yet; the copy steps in [Deploying repo changes](#deploying-repo-changes) still apply.
   Open points:
