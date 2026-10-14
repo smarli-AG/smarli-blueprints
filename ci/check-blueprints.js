@@ -66,6 +66,68 @@ const cmpVersion = (a, b) => {
   return 0;
 };
 
+// --- display_if (Readme: "display_if expression reference") ---------------
+// A small parser for the documented grammar. It returns the input names an
+// expression uses, or the first syntax error. Names may contain "-": the
+// reference has no minus operator, and input names like "message_snowy-rainy"
+// exist. Strings take single or double quotes; the Partner Engine accepts both.
+const DISPLAY_IF_FUNCTIONS = ['isEmpty', 'includes', 'includesAny', 'includesAll', 'length', 'contains', 'startsWith', 'endsWith'];
+const DISPLAY_IF_LITERALS = ['true', 'false', 'null'];
+
+function parseDisplayIf(src) {
+  const tokens = [];
+  const re = /\s*(?:('[^']*'|"[^"]*")|(\d+(?:\.\d+)?)|([A-Za-z_][\w-]*)|(==|!=|<=|>=|<|>|%|\(|\)|\[|\]|,))/y;
+  let pos = 0;
+  while (pos < src.length) {
+    if (/^\s*$/.test(src.slice(pos))) break;
+    re.lastIndex = pos;
+    const m = re.exec(src);
+    if (!m) return { error: `cannot read "${src.slice(pos).trim()}"` };
+    tokens.push(m[1] ? { t: 'str' } : m[2] ? { t: 'num' } : m[3] ? { t: 'id', v: m[3] } : { t: 'op', v: m[4] });
+    pos = re.lastIndex;
+  }
+  const names = new Set();
+  let i = 0;
+  const peek = () => tokens[i] || { t: 'end' };
+  const show = (k) => (k.t === 'end' ? 'the end' : k.v ? `"${k.v}"` : `a ${k.t === 'str' ? 'string' : 'number'}`);
+  const isOp = (v) => peek().t === 'op' && peek().v === v;
+  const isWord = (v) => peek().t === 'id' && peek().v === v;
+  const expect = (v) => { if (!isOp(v)) throw new Error(`expected "${v}" but found ${show(peek())}`); i++; };
+
+  const or = () => { and(); while (isWord('or')) { i++; and(); } };
+  const and = () => { not(); while (isWord('and')) { i++; not(); } };
+  const not = () => { if (isWord('not')) { i++; not(); } else cmp(); };
+  const cmp = () => { mod(); if (['==', '!=', '<=', '>=', '<', '>'].some(isOp)) { i++; mod(); } };
+  const mod = () => { primary(); while (isOp('%')) { i++; primary(); } };
+  const list = (close) => {
+    if (isOp(close)) { i++; return; }
+    for (;;) { or(); if (isOp(',')) { i++; continue; } expect(close); return; }
+  };
+  const primary = () => {
+    const k = peek();
+    if (k.t === 'str' || k.t === 'num') { i++; return; }
+    if (isOp('(')) { i++; or(); expect(')'); return; }
+    if (isOp('[')) { i++; list(']'); return; }
+    if (k.t !== 'id' || ['and', 'or', 'not'].includes(k.v)) throw new Error(`expected a value but found ${show(k)}`);
+    i++;
+    if (isOp('(')) {
+      if (!DISPLAY_IF_FUNCTIONS.includes(k.v)) throw new Error(`uses unknown function "${k.v}()"`);
+      i++;
+      list(')');
+    } else if (!DISPLAY_IF_LITERALS.includes(k.v)) {
+      names.add(k.v);
+    }
+  };
+
+  try {
+    or();
+    if (peek().t !== 'end') throw new Error(`has ${show(peek())} where the expression should end`);
+  } catch (e) {
+    return { error: e.message };
+  }
+  return { names };
+}
+
 function checkFile(rel) {
   const lines = fs.readFileSync(path.resolve(ROOT, rel), 'utf8').split(/\r?\n/);
   const problems = [];
@@ -212,6 +274,7 @@ function checkFile(rel) {
   if (known.join() !== SECTION_ORDER.filter((n) => known.includes(n)).join()) fail(inputRoot, "input-sections", `input sections are out of order — use ${SECTION_ORDER.join(', ')}`);
   if (!names.includes('custom_inputs')) fail(inputRoot, "input-sections", 'the Danger Zone section "custom_inputs" is missing');
 
+  const inputs = [];
   for (const sec of sections) {
     const danger = sec.name === 'custom_inputs';
     if (danger) {
@@ -230,12 +293,26 @@ function checkFile(rel) {
       }
       let iEnd = i + 1;
       while (iEnd < sec.end && (isBlank(lines[iEnd]) || indentOf(lines[iEnd]) > 8)) iEnd++;
-      checkInput(k[1], i, iEnd, danger);
+      inputs.push({ name: k[1], start: i, stop: iEnd, danger });
       i = iEnd - 1;
     }
   }
+  const declared = new Set(inputs.map((x) => x.name));
+  inputs.forEach((inp, n) => checkInput(inp.name, inp.start, inp.stop, inp.danger, new Set(inputs.slice(0, n).map((x) => x.name))));
 
-  function checkInput(name, start, stop, danger) {
+  // Readme: "Variables translation" — every !input names a declared input, and
+  // every declared input is used. Comment lines are skipped: they may quote !input.
+  const used = new Set();
+  lines.forEach((l, i) => {
+    if (l.trim().startsWith('#')) return;
+    for (const m of l.matchAll(/!input\s+([\w-]+)/g)) {
+      used.add(m[1]);
+      if (!declared.has(m[1])) fail(i, "input-undeclared", `"!input ${m[1]}" names no declared input — Home Assistant rejects the blueprint`);
+    }
+  });
+  for (const inp of inputs) if (!used.has(inp.name)) fail(inp.start, "input-unused", `input "${inp.name}" is declared but never used via !input`);
+
+  function checkInput(name, start, stop, danger, before) {
     const field = (re) => {
       for (let i = start + 1; i < stop; i++) if (indentOf(lines[i]) === 10 && re.test(lines[i])) return i;
       return -1;
@@ -264,6 +341,25 @@ function checkFile(rel) {
     else {
       displayIf = lines[disp].replace(/^\s*# display_if:\s*/, '').trim();
       if (!displayIf) fail(disp, "annotation", `input "${name}": display_if is empty`);
+      else {
+        const r = parseDisplayIf(displayIf);
+        if (r.error) fail(disp, "display-if-syntax", `input "${name}": display_if ${r.error} — see the Readme "display_if expression reference"`);
+        else {
+          // Readme: "Available variables are the ones used in previous inputs."
+          for (const id of r.names) {
+            if (before.has(id)) continue;
+            const why = declared.has(id) ? 'is declared below this input' : 'is not an input of this blueprint';
+            fail(disp, "display-if-reference", `input "${name}": display_if uses "${id}", which ${why}`);
+          }
+        }
+      }
+    }
+    // Readme: "Optional vs. display_if" — "(optional)" tells the technician HA saves
+    // without a value, which is only true with a default. A default alone does not
+    // make an input optional, so the reverse is not checked.
+    const haName = field(/^\s*name:/);
+    if (haName >= 0 && /\(optional\)["']?\s*$/.test(lines[haName]) && !hasDefault) {
+      fail(haName, "optional-suffix", `input "${name}" says "(optional)" but has no default — Home Assistant would still require a value`);
     }
 
     // Readme: "Optional vs. display_if" — a value nobody may enter must come from a default.

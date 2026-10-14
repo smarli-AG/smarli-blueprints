@@ -305,7 +305,7 @@ input:
           - domain: script
 ```
 
-- `translation` gives the `name` and `description` in every supported language. Keep it in sync with the plain `name`/`description` fields HA actually reads.
+- `translation` gives the `name` and `description` in every supported language. The Partner Engine shows the translation. Home Assistant shows the plain `name`/`description` fields. The two may use different words. Write each one for the person who reads it. For example, the `en` name usually leaves out the `(optional)` suffix, because the Partner Engine has its own `# optional:` annotation. The checks do not compare the two.
 - `optional` and `display_if` are Partner Engine fields. Both are **required on every real input** — never omit either, even when the value is the unremarkable default (`optional: false`, `display_if: true`). An omitted field still has an implicit default (see below), but leaving it out hides whether that was a deliberate choice.
 
 ### Optional vs. `display_if`
@@ -313,6 +313,9 @@ input:
 These are two different, independent optionality mechanisms. Do not confuse them.
 
 **Standard Home Assistant optionality.** Native HA behavior, shown to the technician inside Home Assistant itself. Mark it by appending `(optional)` to the input's `name:` field. The blueprint's own `description:` states the rule: "All input fields are required unless they are marked as `(optional)`." This is unrelated to the Partner Engine.
+
+- An input whose `name:` ends in `(optional)` needs a `default:`. Without one, Home Assistant still requires a value, and the label is wrong.
+- A `default:` alone does not make an input optional. A select with a preset value, or a prefilled message text, has a default, but the technician must still check it. Do not add `(optional)` to it.
 
 **Partner Engine optionality — the `# optional:` comment.** Set it to `true` or `false`. If missing, the Partner Engine treats the input as required. Judge this value only for the moment the input is actually visible (its `display_if` state), not for whether Home Assistant enforces a value. An input can be optional on the Home Assistant side (it has a `default:`, or its `name:` says `(optional)`) but still required on the Partner Engine side once it becomes visible.
 
@@ -345,6 +348,11 @@ selector:
 ## `display_if` expression reference
 
 Available variables are the ones used in previous inputs of the blueprint.
+
+- Reference only inputs that are declared **above** the current input. A typo, or a reference to an input further down, hides the input in the Partner Engine.
+- Write the expression bare. Do not put quotes around the whole expression: `display_if: includes(weather_events, 'rainy')`, not `display_if: 'includes(weather_events, 'rainy')'`.
+- Strings take single or double quotes: `mode == 'off'` and `mode == "off"` both work.
+- Use only the operators and functions listed below.
 
 ### Comparison operators
 
@@ -406,9 +414,9 @@ custom_inputs: # leave these as is - should be present in any blueprint
   name: "DANGER ZONE: Additional Custom Inputs"
   icon: mdi:alert
   description: >-
-    **WATCH OUT!**  
+    **WATCH OUT!**
 
-    This is advanced functionality and should only be used if you know what you're doing!  
+    This is advanced functionality and should only be used if you know what you're doing!
 
 
     Use this section to define custom triggers and conditions, as well as actions that will run at the end of the automation.
@@ -473,6 +481,8 @@ variables:
 
 - `trigger_variables` exists because Home Assistant does not make automation `variables:` available inside `triggers:`. Only add it when a trigger's template genuinely needs a computed value from an input (for example, resolving a device selector down to its entities for a button-press trigger).
 - `variables:` is always present, even when there is nothing to put in it (`variables: {}`). Every `!input` value used inside a template anywhere in the blueprint must be re-declared here first.
+- Every `!input <name>` must name an input declared under `blueprint.input`. Home Assistant rejects the blueprint otherwise.
+- Every declared input must be used through `!input` somewhere. An unused input asks the technician for a value that does nothing. Test fixtures are the exception: they exist only to render inputs.
 
 ## Automation body
 
@@ -542,7 +552,15 @@ git config core.hooksPath .githooks
 
 The hook runs `ci/checks.sh` before every commit, from any terminal or the VS Code commit button, and stops the commit when a check fails. `git commit --no-verify` skips it. CI still runs the same checks.
 
-**CI only blocks a merge when GitHub requires it.** Protect `main` in the repository settings and require the `checks` and `release` status checks. Without that, a red run is only information.
+**`main` is protected.** The GitHub ruleset "protect main" enforces these rules, with no bypass for anyone:
+
+- Every change reaches `main` through a pull request. A direct push is rejected.
+- The `checks` and `release` status checks must pass.
+- The branch must be up to date with `main` before the merge.
+- Every review thread must be resolved. No approval is required.
+- Nobody can delete `main` or force-push to it.
+
+If you rename a CI job, update the required status checks in the ruleset too. Otherwise every pull request waits for a check that never runs.
 
 **Partner Engine test fixtures.** A file in `automation/` whose name starts with `peTestFixture_` (e.g. `peTestFixture_inputs.yaml`) is a test fixture for the Partner Engine, not a blueprint for customers. A fixture runs through every rule, the same as a real blueprint. It may break a rule on purpose, but only by naming that rule's ID in one line above `blueprint:`:
 

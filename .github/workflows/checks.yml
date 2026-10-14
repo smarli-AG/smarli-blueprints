@@ -8,8 +8,8 @@
 # This file does not define what "broken" means. The two scripts do, and a
 # developer runs both on a laptop. This file only runs them on GitHub.
 #
-# A red run blocks nothing on its own. To make it a gate, protect main in the
-# repository settings and require the "checks" and "release" status checks.
+# The ruleset "protect main" requires the "checks" and "release" status checks
+# by job name. Rename a job here and you must update the ruleset too.
 
 name: checks
 
