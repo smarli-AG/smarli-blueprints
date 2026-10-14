@@ -18,6 +18,10 @@ This split exists so this file stays cheap to load regardless of how many famili
 - Partner Engine header fields: `icon`, `name_en`/`de`, `subtitle_en`/`de`, `short_description_en`/`de`, `long_description_en`/`de`, `purpose_en`/`de` (only `Comfort`/`Komfort`, `Energy`/`Energie`, `Security`/`Sicherheit` for now), `keywords_en`/`de`, `events_en`/`de`, `highlight`, `deploy`, and `is_smart_button` (only for a blueprint whose entire job is activating a scene from a button press — not for every button-triggered blueprint).
 - Every real input needs `# optional: true|false` and `# display_if: <expr>` set explicitly, never omitted. `optional` judges the Partner Engine's own requiredness at the moment the input is visible — independent of Home Assistant's own `(optional)` suffix in `name:`, which can disagree (e.g. a field with `default: []` is HA-optional but Partner-Engine-required once its `display_if` makes it visible).
 - An input with `optional: true`, or with any `display_if` other than the literal `true`, needs a `default:` — otherwise HA rejects the automation when the input stays empty or hidden.
+- A `name:` ending in `(optional)` needs a `default:`. The reverse does not hold: a default alone (a preset select, a prefilled text) does not make an input optional, so don't add the suffix.
+- `display_if` may reference only inputs declared above it, written bare (no quotes around the whole expression), using only the Readme's operators/functions. Strings take `'` or `"`.
+- Every `!input` names a declared input, and every declared input is used via `!input` (fixtures excepted via `# checks: allow input-unused`).
+- `translation` text may differ from HA's `name`/`description` on purpose — it is not checked for sync.
 - The version number of the newest `RELEASE NOTES` entry must match, exactly, in `blueprint.description` and in both `long_description_en`/`de` — but the date stays in `RELEASE NOTES` only; the other three carry the version number alone, no date.
 - `blueprint.description` is always English; `author` is the actual person, followed by `[smarli. AG]`.
 
