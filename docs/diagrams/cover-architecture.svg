@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 2762" font-family="-apple-system, 'Helvetica Neue', Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 3050" font-family="-apple-system, 'Helvetica Neue', Arial, sans-serif">
   <defs>
     <marker id="aDark" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
       <path d="M0,0 L10,5 L0,10 z" fill="#292d4d"/>
@@ -18,7 +18,7 @@
   </defs>
 
   <!-- background -->
-  <rect x="0" y="0" width="1600" height="2762" fill="#f7f8fc"/>
+  <rect x="0" y="0" width="1600" height="3050" fill="#f7f8fc"/>
 
   <!-- title -->
   <text x="800" y="42" text-anchor="middle" font-size="30" font-weight="700" fill="#292d4d">How a smarli. cover decides where to move</text>
@@ -117,6 +117,27 @@
   <line x1="1430" y1="498" x2="1430" y2="535" stroke="#c23d3d" stroke-width="2.5" stroke-dasharray="7,6" marker-end="url(#aRed)" marker-start="url(#aRed)"/>
   <rect x="1442" y="503" width="75" height="26" fill="#f7f8fc"/>
   <text x="1479" y="521" text-anchor="middle" font-size="14" font-weight="600" fill="#c23d3d">suspend</text>
+
+  <!-- ============ PRESENCE SIMULATION (v7.1 or later) ============
+       External, like the device. The resolver holds its covers; the
+       release is the one caller of the mover besides the resolver. -->
+  <text x="400" y="292" text-anchor="middle" font-size="13" font-weight="700" letter-spacing="1.5" fill="#5b5f7c">PRESENCE SIMULATION</text>
+  <rect x="270" y="302" width="260" height="170" rx="16" fill="#eef0f5" stroke="#8a8fae" stroke-width="3"/>
+  <text x="400" y="330" text-anchor="middle" font-size="16" font-weight="700" fill="#292d4d">While it runs (v7.1+)</text>
+  <text x="288" y="356" font-size="14" font-weight="700" fill="#292d4d">Holds its covers</text>
+  <text x="288" y="374" font-size="13" fill="#5b5f7c">recorded, not commanded</text>
+  <text x="288" y="400" font-size="14" font-weight="700" fill="#292d4d">Its replays never suspend</text>
+  <text x="288" y="418" font-size="13" fill="#5b5f7c">its own user — not a person</text>
+  <text x="288" y="444" font-size="14" font-weight="700" fill="#292d4d">Releases them on stop</text>
+  <text x="288" y="462" font-size="13" fill="#5b5f7c">to the resolved position</text>
+
+  <!-- Presence Simulation -> resolver : hold -->
+  <line x1="500" y1="302" x2="500" y2="238" stroke="#3f43ac" stroke-width="2.5" marker-end="url(#aIndigo)"/>
+  <text x="512" y="276" font-size="13" font-weight="600" fill="#3f43ac">hold</text>
+
+  <!-- Presence Simulation -> mover : release on stop -->
+  <path d="M530,452 H940 V238" fill="none" stroke="#c97711" stroke-width="2.5" marker-end="url(#aOrange)"/>
+  <text x="780" y="442" text-anchor="middle" font-size="13" font-weight="600" fill="#c97711">release on stop</text>
 
   <!-- footer -->
   <text x="800" y="775" text-anchor="middle" font-size="14" fill="#8489ab">Nothing here commands a cover directly — every arrow is a real event or tracker key; contributors publish, the resolver decides, the mover executes.</text>
@@ -236,50 +257,80 @@
   <text x="846" y="1734" font-size="14" fill="#3d415e">so the next scheduled move happens as planned. Noticing it would</text>
   <text x="846" y="1754" font-size="14" fill="#3d415e">need an extra 433 MHz radio receiver.</text>
 
+  <!-- Row: Presence Simulation (v7.1 or later) -->
+  <text x="800" y="1844" text-anchor="middle" font-size="18" font-weight="700" fill="#292d4d">If nobody is home and Presence Simulation runs</text>
+  <text x="800" y="1866" text-anchor="middle" font-size="14" fill="#5b5f7c">The simulation replays past moves. From version 7.1, Day-Night leaves its covers alone.</text>
+
+  <!-- Card I: 18:00 hold (resolver / primary) -->
+  <rect x="40" y="1888" width="740" height="188" rx="10" fill="#ffffff" stroke="#d8dceb" stroke-width="2"/>
+  <rect x="40" y="1894" width="6" height="176" fill="#3f43ac"/>
+  <text x="66" y="1922" font-size="15" font-weight="700" fill="#292d4d" font-variant-numeric="tabular-nums">18:00</text>
+  <rect x="150" y="1906" width="70" height="24" rx="12" fill="#e5e6fa"/>
+  <text x="185" y="1922" text-anchor="middle" font-size="11" font-weight="700" letter-spacing="0.6" fill="#3f43ac">HOLD</text>
+  <text x="66" y="1956" font-size="20" font-weight="700" fill="#292d4d">The family leaves — the simulation starts</text>
+  <text x="66" y="1982" font-size="14" fill="#3d415e">Day-Night still publishes its targets. For the covers in the simulation,</text>
+  <text x="66" y="2002" font-size="14" fill="#3d415e">the resolver records the result but sends no command. The replays come</text>
+  <text x="66" y="2022" font-size="14" fill="#3d415e">from the simulation's own user, not from a person, so they never</text>
+  <text x="66" y="2042" font-size="14" fill="#3d415e">suspend a cover.</text>
+  <text x="66" y="2068" font-size="12.5" font-family="ui-monospace, Consolas, monospace" fill="#8489ab">21:00 close → resolved = 0, not commanded (held)</text>
+
+  <!-- Card J: 22:30 release (mover / accent) -->
+  <rect x="820" y="1888" width="740" height="188" rx="10" fill="#ffffff" stroke="#d8dceb" stroke-width="2"/>
+  <rect x="820" y="1894" width="6" height="176" fill="#c97711"/>
+  <text x="846" y="1922" font-size="15" font-weight="700" fill="#292d4d" font-variant-numeric="tabular-nums">22:30</text>
+  <rect x="930" y="1906" width="90" height="24" rx="12" fill="#fbe8cd"/>
+  <text x="975" y="1922" text-anchor="middle" font-size="11" font-weight="700" letter-spacing="0.6" fill="#c97711">RELEASE</text>
+  <text x="846" y="1956" font-size="20" font-weight="700" fill="#292d4d">The family is back — the simulation stops</text>
+  <text x="846" y="1982" font-size="14" fill="#3d415e">Every held cover moves to the position the resolver last recorded —</text>
+  <text x="846" y="2002" font-size="14" fill="#3d415e">at this hour, closed. Covers outside the simulation were never held.</text>
+  <text x="846" y="2022" font-size="14" fill="#3d415e">Older than v7.1: there is no hold, so Day-Night and the simulation</text>
+  <text x="846" y="2042" font-size="14" fill="#3d415e">get in each other's way. Upgrade the simulation first.</text>
+  <text x="846" y="2068" font-size="12.5" font-family="ui-monospace, Consolas, monospace" fill="#8489ab">released cover → move to ::resolved (0)</text>
+
   <!-- sample tracker setup -->
 
-  <line x1="60" y1="1840" x2="1540" y2="1840" stroke="#d8dceb" stroke-width="1"/>
+  <line x1="60" y1="2128" x2="1540" y2="2128" stroke="#d8dceb" stroke-width="1"/>
 
-  <text x="800" y="1880" text-anchor="middle" font-size="24" font-weight="700" fill="#292d4d">Sample tracker setup</text>
-  <text x="800" y="1904" text-anchor="middle" font-size="15" fill="#5b5f7c">sensor.smarli_automation_tracker → attributes.data — cover.wohnzimmer, moments apart on the same day above</text>
+  <text x="800" y="2168" text-anchor="middle" font-size="24" font-weight="700" fill="#292d4d">Sample tracker setup</text>
+  <text x="800" y="2192" text-anchor="middle" font-size="15" fill="#5b5f7c">sensor.smarli_automation_tracker → attributes.data — cover.wohnzimmer, moments apart on the same day above</text>
 
-  <rect x="150" y="1930" width="1300" height="702" rx="12" fill="#292d4d"/>
+  <rect x="150" y="2218" width="1300" height="702" rx="12" fill="#292d4d"/>
   <g font-size="15" font-family="ui-monospace, Consolas, monospace">
-    <text x="180" y="1966" fill="#c7cbf2">{</text>
-    <text x="200" y="1987" font-weight="700" fill="#f6f7fd">"shared": {</text>
-    <text x="220" y="2008" fill="#dfe1f7">"cover_sun_test::intent": {</text>
-    <text x="240" y="2029" fill="#dfe1f7">"targets": {</text>
-    <text x="260" y="2050" fill="#dfe1f7">"cover.wohnzimmer": 100</text>
-    <text x="240" y="2071" fill="#c7cbf2">},</text>
-    <text x="240" y="2092" fill="#dfe1f7">"priority": 10,</text>
-    <text x="240" y="2113" fill="#dfe1f7">"ts": 1785092820.7,</text>
-    <text x="240" y="2134" fill="#dfe1f7">"suspension_duration": 1800</text>
-    <text x="220" y="2155" fill="#c7cbf2">},</text>
-    <text x="220" y="2176" fill="#dfe1f7">"stub_shade::intent": {</text>
-    <text x="240" y="2197" fill="#dfe1f7">"bounds": {</text>
-    <text x="260" y="2218" fill="#dfe1f7">"cover.wohnzimmer": {</text>
-    <text x="280" y="2239" fill="#dfe1f7">"max": 20</text>
-    <text x="260" y="2260" fill="#c7cbf2">}</text>
-    <text x="240" y="2281" fill="#c7cbf2">},</text>
-    <text x="240" y="2302" fill="#dfe1f7">"priority": 50,</text>
-    <text x="240" y="2323" fill="#dfe1f7">"ts": 1785093140.2,</text>
-    <text x="240" y="2344" fill="#dfe1f7">"suspension_duration": 1800</text>
-    <text x="220" y="2365" fill="#c7cbf2">},</text>
-    <text x="220" y="2386" fill="#dfe1f7">"cover.wohnzimmer::resolved": 20,</text>
-    <text x="220" y="2407" fill="#dfe1f7">"cover.wohnzimmer::suspension": 1785099600.0,</text>
-    <text x="220" y="2428" fill="#dfe1f7">"cover.wohnzimmer::moving_1785092820.7": {</text>
-    <text x="240" y="2449" fill="#dfe1f7">"target": 20,</text>
-    <text x="240" y="2470" fill="#dfe1f7">"until": 1785093015.7</text>
-    <text x="220" y="2491" fill="#c7cbf2">}</text>
-    <text x="200" y="2512" fill="#c7cbf2">},</text>
-    <text x="200" y="2533" font-weight="700" fill="#f6f7fd">"cover_day_night": {</text>
-    <text x="220" y="2554" fill="#dfe1f7">"cover_bright_test::bright_since": 1785091200.0</text>
-    <text x="200" y="2575" fill="#c7cbf2">}</text>
-    <text x="180" y="2596" fill="#c7cbf2">}</text>
+    <text x="180" y="2254" fill="#c7cbf2">{</text>
+    <text x="200" y="2275" font-weight="700" fill="#f6f7fd">"shared": {</text>
+    <text x="220" y="2296" fill="#dfe1f7">"cover_sun_test::intent": {</text>
+    <text x="240" y="2317" fill="#dfe1f7">"targets": {</text>
+    <text x="260" y="2338" fill="#dfe1f7">"cover.wohnzimmer": 100</text>
+    <text x="240" y="2359" fill="#c7cbf2">},</text>
+    <text x="240" y="2380" fill="#dfe1f7">"priority": 10,</text>
+    <text x="240" y="2401" fill="#dfe1f7">"ts": 1785092820.7,</text>
+    <text x="240" y="2422" fill="#dfe1f7">"suspension_duration": 1800</text>
+    <text x="220" y="2443" fill="#c7cbf2">},</text>
+    <text x="220" y="2464" fill="#dfe1f7">"stub_shade::intent": {</text>
+    <text x="240" y="2485" fill="#dfe1f7">"bounds": {</text>
+    <text x="260" y="2506" fill="#dfe1f7">"cover.wohnzimmer": {</text>
+    <text x="280" y="2527" fill="#dfe1f7">"max": 20</text>
+    <text x="260" y="2548" fill="#c7cbf2">}</text>
+    <text x="240" y="2569" fill="#c7cbf2">},</text>
+    <text x="240" y="2590" fill="#dfe1f7">"priority": 50,</text>
+    <text x="240" y="2611" fill="#dfe1f7">"ts": 1785093140.2,</text>
+    <text x="240" y="2632" fill="#dfe1f7">"suspension_duration": 1800</text>
+    <text x="220" y="2653" fill="#c7cbf2">},</text>
+    <text x="220" y="2674" fill="#dfe1f7">"cover.wohnzimmer::resolved": 20,</text>
+    <text x="220" y="2695" fill="#dfe1f7">"cover.wohnzimmer::suspension": 1785099600.0,</text>
+    <text x="220" y="2716" fill="#dfe1f7">"cover.wohnzimmer::moving_1785092820.7": {</text>
+    <text x="240" y="2737" fill="#dfe1f7">"target": 20,</text>
+    <text x="240" y="2758" fill="#dfe1f7">"until": 1785093015.7</text>
+    <text x="220" y="2779" fill="#c7cbf2">}</text>
+    <text x="200" y="2800" fill="#c7cbf2">},</text>
+    <text x="200" y="2821" font-weight="700" fill="#f6f7fd">"cover_day_night": {</text>
+    <text x="220" y="2842" fill="#dfe1f7">"cover_bright_test::bright_since": 1785091200.0</text>
+    <text x="200" y="2863" fill="#c7cbf2">}</text>
+    <text x="180" y="2884" fill="#c7cbf2">}</text>
   </g>
 
-  <text x="800" y="2666" text-anchor="middle" font-size="13" fill="#8489ab">Real key grammar — CLAUDE.md § State tracking and docs/cover-architecture.md.</text>
-  <text x="800" y="2686" text-anchor="middle" font-size="13" fill="#8489ab">"shared" holds anything more than one blueprint touches — intents, resolved positions, suspensions, moving markers.</text>
-  <text x="800" y="2706" text-anchor="middle" font-size="13" fill="#8489ab">A per-blueprint namespace like "cover_day_night" only appears once that family writes its own bookkeeping —</text>
-  <text x="800" y="2726" text-anchor="middle" font-size="13" fill="#8489ab">here, a brightness instance's stabilizer timestamp.</text>
+  <text x="800" y="2954" text-anchor="middle" font-size="13" fill="#8489ab">Real key grammar — CLAUDE.md § State tracking and docs/cover-architecture.md.</text>
+  <text x="800" y="2974" text-anchor="middle" font-size="13" fill="#8489ab">"shared" holds anything more than one blueprint touches — intents, resolved positions, suspensions, moving markers.</text>
+  <text x="800" y="2994" text-anchor="middle" font-size="13" fill="#8489ab">A per-blueprint namespace like "cover_day_night" only appears once that family writes its own bookkeeping —</text>
+  <text x="800" y="3014" text-anchor="middle" font-size="13" fill="#8489ab">here, a brightness instance's stabilizer timestamp.</text>
 </svg>
