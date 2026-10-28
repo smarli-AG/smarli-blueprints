@@ -180,6 +180,14 @@ This implements the general heartbeat-evaluator pattern (see root `CLAUDE.md`) f
 
 Known limitations (documented in the blueprint): manual detection is unreliable for cover _groups_ (state triggers can't watch members; groups are still expanded for actions via `expand()`), and position-only changes that don't change the cover state (40 % → 60 %, stays `open`) are undetectable via state triggers — unless the change was commanded through HA, which `smarli_cover_command_check` catches. Assumed-state covers (Somfy RTS) never report a real state change: moves through HA are detected via the command check, physical RTS remotes are not (that would need a 433 MHz receiver, not built).
 
+## Requirements for future cover families
+
+**Weather protection must win over Presence Simulation (noted 2026-10-28).** A future weather-protection blueprint (hail, storm) must not let any source extend covers while protection is active — Presence Simulation included. Constraints known today:
+
+- **Presence Simulation bypasses the resolver.** It calls `cover.*` services directly (`entity_controller.py`, `_handle_cover`), so neither priorities nor bounds can stop its commands. Protection must react _after_ such a command (re-command the cover) or keep the simulation from replaying covers while protection is active.
+- **A suspension blocks every smarli. command, safety included.** Since v5.0, each replayed move suspends the cover (layer 1 sees its system user). Protection therefore needs to override live suspensions — the `override_suspension` idea in the layer-3 section above, which so far no call site needed.
+- **Version matters.** Before v5.0 the simulation's commands carry no user; on covers without feedback (Somfy RTS) they are invisible to every layer. Protection cannot rely on detecting the replay.
+
 ## Decision log (cover-specific)
 
 - **Winner-takes-all priority for covers** — shade holding 20 (partial) vs. day-night wanting 0 (night): priority picks 20, leaving the cover _more open_ than the loser wanted. Priority cannot express "blocks opening, allows closing"; the target/bound split can.
