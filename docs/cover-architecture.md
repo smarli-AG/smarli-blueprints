@@ -93,7 +93,7 @@ Both layer-1 entry points use one rule: **`user_id` set and no `parent_id` → a
 | An automation — even one a person triggered (dashboard button, `input_boolean`, smarli. relay) | Every automation run gets a **new** context: `parent_id` = the triggering event, `user_id` = none | ignore |
 | A script or scene an automation starts | Inherits the automation's context | ignore |
 | Any API caller with a long-lived token (Node-RED, external tools, the community Matter Hub add-on) | `user_id` = the user who owns the token | suspend — **counts as a person** |
-| An integration with its own system user (on mssw: **Presence Simulation**) | `user_id` = that system user | suspend — **false positive** if it moves covers |
+| An integration with its own system user (on mssw: **Presence Simulation**) | `user_id` = that system user | suspend — accepted for Presence Simulation (decision 2026-10-28): a replayed move should win. It wins only for the suspension window; day-night transitions outside it still run |
 | Voice via Assist | `user_id` = the speaking user | suspend |
 | Alexa / Google via Home Assistant Cloud | `user_id` = the system user "Home Assistant Cloud" (from HA's code, not tested) | suspend |
 | HomeKit Bridge (HA exposed to Apple Home) | New context without `user_id` (from HA's code, not tested) | **not detected** |
@@ -101,9 +101,11 @@ Both layer-1 entry points use one rule: **`user_id` set and no `parent_id` → a
 
 Consequence of the scene/automation split: the same visible action can behave differently. A dashboard button that runs a **script** suspends the covers; a button that triggers an **automation** does not.
 
+**A person-triggered automation cannot be recognized.** Its cover command carries only the automation's own context (`user_id` none, `parent_id` = the triggering event). HA offers no template lookup from a context ID to its user. The only workaround would cache every person's context ID from _all_ `call_service` events — heavy, and still blind to physical buttons, whose events carry no user at all. Rejected. If an action must count as manual, run it as a **script**.
+
 **API callers and system users.** A `user_id` is an HA user ID (Settings → People → Users with advanced mode, or WebSocket `config/auth/list`). A long-lived token always acts as the user who created it, so its commands cannot be told apart from that person's own app use. To exempt an API caller, give it a **dedicated HA user** and exclude that user ID. A blanket "ignore system users" rule is wrong: system users also carry real voice commands (Home Assistant Cloud). No exclusion list is built yet. On 2026-10-28 no smarli. service sent cover commands through the API.
 
-**HomeKit Bridge** could be detected cheaply: for every command it fires a `homekit_state_change` event (with `entity_id` and `service`) in the same context as the service call. A second trigger on that event would cover it. Not built yet; mssw does not use HomeKit Bridge. (mssw has `homekit_controller`, which is the other direction: HA controlling a tado bridge.)
+**HomeKit Bridge** could be detected cheaply: for every command it fires a `homekit_state_change` event (with `entity_id` and `service`) in the same context as the service call. A second trigger on that event would cover it. It must reuse the command check's target resolution (HomeKit can expose cover groups) and its tilt filter. Its own `call_service` event carries no `user_id`, so there is no double detection. **Side effect:** HomeKit does not say who sent a command, so **Apple Home automations** ("close at sunset") count as a person, the same as a tap in the Home app or Siri — they would win against day-night for the suspension window. Not built yet; mssw does not use HomeKit Bridge. (mssw has `homekit_controller`, which is the other direction: HA controlling a tado bridge.)
 
 **Layer 2 — per-cover moving markers (disambiguate the window).** Before commanding a cover, `smarli_cover_move` writes one marker **per cover, per run** — key `<cover>::moving_<run>`, the run token living in the key so concurrent runs never collide and there is nothing to race:
 
