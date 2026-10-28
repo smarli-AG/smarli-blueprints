@@ -4,6 +4,76 @@ This is the architecture reference for the cover automation family: `cover_DayNi
 
 It assumes the cross-family conventions in the root `CLAUDE.md` — the tracker sensor, the package delivery-split principle, and the heartbeat-evaluator design pattern — and covers only what's specific to covers.
 
+## Overview
+
+For non-technical readers (onboarding, partners), [diagrams/cover-architecture.svg](diagrams/cover-architecture.svg) shows the same system as a picture, with everyday scenarios. Keep it in step with this doc when the flows below change.
+
+Two flows share the tracker. The details follow in the sections below.
+
+**Commanding a cover.** The blueprint only decides _what_ it wants. The package decides _whether and how_ a cover moves.
+
+```mermaid
+flowchart LR
+  subgraph BP["Blueprint instance (cover_DayNight.yaml)"]
+    TRG["Heartbeat, reload, start,<br/>custom triggers"] --> EVAL["Compute desired position"]
+    EVAL -->|"transition needed"| PUB["Publish intent"]
+  end
+  subgraph PKG["Package smarli_cover.yaml (ha-packages)"]
+    RES["script.smarli_cover_resolve"]
+    MOVE["script.smarli_cover_move"]
+  end
+  subgraph TR["Tracker, namespace shared (smarli_core.yaml)"]
+    K_INT[("automation_id::intent")]
+    K_RES[("cover::resolved")]
+    K_MOV[("cover::moving_run")]
+    K_SUS[("cover::suspension")]
+  end
+  PUB --> K_INT
+  PUB -->|"call, blocking"| RES
+  K_INT --> RES
+  K_SUS -.->|"suspended: record, do not command"| RES
+  SIM["sensor.smarli_cover_presence_simulation<br/>(Presence Simulation v7.1 or later)"] -.->|"held: record, do not command"| RES
+  SIM -->|"hold ends"| REL["automation<br/>smarli_cover_simulation_release"]
+  K_RES -.-> REL
+  REL -->|"move to cover::resolved"| MOVE
+  RES --> K_RES
+  RES -->|"script.turn_on, non-blocking"| MOVE
+  K_SUS -.->|"suspended: drop"| MOVE
+  MOVE -->|"marker before command"| K_MOV
+  MOVE -->|"cover service call"| COVER["Cover"]
+```
+
+**Detecting a manual move.** Three signals lead to one place, `smarli_cover_suspend`. Only the state trigger lives in the blueprint, because a state trigger must name its entities.
+
+```mermaid
+flowchart TD
+  PERSON["Person in HA:<br/>app, UI, voice"] -->|"cover service call"| COVER["Cover"]
+  SWITCH["Wall switch,<br/>physical remote"] --> COVER
+  MOVE["script.smarli_cover_move<br/>(package)"] -->|"cover service call"| COVER
+
+  PERSON -.->|"call_service event"| CC["automation smarli_cover_command_check<br/>(package)"]
+  CC --> PC{"user_id, no parent_id,<br/>move service?"}
+  PC -->|"no"| IGN["Ignore"]
+  PC -->|"yes: expand targets,<br/>keep covers an intent names"| SUS
+
+  COVER -->|"state change<br/>(covers with feedback only)"| ST["State trigger cover_state_changed<br/>(blueprint)"]
+  ST --> MC["script.smarli_cover_manual_check<br/>(package)"]
+  MC --> L1{"Layer 1:<br/>user_id? parent_id?"}
+  L1 -->|"user_id"| SUS
+  L1 -->|"parent_id"| IGN
+  L1 -->|"neither"| L2{"Layer 2:<br/>live moving marker?"}
+  L2 -->|"yes"| IGN
+  L2 -->|"no"| SUS
+
+  MOVE --> L3{"Layer 3: settled away from<br/>target and resolved?<br/>(assumed-state covers skipped)"}
+  L3 -->|"yes"| SUS
+  L3 -->|"no"| IGN
+
+  SUS["script.smarli_cover_suspend (package)<br/>duration = max over live intents"] --> K_SUS[("cover::suspension")]
+```
+
+A physical remote on a cover without feedback (Somfy RTS) produces neither a state change nor an event. It is not detected.
+
 ## Manual-intervention detection (shared contract)
 
 Every cover blueprint must detect manual operation (wall switch, UI, mid-move stop) to set suspensions. Three layers:
@@ -13,6 +83,33 @@ Every cover blueprint must detect manual operation (wall switch, UI, mid-move st
 - `user_id` set → human via UI/app → **manual, suspend**.
 - `parent_id` set → some automation/script commanded it → **not manual, ignore**.
 - Neither → ambiguous: wall switch **or** an integration reporting a commanded move asynchronously with a fresh context (Zigbee/RF/KNX do this) → layer 2.
+
+Layer 1 has a **second entry point that needs no state change**: the package automation `smarli_cover_command_check` listens to the `call_service` event for `domain: cover`. The event fires for every cover command, before the cover moves, and carries the caller's context. Same rule: `user_id` set and no `parent_id`, and the service moves the cover (`open_cover`, `close_cover`, `stop_cover`, `toggle`, `set_cover_position` — tilt is not a move). It resolves the target (entity, list, group, device, area, floor, label, `all`) to member covers, keeps those an intent names, and calls `smarli_cover_suspend` for each. This catches HA-side moves on covers without feedback and position-only changes (40 % → 60 %). It is central, not per blueprint, because the event is not entity-scoped: in the blueprint, every instance would fire on every cover command in the house. For covers with feedback, one press can suspend twice (here and via the state trigger); the second write sets nearly the same expiry.
+
+### Who counts as a person
+
+Both layer-1 entry points use one rule: **`user_id` set and no `parent_id` → a person → suspend.** HA sets the context, not us, so the result depends on _how_ a command reaches HA. Verified on mssw (HA 2026.5, 2026-10-28) unless marked otherwise:
+
+| Command comes from | Context of the cover command | Result |
+| --- | --- | --- |
+| A person in the app, UI, dashboard | `user_id` = that person | suspend |
+| A scene or script a person starts | Scripts and scenes run **in the caller's context**: on mssw, `smarli_cover_resolve` and `smarli_cover_move` carry the same context ID as the automation that started them | suspend — intended |
+| An automation — even one a person triggered (dashboard button, `input_boolean`, smarli. relay) | Every automation run gets a **new** context: `parent_id` = the triggering event, `user_id` = none | ignore |
+| A script or scene an automation starts | Inherits the automation's context | ignore |
+| Any API caller with a long-lived token (Node-RED, external tools, the community Matter Hub add-on) | `user_id` = the user who owns the token | suspend — **counts as a person** |
+| An integration with its own system user (on mssw: **Presence Simulation**) | `user_id` = that system user | suspend — accepted for Presence Simulation (decision 2026-10-28): a replayed move should win. A transition within the suspension window after a replayed move is **cancelled**, and the cover then stays where the simulation left it until the next transition — e.g. a replayed _open_ at 20:45 with a 30-min suspension cancels the 21:00 close, possibly for the whole night. Transitions outside any window still run. **From Presence Simulation v7.1 this row no longer applies to simulated covers:** they are held for the whole run, replays on them do not suspend, and they are released at the end (see "Presence Simulation" below) |
+| Voice via Assist | `user_id` = the speaking user | suspend |
+| Alexa / Google via Home Assistant Cloud | `user_id` = the system user "Home Assistant Cloud" (from HA's code, not tested) | suspend |
+| HomeKit Bridge (HA exposed to Apple Home) | New context without `user_id` (from HA's code, not tested) | **not detected** |
+| Physical remote or wall switch on a cover without feedback (Somfy RTS) | No command in HA at all | **not detected** |
+
+Consequence of the scene/automation split: the same visible action can behave differently. A dashboard button that runs a **script** suspends the covers; a button that triggers an **automation** does not.
+
+**A person-triggered automation cannot be recognized.** Its cover command carries only the automation's own context (`user_id` none, `parent_id` = the triggering event). HA offers no template lookup from a context ID to its user. The only workaround would cache every person's context ID from _all_ `call_service` events — heavy, and still blind to physical buttons, whose events carry no user at all. Rejected. If an action must count as manual, run it as a **script**.
+
+**API callers and system users.** A `user_id` is an HA user ID (Settings → People → Users with advanced mode, or WebSocket `config/auth/list`). A long-lived token always acts as the user who created it, so its commands cannot be told apart from that person's own app use. To exempt an API caller, give it a **dedicated HA user** and exclude that user ID. A blanket "ignore system users" rule is wrong: system users also carry real voice commands (Home Assistant Cloud). No exclusion list is built yet. On 2026-10-28 no smarli. service sent cover commands through the API.
+
+**HomeKit Bridge** could be detected cheaply: for every command it fires a `homekit_state_change` event (with `entity_id` and `service`) in the same context as the service call. A second trigger on that event would cover it. It must reuse the command check's target resolution (HomeKit can expose cover groups) and its tilt filter. Its own `call_service` event carries no `user_id`, so there is no double detection. **Side effect:** HomeKit does not say who sent a command, so **Apple Home automations** ("close at sunset") count as a person, the same as a tap in the Home app or Siri — they would win against day-night for the suspension window. Not built yet; mssw does not use HomeKit Bridge. (mssw has `homekit_controller`, which is the other direction: HA controlling a tado bridge.)
 
 **Layer 2 — per-cover moving markers (disambiguate the window).** Before commanding a cover, `smarli_cover_move` writes one marker **per cover, per run** — key `<cover>::moving_<run>`, the run token living in the key so concurrent runs never collide and there is nothing to race:
 
@@ -28,6 +125,8 @@ value:
 Handler rule for ambiguous changes on cover C: **any** unexpired `<C>::moving_*` marker → a smarli. automation is moving C → ignore. None → wall switch → suspend C (duration resolved centrally — see `script.smarli_cover_suspend`, below).
 
 **Layer 3 — per-cover settle loop (catches mid-move intervention).** After commanding, `smarli_cover_move` polls (~2 s) and classifies each cover still listed in its own run's marker: still `opening`/`closing` → leave it (exempt while genuinely moving); a newer run's marker for the same cover has since appeared (`superseded`) → drop it, **do not suspend** — another smarli. run is now driving it, that is not an intervention; stopped at its own target **or** at the current `<cover>::resolved` (the system may have moved on to a different target mid-flight) → **drop it from the marker** (finished cleanly, or correctly overtaken); stopped anywhere else → **drop it and suspend it** (mid-move intervention). The marker is removed per cover as each settles — not held until the slowest sibling finishes. The loop is bounded by `settle_timeout` (a backstop for stuck covers, sized above the slowest cover's travel); if it fires with covers still moving, the marker is left to expire via its refreshed `until` rather than false-suspending them. (This is "Option B" — chosen over a single whole-marker settle wait because the release is per-cover, which matters for instances mixing fast and slow covers; implemented once in the shared script so every cover blueprint inherits it.)
+
+**Assumed-state covers skip layer 3.** A cover with `assumed_state: true` (one-way radio such as Somfy RTS via Overkiz) shows HA's guess, not its real state — observed in the field stuck at `opening` for days, through opens and closes. `smarli_cover_move` still writes its marker (layer 2), but leaves it out of the settle loop (`audited_covers`): auditing it would either poll until `settle_timeout` for nothing or false-suspend it on a wrong `open`/`closed`. The marker expires via `until`. For these covers, the state-based path (layers 1 and 2) also sees nothing — no state change happens. Only the command entry point of layer 1 (`smarli_cover_command_check`) detects a manual move, and only one sent through HA.
 
 Known residual blind spot (accepted): a manual move _during_ our movement _in the same direction to the same end position_ is indistinguishable — and irrelevant, since the outcome equals the automation's intent. Sure-fire press detection exists only at device level (KNX telegrams, button events) — expose via optional custom triggers, not core mechanism.
 
@@ -62,8 +161,10 @@ cover_day_night:  <automation_id>::bright_since | ::dark_since
 ## Cover-family package: `packages/smarli_cover.yaml` (repo `ha-packages`)
 
 - `script.smarli_cover_manual_check` — detection layers 1+2. Called from each blueprint's `cover_state_changed` branch, which forwards `trigger.entity_id` and context fields (scripts cannot see `trigger`).
-- `script.smarli_cover_suspend` — resolves suspension duration centrally (see above). Called by both `manual_check` (layers 1–2) and `smarli_cover_move`'s settle audit (layer 3), so both writers agree on how long a suspension lasts.
-- `script.smarli_cover_resolve` — the single mover: reads every contributor's published intent, computes `clamp(newest target, bounds)` per cover, and fires `smarli_cover_move` for whatever changed. Blueprints publish an intent and call this — they never touch markers, `<cover>::resolved`, or suspensions directly, and `smarli_cover_move` is normally its only caller.
+- `automation smarli_cover_command_check` — layer 1 on the `call_service` event (see above). It needs nothing from the blueprints beyond their published intents.
+- `sensor.smarli_cover_presence_simulation` and `automation smarli_cover_simulation_release` — the Presence Simulation hold and release (see "Presence Simulation" below).
+- `script.smarli_cover_suspend` — resolves suspension duration centrally (see above). Called by `manual_check` (layers 1–2), `smarli_cover_command_check` (layer 1, commands) and `smarli_cover_move`'s settle audit (layer 3), so every writer agrees on how long a suspension lasts.
+- `script.smarli_cover_resolve` — the single mover: reads every contributor's published intent, computes `clamp(newest target, bounds)` per cover, and fires `smarli_cover_move` for whatever changed. Blueprints publish an intent and call this — they never touch markers, `<cover>::resolved`, or suspensions directly, and `smarli_cover_move` is normally its only caller. The one exception is `smarli_cover_simulation_release`, which re-sends an unchanged decision after a Presence Simulation hold.
 - `script.smarli_cover_move` — the whole moving contract: filter suspended covers → per-cover marker (keyed by `run`, not by instance) → command → settle-wait → position audit (layer 3) → suspend on mismatch → remove marker.
 
 **Cover targets are always numeric positions 0–100 — never `'open'`/`'closed'`.** There is no "just open it" in this system: every target a contributor publishes into its intent (and every value stored in the moving marker) is an explicit position — `100` = open, `0` = closed, anything between = partial. The move script translates the number per cover: `SET_POSITION`-capable covers (`supported_features` bit `4`) get `set_cover_position`; binary covers open if the target ≥ `binary_threshold` (default 50), else close. This keeps one code path for all cover hardware. **Future cover blueprints MUST pass numbers and rely on this fallback — do not reintroduce string-based open/close handling.** (Consequence: transition detection compares the numeric target, so a published intent's `targets` must store the position value, never a coarse label — a string vocabulary can't distinguish 40 from 70.)
@@ -82,7 +183,41 @@ This implements the general heartbeat-evaluator pattern (see root `CLAUDE.md`) f
 - **The move is fired non-blocking** via `script.turn_on` (with `data: variables:`), not a direct `action: script.smarli_cover_move` call. This is load-bearing: a direct call _blocks_ the automation run for the whole settle-wait, and under `mode: queued` our own covers' state-change events queue behind it and get classified only _after_ the move removes its marker — so a contextless cover would be misread as manual and self-suspended. Firing non-blocking keeps the marker live while those state-changes are classified. Trade-off: custom open/close actions run right after the move is _initiated_, not after covers settle.
 - `mode: queued` (not `single` — state changes arriving during a run would be silently dropped; not `parallel` — overlapping heartbeats could double-command and race on the shared marker key). With the non-blocking move, runs are short, so the queue does not build up.
 
-Known limitations (documented in the blueprint): manual detection is unreliable for cover _groups_ (state triggers can't watch members; groups are still expanded for actions via `expand()`), and position-only changes that don't change the cover state (40 % → 60 %, stays `open`) are undetectable via state triggers.
+Known limitations (documented in the blueprint): manual detection is unreliable for cover _groups_ (state triggers can't watch members; groups are still expanded for actions via `expand()`), and position-only changes that don't change the cover state (40 % → 60 %, stays `open`) are undetectable via state triggers — unless the change was commanded through HA, which `smarli_cover_command_check` catches. Assumed-state covers (Somfy RTS) never report a real state change: moves through HA are detected via the command check, physical RTS remotes are not (that would need a 433 MHz receiver, not built).
+
+## Presence Simulation
+
+**While a simulation runs, smarli. leaves its covers alone; when it stops, they return to what smarli. wants now (decision 2026-10-28).** Three parts, all in `smarli_cover.yaml`:
+
+1. **Hold.** `sensor.smarli_cover_presence_simulation` lists the covers held: those in the `current_entities` attribute of every `presence_simulation` switch that is `on` (state = count, attribute `covers`). The resolver records these covers in `<cover>::resolved` but does not command them. So `::resolved` always holds what smarli. wants _now_ — day-night transitions during the hold included.
+2. **No suspension from replays.** The simulation replays as its own system user, which no person is linked to. On a held cover, a command or state change from a user **without a person** creates no suspension (command check and `manual_check`). A person's hand move during the simulation, or a wall switch (no user, layer 2), still suspends.
+3. **Release.** `automation smarli_cover_simulation_release` triggers when covers leave the sensor's list (the simulation stops, or its entity list shrinks). It moves each released cover that a live intent names to its `<cover>::resolved`, through `smarli_cover_move` directly — the resolver would not command it, because its decision did not change. The move script still skips suspended covers, so a person's hand move during the simulation wins over the release.
+
+Example: day-night closes at 21:00 while the simulation holds the cover (`::resolved` = 0). You come home at 22:30 and turn the simulation off. The cover closes at once — unless you moved it by hand during the last suspension window.
+
+The sensor expands `current_entities` itself. After an HA restart during a running simulation, the integration rebuilds the list before groups have loaded, so the list names the group, not its member covers (seen on hi-thomas, v7.1), and it is never rebuilt during that run. `expand()` in the sensor re-renders once the group loads. The group id that briefly leaves the list is not named by any intent, so the release ignores it.
+
+**Accepted gap: logins without a person (decision 2026-10-28).** The replay exemption cannot tell the simulation's system user from any other user that has no person — e.g. a wall tablet with its own login (on hi-thomas: `smarli_local`, `smarli_user`). While a simulation runs, such a user's move on a held cover writes no suspension, so the release at the end of the simulation overwrites it. Outside a simulation it suspends as usual. Accepted because a simulation usually means nobody is home, and only the release overwrites the move. Giving such logins a person would close the gap. Recognizing the simulation by its `last_event` attribute would too, but needs a live test first.
+
+**Setup rule: keep the simulation's `restore_states` option off** on systems with smarli. cover automations. On stop, it restores the states from before the simulation at the same moment as the release, and the two commands race.
+
+**Only effective from Presence Simulation v7.1. This matters when upgrading older systems.**
+
+| Presence Simulation | Hold, release, no suspension from replays | Replayed move suspends the cover |
+| --- | --- | --- |
+| **v7.1 or later** | **yes** | no (held cover, user without a person) |
+| v5.0 – v6.x | no — no `current_entities` (v5.3 checked; v6.x not checked) | yes (system user) |
+| before v5.0 | no | only on covers with feedback (layer 2); covers without feedback (Somfy RTS): not at all |
+
+So on an older system day-night still interferes with the simulation. Upgrade Presence Simulation to v7.1 or later when retrofitting or upgrading a system that uses it.
+
+## Requirements for future cover families
+
+**Weather protection must win over Presence Simulation (noted 2026-10-28).** A future weather-protection blueprint (hail, storm) must not let any source extend covers while protection is active — Presence Simulation included. Constraints known today:
+
+- **Presence Simulation bypasses the resolver.** It calls `cover.*` services directly (`entity_controller.py`, `_handle_cover`), so neither priorities nor bounds can stop its commands. Protection must react _after_ such a command (re-command the cover) or keep the simulation from replaying covers while protection is active.
+- **A suspension blocks every smarli. command, safety included.** Since v5.0, each replayed move suspends the cover (layer 1 sees its system user). Protection therefore needs to override live suspensions — the `override_suspension` idea in the layer-3 section above, which so far no call site needed. The same applies to the Presence Simulation **hold** in the resolver (v7.1 or later): protection must override it too.
+- **Version matters.** Before v5.0 the simulation's commands carry no user; on covers without feedback (Somfy RTS) they are invisible to every layer. Protection cannot rely on detecting the replay.
 
 ## Decision log (cover-specific)
 

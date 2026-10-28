@@ -3,10 +3,16 @@
 # höchstens vielleicht, dass Regen/Wind nur auf Sonnenstoren angewendet werden?
 
 # Fragen:
-# backstop für cover movement ist 3min - oder gibt es überhaupt storen, die länger brauchen?
-# wo soll die default grenze für brightness to open und brightness to close sein?
+# backstop für cover movement ist 3min - oder gibt es überhaupt storen, die länger brauchen? statt 3min vielleicht 2 min? was ist der impact davon oder macht das nichts aus wenn wir eher zu lang sind?
+# wo soll die default grenze für brightness to open und brightness to close sein? 500 für open zu viel?
+# dusk vs. sunset: was ist der richtige Zeitpunkt?
+# ab wie viel kmh sollen storen im standard nicht mehr automatisch schliessen?
 
 # ! RELEASE NOTES
+## 3.1.1 | 2026-10-28
+## - Known limitations: manual operation through the HA app is detected with the current smarli. Cover package
+## - Known limitations: describe how covers behave during a Presence Simulation
+## - Suspend After Manual Interaction: note that manual operation is only noticed reliably on covers that report their state
 ## 3.1.0 | 2026-08-29
 ## - Add Partner Engine metadata block and release notes header
 ## - Add translation/optional/display_if annotations to every input
@@ -58,7 +64,7 @@
 #   [br]
 #   ---
 #   [br]
-#   _Version 3.1.0_
+#   _Version 3.1.1_
 # long_description_de: |
 #   __Fahre Deine Storen automatisch ein und aus, basierend auf Sonnenstand, Uhrzeit oder Helligkeit.__
 #   [br]
@@ -81,7 +87,7 @@
 #   [br]
 #   ---
 #   [br]
-#   _Version 3.1.0_
+#   _Version 3.1.1_
 #
 # purpose_en: "Comfort"
 # purpose_de: "Komfort"
@@ -122,7 +128,7 @@ blueprint:
     If somebody operates a cover by hand, the automation leaves that cover alone
     for a set duration. All other covers keep working as usual.
 
-    *Version 3.1.0*
+    *Version 3.1.1*
 
     <details>
     <summary><b>How to set it up</b></summary>
@@ -180,9 +186,16 @@ blueprint:
       - For reliable manual-operation detection, select the individual covers
         rather than cover groups (groups are expanded for actions, but manual
         detection on group members is not reliable).
-      - Manual operation is detected via cover state transitions (opening/closing/
-        open/closed). A cover whose integration changes position without ever
-        reporting an opening/closing state cannot be detected as manual.
+      - Manual operation is detected in two ways: the cover reports a state
+        change (opening/closing/open/closed), or a person commands it through
+        Home Assistant (app, dashboard, voice). The second way needs the smarli.
+        Cover package from 2026-10 or later. A cover that never reports its state
+        (e.g. Somfy RTS) and is moved with its own remote cannot be detected.
+      - Presence Simulation: from version 7.1, covers in a running simulation
+        are left to the simulation. When it stops, they move to the position
+        this automation wants at that time. With an older version, this
+        automation and the simulation both move the covers. Keep
+        `restore_states` off in Presence Simulation.
       - Weather forecast blocking checks the hourly forecast entries for the current
         and the next hour, and only if the weather entity supports hourly forecasts
         (otherwise only current conditions block extending).
@@ -953,8 +966,16 @@ blueprint:
           #     en: Suspend After Manual Interaction
           #     de: Aussetzen nach manueller Bedienung
           #   description:
-          #     en: If somebody operates a cover by hand, should the automation leave that cover alone for a while? Manual control means through the app or a wall switch, even when stopping a cover mid-move. All other covers keep automating.
-          #     de: Soll die Automation eine Store in Ruhe lassen, wenn jemand sie von Hand bedient? Manuelle Bedienung heisst über die App oder Wandschalter, auch das Stoppen während der Fahrt. Alle anderen Storen laufen normal weiter.
+          #     en: |
+          #       If somebody operates a cover by hand, should the automation leave that cover alone for a while? Manual control means through the app or a wall switch, even when stopping a cover mid-move. All other covers keep automating.
+          #       [br]
+          #       [br]
+          #       __Note:__ This is only noticed if the cover reports its position or movement reliably. Older radio covers (e.g. _Somfy RTS_) do not.
+          #     de: |
+          #       Soll die Automation eine Store in Ruhe lassen, wenn jemand sie von Hand bedient? Manuelle Bedienung heisst über die App oder Wandschalter, auch das Stoppen während der Fahrt. Alle anderen Storen laufen normal weiter.
+          #       [br]
+          #       [br]
+          #       __Hinweis:__ Das wird nur erkannt, wenn die Store ihre Position oder Bewegung zuverlässig meldet. Ältere Funk-Storen (z. B. _Somfy RTS_) tun das nicht.
           # optional: false
           # display_if: true
           name: Suspend After Manual Interaction
@@ -965,6 +986,9 @@ blueprint:
             Manual control means the app or a wall switch, even when stopping a cover mid-move.
             The cover keeps its manual position until the next scheduled transition after the
             suspension has expired. All other covers keep automating.
+
+            **Note:** This is only noticed if the cover reports its position or
+            movement reliably. Older radio covers (e.g. *Somfy RTS*) do not.
           selector:
             boolean:
           default: true
