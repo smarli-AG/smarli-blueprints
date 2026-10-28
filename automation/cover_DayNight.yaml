@@ -12,6 +12,7 @@
 ## 3.1.1 | 2026-10-28
 ## - Known limitations: manual operation through the HA app is detected with the current smarli. Cover package
 ## - Known limitations: describe how covers behave during a Presence Simulation
+## - Suspend After Manual Interaction: note that manual operation is only noticed reliably on covers that report their state
 ## 3.1.0 | 2026-08-29
 ## - Add Partner Engine metadata block and release notes header
 ## - Add translation/optional/display_if annotations to every input
@@ -965,8 +966,16 @@ blueprint:
           #     en: Suspend After Manual Interaction
           #     de: Aussetzen nach manueller Bedienung
           #   description:
-          #     en: If somebody operates a cover by hand, should the automation leave that cover alone for a while? Manual control means through the app or a wall switch, even when stopping a cover mid-move. All other covers keep automating.
-          #     de: Soll die Automation eine Store in Ruhe lassen, wenn jemand sie von Hand bedient? Manuelle Bedienung heisst über die App oder Wandschalter, auch das Stoppen während der Fahrt. Alle anderen Storen laufen normal weiter.
+          #     en: |
+          #       If somebody operates a cover by hand, should the automation leave that cover alone for a while? Manual control means through the app or a wall switch, even when stopping a cover mid-move. All other covers keep automating.
+          #       [br]
+          #       [br]
+          #       __Note:__ This is only noticed if the cover reports its position or movement reliably. Older radio covers (e.g. _Somfy RTS_) do not.
+          #     de: |
+          #       Soll die Automation eine Store in Ruhe lassen, wenn jemand sie von Hand bedient? Manuelle Bedienung heisst über die App oder Wandschalter, auch das Stoppen während der Fahrt. Alle anderen Storen laufen normal weiter.
+          #       [br]
+          #       [br]
+          #       __Hinweis:__ Das wird nur erkannt, wenn die Store ihre Position oder Bewegung zuverlässig meldet. Ältere Funk-Storen (z. B. _Somfy RTS_) tun das nicht.
           # optional: false
           # display_if: true
           name: Suspend After Manual Interaction
@@ -977,6 +986,9 @@ blueprint:
             Manual control means the app or a wall switch, even when stopping a cover mid-move.
             The cover keeps its manual position until the next scheduled transition after the
             suspension has expired. All other covers keep automating.
+
+            **Note:** This is only noticed if the cover reports its position or
+            movement reliably. Older radio covers (e.g. *Somfy RTS*) do not.
           selector:
             boolean:
           default: true
