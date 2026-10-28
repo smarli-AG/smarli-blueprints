@@ -197,6 +197,8 @@ Example: day-night closes at 21:00 while the simulation holds the cover (`::reso
 
 The sensor expands `current_entities` itself. After an HA restart during a running simulation, the integration rebuilds the list before groups have loaded, so the list names the group, not its member covers (seen on hi-thomas, v7.1), and it is never rebuilt during that run. `expand()` in the sensor re-renders once the group loads. The group id that briefly leaves the list is not named by any intent, so the release ignores it.
 
+**Accepted gap: logins without a person (decision 2026-10-28).** The replay exemption cannot tell the simulation's system user from any other user that has no person — e.g. a wall tablet with its own login (on hi-thomas: `smarli_local`, `smarli_user`). While a simulation runs, such a user's move on a held cover writes no suspension, so the release at the end of the simulation overwrites it. Outside a simulation it suspends as usual. Accepted because a simulation usually means nobody is home, and only the release overwrites the move. Giving such logins a person would close the gap. Recognizing the simulation by its `last_event` attribute would too, but needs a live test first.
+
 **Setup rule: keep the simulation's `restore_states` option off** on systems with smarli. cover automations. On stop, it restores the states from before the simulation at the same moment as the release, and the two commands race.
 
 **Only effective from Presence Simulation v7.1. This matters when upgrading older systems.**
