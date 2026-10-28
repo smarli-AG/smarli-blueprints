@@ -32,6 +32,7 @@ flowchart LR
   PUB -->|"call, blocking"| RES
   K_INT --> RES
   K_SUS -.->|"suspended: record, do not command"| RES
+  SIM["Presence Simulation running<br/>(v7.1 or later)"] -.->|"held: record, do not command"| RES
   RES --> K_RES
   RES -->|"script.turn_on, non-blocking"| MOVE
   K_SUS -.->|"suspended: drop"| MOVE
@@ -93,7 +94,7 @@ Both layer-1 entry points use one rule: **`user_id` set and no `parent_id` → a
 | An automation — even one a person triggered (dashboard button, `input_boolean`, smarli. relay) | Every automation run gets a **new** context: `parent_id` = the triggering event, `user_id` = none | ignore |
 | A script or scene an automation starts | Inherits the automation's context | ignore |
 | Any API caller with a long-lived token (Node-RED, external tools, the community Matter Hub add-on) | `user_id` = the user who owns the token | suspend — **counts as a person** |
-| An integration with its own system user (on mssw: **Presence Simulation**) | `user_id` = that system user | suspend — accepted for Presence Simulation (decision 2026-10-28): a replayed move should win. A transition within the suspension window after a replayed move is **cancelled**, and the cover then stays where the simulation left it until the next transition — e.g. a replayed _open_ at 20:45 with a 30-min suspension cancels the 21:00 close, possibly for the whole night. Transitions outside any window still run |
+| An integration with its own system user (on mssw: **Presence Simulation**) | `user_id` = that system user | suspend — accepted for Presence Simulation (decision 2026-10-28): a replayed move should win. A transition within the suspension window after a replayed move is **cancelled**, and the cover then stays where the simulation left it until the next transition — e.g. a replayed _open_ at 20:45 with a 30-min suspension cancels the 21:00 close, possibly for the whole night. Transitions outside any window still run. From Presence Simulation v7.1 the resolver also **holds** simulated covers for the whole run (see "Presence Simulation" below) |
 | Voice via Assist | `user_id` = the speaking user | suspend |
 | Alexa / Google via Home Assistant Cloud | `user_id` = the system user "Home Assistant Cloud" (from HA's code, not tested) | suspend |
 | HomeKit Bridge (HA exposed to Apple Home) | New context without `user_id` (from HA's code, not tested) | **not detected** |
@@ -180,12 +181,28 @@ This implements the general heartbeat-evaluator pattern (see root `CLAUDE.md`) f
 
 Known limitations (documented in the blueprint): manual detection is unreliable for cover _groups_ (state triggers can't watch members; groups are still expanded for actions via `expand()`), and position-only changes that don't change the cover state (40 % → 60 %, stays `open`) are undetectable via state triggers — unless the change was commanded through HA, which `smarli_cover_command_check` catches. Assumed-state covers (Somfy RTS) never report a real state change: moves through HA are detected via the command check, physical RTS remotes are not (that would need a 433 MHz receiver, not built).
 
+## Presence Simulation
+
+**While a simulation runs, smarli. leaves its covers alone (decision 2026-10-28).** `smarli_cover_resolve` reads the switches of the `presence_simulation` integration. While one is `on`, every cover in its `current_entities` attribute is **held**: recorded in `<cover>::resolved` but not commanded — the same "cancel, not pause" rule as a suspension. After the simulation ends, the cover stays where the simulation left it until the next transition.
+
+The package expands `current_entities` itself. After an HA restart during a running simulation, the integration rebuilds the list before groups have loaded, so the list names the group, not its member covers (seen on hi-thomas, v7.1). It is never rebuilt during that run.
+
+**Only effective from Presence Simulation v7.1. This matters when upgrading older systems.**
+
+| Presence Simulation | Hold (whole run) | Replayed move suspends the cover |
+| --- | --- | --- |
+| **v7.1 or later** | **yes** | yes (system user) |
+| v5.0 – v6.x | no — no `current_entities` (v5.3 checked; v6.x not checked) | yes (system user) |
+| before v5.0 | no | only on covers with feedback (layer 2); covers without feedback (Somfy RTS): not at all |
+
+So on an older system day-night still interferes with the simulation. Upgrade Presence Simulation to v7.1 or later when retrofitting or upgrading a system that uses it.
+
 ## Requirements for future cover families
 
 **Weather protection must win over Presence Simulation (noted 2026-10-28).** A future weather-protection blueprint (hail, storm) must not let any source extend covers while protection is active — Presence Simulation included. Constraints known today:
 
 - **Presence Simulation bypasses the resolver.** It calls `cover.*` services directly (`entity_controller.py`, `_handle_cover`), so neither priorities nor bounds can stop its commands. Protection must react _after_ such a command (re-command the cover) or keep the simulation from replaying covers while protection is active.
-- **A suspension blocks every smarli. command, safety included.** Since v5.0, each replayed move suspends the cover (layer 1 sees its system user). Protection therefore needs to override live suspensions — the `override_suspension` idea in the layer-3 section above, which so far no call site needed.
+- **A suspension blocks every smarli. command, safety included.** Since v5.0, each replayed move suspends the cover (layer 1 sees its system user). Protection therefore needs to override live suspensions — the `override_suspension` idea in the layer-3 section above, which so far no call site needed. The same applies to the Presence Simulation **hold** in the resolver (v7.1 or later): protection must override it too.
 - **Version matters.** Before v5.0 the simulation's commands carry no user; on covers without feedback (Somfy RTS) they are invisible to every layer. Protection cannot rely on detecting the replay.
 
 ## Decision log (cover-specific)
