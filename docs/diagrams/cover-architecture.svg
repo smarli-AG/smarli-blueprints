@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 2440" font-family="-apple-system, 'Helvetica Neue', Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 2762" font-family="-apple-system, 'Helvetica Neue', Arial, sans-serif">
   <defs>
     <marker id="aDark" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
       <path d="M0,0 L10,5 L0,10 z" fill="#292d4d"/>
@@ -18,7 +18,7 @@
   </defs>
 
   <!-- background -->
-  <rect x="0" y="0" width="1600" height="2440" fill="#f7f8fc"/>
+  <rect x="0" y="0" width="1600" height="2762" fill="#f7f8fc"/>
 
   <!-- title -->
   <text x="800" y="42" text-anchor="middle" font-size="30" font-weight="700" fill="#292d4d">How a smarli. cover decides where to move</text>
@@ -52,7 +52,7 @@
   <rect x="1290" y="110" width="280" height="120" rx="16" fill="#eef0f5" stroke="#8a8fae" stroke-width="3"/>
   <text x="1430" y="165" text-anchor="middle" font-size="21" font-weight="700" fill="#292d4d">Physical cover</text>
   <text x="1430" y="192" text-anchor="middle" font-size="15" fill="#5b5f7c">opens · closes</text>
-  <text x="1430" y="212" text-anchor="middle" font-size="15" fill="#5b5f7c">reports its position</text>
+  <text x="1430" y="212" text-anchor="middle" font-size="15" fill="#5b5f7c">reports its state — if it can</text>
 
   <!-- main flow arrows -->
   <line x1="320" y1="170" x2="452" y2="170" stroke="#292d4d" stroke-width="3" marker-end="url(#aDark)"/>
@@ -66,16 +66,22 @@
   <line x1="1160" y1="170" x2="1282" y2="170" stroke="#292d4d" stroke-width="3" marker-end="url(#aDark)"/>
   <text x="1221" y="158" text-anchor="middle" font-size="13" font-weight="600" fill="#5b5f7c">command</text>
 
-  <!-- Cover -> Manual check -->
-  <line x1="1430" y1="230" x2="1430" y2="322" stroke="#292d4d" stroke-width="3" marker-end="url(#aDark)"/>
-  <text x="1410" y="280" text-anchor="end" font-size="13" font-weight="600" fill="#5b5f7c">state changed</text>
+  <!-- Cover -> Safety net -->
+  <line x1="1430" y1="230" x2="1430" y2="278" stroke="#292d4d" stroke-width="3" marker-end="url(#aDark)"/>
+  <text x="1410" y="262" text-anchor="end" font-size="13" font-weight="600" fill="#5b5f7c">state changed</text>
 
-  <!-- ============ SAFETY NET ============ -->
-  <text x="1430" y="345" text-anchor="middle" font-size="13" font-weight="700" letter-spacing="1.5" fill="#c23d3d">SAFETY NET</text>
-  <rect x="1290" y="355" width="280" height="110" rx="16" fill="#fbe2e2" stroke="#c23d3d" stroke-width="3"/>
-  <text x="1430" y="397" text-anchor="middle" font-size="16" font-weight="700" fill="#7a1d1d">smarli_cover_manual_check</text>
-  <text x="1430" y="422" text-anchor="middle" font-size="14" fill="#8a3030">layer 1 context</text>
-  <text x="1430" y="440" text-anchor="middle" font-size="14" fill="#8a3030">layer 2 moving marker</text>
+  <!-- ============ SAFETY NET ============
+       Three ways a manual move is noticed; all of them end in
+       smarli_cover_suspend (the dashed "suspend" line below). -->
+  <text x="1430" y="300" text-anchor="middle" font-size="13" font-weight="700" letter-spacing="1.5" fill="#c23d3d">SAFETY NET</text>
+  <rect x="1290" y="308" width="280" height="190" rx="16" fill="#fbe2e2" stroke="#c23d3d" stroke-width="3"/>
+  <text x="1430" y="336" text-anchor="middle" font-size="16" font-weight="700" fill="#7a1d1d">Notices a manual move</text>
+  <text x="1310" y="364" font-size="14" font-weight="700" fill="#7a1d1d">1 · The cover reports a change</text>
+  <text x="1310" y="382" font-size="13" fill="#8a3030">manual_check · layers 1 + 2</text>
+  <text x="1310" y="410" font-size="14" font-weight="700" fill="#7a1d1d">2 · A person commands it in HA</text>
+  <text x="1310" y="428" font-size="13" fill="#8a3030">command_check · app, UI, voice</text>
+  <text x="1310" y="456" font-size="14" font-weight="700" fill="#7a1d1d">3 · It stops in the wrong place</text>
+  <text x="1310" y="474" font-size="13" fill="#8a3030">move audit · layer 3</text>
 
   <!-- ============ TRACKER (shared state) ============ -->
   <text x="800" y="510" text-anchor="middle" font-size="13" font-weight="700" letter-spacing="1.5" fill="#3f43ac">SHARED STATE</text>
@@ -107,17 +113,17 @@
   <rect x="1032" y="365" width="75" height="26" fill="#f7f8fc"/>
   <text x="1069" y="383" text-anchor="middle" font-size="14" font-weight="600" fill="#c97711">marker</text>
 
-  <!-- Manual check <-> tracker : suspend -->
-  <line x1="1430" y1="465" x2="1430" y2="550" stroke="#c23d3d" stroke-width="2.5" stroke-dasharray="7,6" marker-end="url(#aRed)" marker-start="url(#aRed)"/>
-  <rect x="1442" y="498" width="75" height="26" fill="#f7f8fc"/>
-  <text x="1479" y="516" text-anchor="middle" font-size="14" font-weight="600" fill="#c23d3d">suspend</text>
+  <!-- Safety net <-> tracker : suspend -->
+  <line x1="1430" y1="498" x2="1430" y2="535" stroke="#c23d3d" stroke-width="2.5" stroke-dasharray="7,6" marker-end="url(#aRed)" marker-start="url(#aRed)"/>
+  <rect x="1442" y="503" width="75" height="26" fill="#f7f8fc"/>
+  <text x="1479" y="521" text-anchor="middle" font-size="14" font-weight="600" fill="#c23d3d">suspend</text>
 
   <!-- footer -->
   <text x="800" y="775" text-anchor="middle" font-size="14" fill="#8489ab">Nothing here commands a cover directly — every arrow is a real event or tracker key; contributors publish, the resolver decides, the mover executes.</text>
 
   <!-- =====================================================================
-       ADDED BELOW — the diagram above is unchanged. Real-life scenarios for
-       one example cover, cover.wohnzimmer, plus a matching tracker snapshot.
+       Real-life scenarios for one example cover, cover.wohnzimmer, plus a
+       matching tracker snapshot.
        ===================================================================== -->
 
   <line x1="60" y1="822" x2="1540" y2="822" stroke="#d8dceb" stroke-width="1"/>
@@ -202,48 +208,78 @@
   <text x="846" y="1482" font-size="14" fill="#3d415e">immediate catch-up on the startup trigger.</text>
   <text x="846" y="1508" font-size="12.5" font-family="ui-monospace, Consolas, monospace" fill="#8489ab">last_commanded = -1 (never published) → forced on boot</text>
 
+  <!-- Row: covers without feedback (e.g. Somfy RTS) -->
+  <text x="800" y="1556" text-anchor="middle" font-size="18" font-weight="700" fill="#292d4d">If the blind is an old Somfy (RTS) model</text>
+  <text x="800" y="1578" text-anchor="middle" font-size="14" fill="#5b5f7c">It never reports what it does. Whether a move by hand is noticed depends on how it is made.</text>
+
+  <!-- Card G: 19:30 app command (manual / error) -->
+  <rect x="40" y="1600" width="740" height="188" rx="10" fill="#ffffff" stroke="#d8dceb" stroke-width="2"/>
+  <rect x="40" y="1606" width="6" height="176" fill="#c23d3d"/>
+  <text x="66" y="1634" font-size="15" font-weight="700" fill="#292d4d" font-variant-numeric="tabular-nums">19:30</text>
+  <rect x="150" y="1618" width="94" height="24" rx="12" fill="#f8dcdc"/>
+  <text x="197" y="1634" text-anchor="middle" font-size="11" font-weight="700" letter-spacing="0.6" fill="#c23d3d">MANUAL</text>
+  <text x="66" y="1668" font-size="20" font-weight="700" fill="#292d4d">Someone lowers it in the app</text>
+  <text x="66" y="1694" font-size="14" fill="#3d415e">The blind sends no state change. But the app's command passes through</text>
+  <text x="66" y="1714" font-size="14" fill="#3d415e">Home Assistant, tagged with the person who tapped. The command check</text>
+  <text x="66" y="1734" font-size="14" fill="#3d415e">suspends the blind for 30 minutes — the same result as a wall-switch</text>
+  <text x="66" y="1754" font-size="14" fill="#3d415e">press on a blind that reports back.</text>
+
+  <!-- Card H: 20:10 RTS remote (not noticed / neutral) -->
+  <rect x="820" y="1600" width="740" height="188" rx="10" fill="#ffffff" stroke="#d8dceb" stroke-width="2"/>
+  <rect x="820" y="1606" width="6" height="176" fill="#8a8fae"/>
+  <text x="846" y="1634" font-size="15" font-weight="700" fill="#292d4d" font-variant-numeric="tabular-nums">20:10</text>
+  <rect x="930" y="1618" width="120" height="24" rx="12" fill="#eef0f5"/>
+  <text x="990" y="1634" text-anchor="middle" font-size="11" font-weight="700" letter-spacing="0.6" fill="#5b5f7c">NOT NOTICED</text>
+  <text x="846" y="1668" font-size="20" font-weight="700" fill="#292d4d">Someone uses the old Somfy remote</text>
+  <text x="846" y="1694" font-size="14" fill="#3d415e">The remote talks to the motor directly by radio. Home Assistant never</text>
+  <text x="846" y="1714" font-size="14" fill="#3d415e">hears it — no state change, no command. The automation cannot know,</text>
+  <text x="846" y="1734" font-size="14" fill="#3d415e">so the next scheduled move happens as planned. Noticing it would</text>
+  <text x="846" y="1754" font-size="14" fill="#3d415e">need an extra 433 MHz radio receiver.</text>
+
   <!-- sample tracker setup -->
 
-  <line x1="60" y1="1560" x2="1540" y2="1560" stroke="#d8dceb" stroke-width="1"/>
+  <line x1="60" y1="1840" x2="1540" y2="1840" stroke="#d8dceb" stroke-width="1"/>
 
-  <text x="800" y="1600" text-anchor="middle" font-size="24" font-weight="700" fill="#292d4d">Sample tracker setup</text>
-  <text x="800" y="1624" text-anchor="middle" font-size="15" fill="#5b5f7c">sensor.smarli_automation_tracker → attributes.data — cover.wohnzimmer, moments apart on the same day above</text>
+  <text x="800" y="1880" text-anchor="middle" font-size="24" font-weight="700" fill="#292d4d">Sample tracker setup</text>
+  <text x="800" y="1904" text-anchor="middle" font-size="15" fill="#5b5f7c">sensor.smarli_automation_tracker → attributes.data — cover.wohnzimmer, moments apart on the same day above</text>
 
-  <rect x="150" y="1650" width="1300" height="660" rx="12" fill="#292d4d"/>
+  <rect x="150" y="1930" width="1300" height="702" rx="12" fill="#292d4d"/>
   <g font-size="15" font-family="ui-monospace, Consolas, monospace">
-    <text x="180" y="1686" fill="#c7cbf2">{</text>
-    <text x="200" y="1707" font-weight="700" fill="#f6f7fd">"shared": {</text>
-    <text x="220" y="1728" fill="#dfe1f7">"cover_sun_test::intent": {</text>
-    <text x="240" y="1749" fill="#dfe1f7">"targets": {</text>
-    <text x="260" y="1770" fill="#dfe1f7">"cover.wohnzimmer": 100</text>
-    <text x="240" y="1791" fill="#c7cbf2">},</text>
-    <text x="240" y="1812" fill="#dfe1f7">"priority": 10,</text>
-    <text x="240" y="1833" fill="#dfe1f7">"ts": 1785092820.7</text>
-    <text x="220" y="1854" fill="#c7cbf2">},</text>
-    <text x="220" y="1875" fill="#dfe1f7">"stub_shade::intent": {</text>
-    <text x="240" y="1896" fill="#dfe1f7">"bounds": {</text>
-    <text x="260" y="1917" fill="#dfe1f7">"cover.wohnzimmer": {</text>
-    <text x="280" y="1938" fill="#dfe1f7">"max": 20</text>
-    <text x="260" y="1959" fill="#c7cbf2">}</text>
-    <text x="240" y="1980" fill="#c7cbf2">},</text>
-    <text x="240" y="2001" fill="#dfe1f7">"priority": 50,</text>
-    <text x="240" y="2022" fill="#dfe1f7">"ts": 1785093140.2</text>
-    <text x="220" y="2043" fill="#c7cbf2">},</text>
-    <text x="220" y="2064" fill="#dfe1f7">"cover.wohnzimmer::resolved": 20,</text>
-    <text x="220" y="2085" fill="#dfe1f7">"cover.wohnzimmer::suspension": 1785099600.0,</text>
-    <text x="220" y="2106" fill="#dfe1f7">"cover.wohnzimmer::moving_1785092820.7": {</text>
-    <text x="240" y="2127" fill="#dfe1f7">"target": 20,</text>
-    <text x="240" y="2148" fill="#dfe1f7">"until": 1785093015.7</text>
-    <text x="220" y="2169" fill="#c7cbf2">}</text>
-    <text x="200" y="2190" fill="#c7cbf2">},</text>
-    <text x="200" y="2211" font-weight="700" fill="#f6f7fd">"cover_day_night": {</text>
-    <text x="220" y="2232" fill="#dfe1f7">"cover_bright_test::bright_since": 1785091200.0</text>
-    <text x="200" y="2253" fill="#c7cbf2">}</text>
-    <text x="180" y="2274" fill="#c7cbf2">}</text>
+    <text x="180" y="1966" fill="#c7cbf2">{</text>
+    <text x="200" y="1987" font-weight="700" fill="#f6f7fd">"shared": {</text>
+    <text x="220" y="2008" fill="#dfe1f7">"cover_sun_test::intent": {</text>
+    <text x="240" y="2029" fill="#dfe1f7">"targets": {</text>
+    <text x="260" y="2050" fill="#dfe1f7">"cover.wohnzimmer": 100</text>
+    <text x="240" y="2071" fill="#c7cbf2">},</text>
+    <text x="240" y="2092" fill="#dfe1f7">"priority": 10,</text>
+    <text x="240" y="2113" fill="#dfe1f7">"ts": 1785092820.7,</text>
+    <text x="240" y="2134" fill="#dfe1f7">"suspension_duration": 1800</text>
+    <text x="220" y="2155" fill="#c7cbf2">},</text>
+    <text x="220" y="2176" fill="#dfe1f7">"stub_shade::intent": {</text>
+    <text x="240" y="2197" fill="#dfe1f7">"bounds": {</text>
+    <text x="260" y="2218" fill="#dfe1f7">"cover.wohnzimmer": {</text>
+    <text x="280" y="2239" fill="#dfe1f7">"max": 20</text>
+    <text x="260" y="2260" fill="#c7cbf2">}</text>
+    <text x="240" y="2281" fill="#c7cbf2">},</text>
+    <text x="240" y="2302" fill="#dfe1f7">"priority": 50,</text>
+    <text x="240" y="2323" fill="#dfe1f7">"ts": 1785093140.2,</text>
+    <text x="240" y="2344" fill="#dfe1f7">"suspension_duration": 1800</text>
+    <text x="220" y="2365" fill="#c7cbf2">},</text>
+    <text x="220" y="2386" fill="#dfe1f7">"cover.wohnzimmer::resolved": 20,</text>
+    <text x="220" y="2407" fill="#dfe1f7">"cover.wohnzimmer::suspension": 1785099600.0,</text>
+    <text x="220" y="2428" fill="#dfe1f7">"cover.wohnzimmer::moving_1785092820.7": {</text>
+    <text x="240" y="2449" fill="#dfe1f7">"target": 20,</text>
+    <text x="240" y="2470" fill="#dfe1f7">"until": 1785093015.7</text>
+    <text x="220" y="2491" fill="#c7cbf2">}</text>
+    <text x="200" y="2512" fill="#c7cbf2">},</text>
+    <text x="200" y="2533" font-weight="700" fill="#f6f7fd">"cover_day_night": {</text>
+    <text x="220" y="2554" fill="#dfe1f7">"cover_bright_test::bright_since": 1785091200.0</text>
+    <text x="200" y="2575" fill="#c7cbf2">}</text>
+    <text x="180" y="2596" fill="#c7cbf2">}</text>
   </g>
 
-  <text x="800" y="2344" text-anchor="middle" font-size="13" fill="#8489ab">Real key grammar — CLAUDE.md § State tracking (Phase 1) and § Cover arbitration.</text>
-  <text x="800" y="2364" text-anchor="middle" font-size="13" fill="#8489ab">"shared" holds anything more than one blueprint touches — intents, resolved positions, suspensions, moving markers.</text>
-  <text x="800" y="2384" text-anchor="middle" font-size="13" fill="#8489ab">A per-blueprint namespace like "cover_day_night" only appears once that family writes its own bookkeeping —</text>
-  <text x="800" y="2404" text-anchor="middle" font-size="13" fill="#8489ab">here, a brightness instance's stabilizer timestamp.</text>
+  <text x="800" y="2666" text-anchor="middle" font-size="13" fill="#8489ab">Real key grammar — CLAUDE.md § State tracking and docs/cover-architecture.md.</text>
+  <text x="800" y="2686" text-anchor="middle" font-size="13" fill="#8489ab">"shared" holds anything more than one blueprint touches — intents, resolved positions, suspensions, moving markers.</text>
+  <text x="800" y="2706" text-anchor="middle" font-size="13" fill="#8489ab">A per-blueprint namespace like "cover_day_night" only appears once that family writes its own bookkeeping —</text>
+  <text x="800" y="2726" text-anchor="middle" font-size="13" fill="#8489ab">here, a brightness instance's stabilizer timestamp.</text>
 </svg>
