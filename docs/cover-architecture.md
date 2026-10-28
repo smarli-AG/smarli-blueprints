@@ -93,7 +93,7 @@ Both layer-1 entry points use one rule: **`user_id` set and no `parent_id` → a
 | An automation — even one a person triggered (dashboard button, `input_boolean`, smarli. relay) | Every automation run gets a **new** context: `parent_id` = the triggering event, `user_id` = none | ignore |
 | A script or scene an automation starts | Inherits the automation's context | ignore |
 | Any API caller with a long-lived token (Node-RED, external tools, the community Matter Hub add-on) | `user_id` = the user who owns the token | suspend — **counts as a person** |
-| An integration with its own system user (on mssw: **Presence Simulation**) | `user_id` = that system user | suspend — accepted for Presence Simulation (decision 2026-10-28): a replayed move should win. It wins only for the suspension window; day-night transitions outside it still run |
+| An integration with its own system user (on mssw: **Presence Simulation**) | `user_id` = that system user | suspend — accepted for Presence Simulation (decision 2026-10-28): a replayed move should win. A transition within the suspension window after a replayed move is **cancelled**, and the cover then stays where the simulation left it until the next transition — e.g. a replayed _open_ at 20:45 with a 30-min suspension cancels the 21:00 close, possibly for the whole night. Transitions outside any window still run |
 | Voice via Assist | `user_id` = the speaking user | suspend |
 | Alexa / Google via Home Assistant Cloud | `user_id` = the system user "Home Assistant Cloud" (from HA's code, not tested) | suspend |
 | HomeKit Bridge (HA exposed to Apple Home) | New context without `user_id` (from HA's code, not tested) | **not detected** |
