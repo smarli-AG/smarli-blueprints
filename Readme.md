@@ -524,7 +524,7 @@ Most rules in this Readme are checked automatically. The setup copies the one in
 | Script | What it checks | Where it runs |
 | --- | --- | --- |
 | `ci/checks.sh` | Group `files`: merge-conflict markers, tab indentation in YAML. Group `blueprints`: every `automation/*.yaml` against this Readme, through `ci/check-blueprints.js`. | By hand, in the pre-commit hook, and in CI on every pull request and on `main`. |
-| `ci/check-release.sh` | A blueprint that differs from `main` needs a higher version in its release notes. Edits to the dev notes above `# ! RELEASE NOTES` do not count. | By hand, and in CI on pull requests into `main`. |
+| `ci/check-release.sh` | A blueprint that differs from `main` needs a higher version in its release notes. Edits to the dev notes above `# ! RELEASE NOTES` do not count. A blueprint with a settings fingerprint (`schedule_fingerprint`, see `docs/cover-architecture.md`) also needs a higher fingerprint version (`fp1:` → `fp2:`) when the hashed list or the default of a hashed input changed, through `ci/check-fingerprint.js`. | By hand, and in CI on pull requests into `main`. |
 
 Run them:
 

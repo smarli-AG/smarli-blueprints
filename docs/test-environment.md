@@ -96,7 +96,7 @@ docker restart smarli-ha-test
 
 ## Config check on both floors
 
-The declared floor is **2024.10.0**; everything must also pass on 2025.4.
+The floor of `cover_DayNight.yaml` is **2025.4.0** since 3.1.2 (the `md5` filter of the settings fingerprint does not exist before 2025.4). Other blueprints still declare 2024.10.0, so keep checking both versions: on 2024.10 the cover instances are expected to be rejected, nothing else may fail.
 
 ```powershell
 $cfg = "C:\Users\Pascal\smarli-ha-test\config"
@@ -108,9 +108,13 @@ foreach ($v in @("2024.10","2025.4")) {
 }
 ```
 
-Two traps: **without `--info all` it prints nothing but the header**, so a naive grep finds no
-"Successful config" and looks like a failure; and the output carries **ANSI colour codes**, so
-strip them (or check the exit code plus the absence of ERROR lines) before matching.
+Three traps: **without `--info all` it prints nothing but the header**, so a naive grep finds no
+"Successful config" and looks like a failure; the output carries **ANSI colour codes**, so
+strip them before matching; and **a rejected blueprint instance does not fail the check** — it
+exits 0 with "Successful config" and only logs `generated invalid automation ...` (this is how
+the missing `md5` filter on 2024.10 showed up). Grep for `invalid automation` too. A read-only
+(`:ro`) config mount adds harmless registry-write errors; use a read-write scratch copy for clean
+output.
 
 ## What is installed
 
@@ -124,7 +128,10 @@ strip them (or check the exit code plus the absence of ERROR lines) before match
 **hass-virtual needs a patch.** v0.9.4 calls `verify_domain_control(COMPONENT_DOMAIN)` in two
 places in `__init__.py`; the correct signature is `verify_domain_control(hass, COMPONENT_DOMAIN)`.
 Without it, setup fails. Covers are declared new-style in `virtual.yaml` under the group
-`imported`, with a bare `virtual:` in `configuration.yaml`.
+`imported`, with a bare `virtual:` in `configuration.yaml`. **On the first boot the import flow
+overwrites `virtual.yaml` with `devices: {}`** when the file already exists: write it after the
+first boot (or before `virtual:` is added), then restart. Each cover needs `name: vfast` (etc.)
+and `class: shutter` to get the entity id `cover.vfast`.
 
 **hass-swissweather** is configured headlessly by posting to `/api/config/config_entries/flow`
 with postcode `8001`; the station is optional because `condition` comes from the forecast rather
@@ -139,8 +146,9 @@ FORECAST_HOURLY bit-2 guard passes and `weather.get_forecasts` returns real data
 | `cover.vslow`                               | virtual, **16 s** travel — the pair tests per-cover release (fast cover freed without waiting for the slow one)                                                                                  |
 | `cover.vbright`                             | virtual, **8 s** travel — dedicated to `cover_brightness_test` so it doesn't contend with vfast/vslow                                                                                            |
 | `cover.garage_door`                         | demo, binary (`supported_features` 3), no `current_position` — tests the position-less code paths                                                                                                |
+| `cover.assumed_rts`                         | template cover with `optimistic: true`, plus `homeassistant: customize: cover.assumed_rts: assumed_state: true` (the template cover does not report `assumed_state` by itself; the attribute appears after the entity's next state write). Stands in for a Somfy RTS cover: the mover skips its settle audit |
 | `weather.weather_at_8001`                   | real MeteoSwiss, hourly forecasts                                                                                                                                                                |
-| `input_number.test_lux` / `sensor.test_lux` | TEST-ONLY controllable lux (`configuration.yaml`): the template sensor (`device_class: illuminance`) mirrors the input_number so brightness-method tests can force threshold crossings on demand |
+| `input_number.test_lux` / `sensor.test_lux` | TEST-ONLY controllable lux (`configuration.yaml`): the template sensor (`device_class: illuminance`) mirrors the input_number so brightness-method tests can force threshold crossings on demand. No `initial:` — it would reset the value on every restart and break restart tests |
 
 ## Automations
 
@@ -175,7 +183,8 @@ Note the id and the entity_id differ: HA derives the entity_id from the **alias*
 
 - **Superseded by [runtime-testing-plan.md](runtime-testing-plan.md) (2026-10-14).** That plan
   moves this environment into the repo and answers the open points below. On 2026-10-14 the
-  folder `C:\Users\Pascal\smarli-ha-test\` did not exist on Pascal's current machine.
+  folder `C:\Users\Pascal\smarli-ha-test\` did not exist on Pascal's current machine; it was
+  rebuilt from this document on 2026-10-29 (HA 2025.4), still outside the repo.
 - **TODO (noted 2026-10-09): revisit the test setup after the split into two repos.** Nothing is
   changed yet; the copy steps in [Deploying repo changes](#deploying-repo-changes) still apply.
   Open points:
@@ -198,6 +207,10 @@ Note the id and the entity_id differ: HA derives the entity_id from the **alias*
 - **Demo covers cannot test the settle loop.** Position covers ramp with the state stuck on `open`;
   binary covers jump instantly. Neither ever reports `opening`/`closing`, so the settle loop audits
   mid-ramp and false-suspends. Use the virtual covers.
+- **Calling `script.smarli_cover_resolve` over REST taints the move too.** Its cover commands carry
+  the token's `user_id` with no `parent_id`, so `smarli_cover_command_check` suspends the covers
+  (correct per "Who counts as a person"). Drive the resolver through an event-triggered stub
+  automation instead; the stubs accept `ts` and `transition` overrides in the event data.
 - **`check_config` does not catch runtime Jinja errors.** Debug templates live instead:
   ```powershell
   Invoke-RestMethod -Uri "$HA_BASE/api/template" -Method Post -Headers (HA-Headers) -Body (@{template='{{ ... }}'} | ConvertTo-Json -Compress) -ContentType "application/json"
@@ -251,15 +264,21 @@ Note the id and the entity_id differ: HA derives the entity_id from the **alias*
 | `test-r2-layer2-contextless.ps1`                              | R2 redone correctly: a genuinely contextless tick (context-staleness, not a tainted REST call) with no live marker suspends the cover                                                                                                            |
 | `test-brightness-stabilizer.ps1`                              | `bright_since`/`dark_since` written only on threshold crossings, never rewritten while steady; `schedule_wants_*` waits for `stabilizer_seconds` before acting                                                                                   |
 | `test-restart-selfheal.ps1`                                   | restart mid-transition self-heal (a stale-but-consistent published intent no longer matching the schedule) and the first-run `-1` sentinel (never-published intent + a persisted stabilizer timestamp), both caught up on `homeassistant: start` |
-| `test-part1.ps1`, `test-part1-regression.ps1`, `racetest.ps1` | Phase 1 era; kept for reference                                                                                                                                                                                                                  |
+| `test-fingerprint.ps1`                                        | 3.1.2 settings fingerprint: `fp1:` format; a schedule edit re-publishes and commands; a non-schedule edit does not; a legacy or `fp0:` intent does not re-publish; an `fp1:` mismatch re-publishes exactly once                                    |
+| `test-time-earliest.ps1`                                      | time method with earliest close / earliest open: nothing at T, move at the earliest time; repeated runs without clearing the tracker; covers moved by hand before the run                                                                        |
+| `test-transition-flag.ps1`                                    | resolver `transition` flag: forces a won cover with a stale `::resolved`; not for custom triggers; not for a cover another owner's newer target wins; not for a suspended cover; assumed-state and in-place covers re-commanded without suspension |
+| `run-short.ps1`, `run-long.ps1`                               | run the suites; `results.log` holds the last full run, `short.out` / `long.out` the full output                                                                                                                                                  |
+| `test-part1.ps1`, `test-part1-regression.ps1`, `racetest.ps1` | Phase 1 era; not rebuilt on 2026-10-29                                                                                                                                                                                                            |
 
 ## Rebuilding from scratch
 
 1. Install Docker Desktop (WSL2 backend; no sign-in needed for local containers).
 2. Recreate `docker-compose.yml` as above and `docker compose up -d`.
-3. Onboard: `POST /api/onboarding/users`, then `/auth/token`. Access tokens expire in 30 minutes,
-   so mint a long-lived one over the WebSocket API (`auth/long_lived_access_token`) and save it to
-   `.token`. `config/mint.py` does this from inside the container.
+3. Onboard: `POST /api/onboarding/users`, then `/auth/token`, then the remaining onboarding steps
+   `core_config`, `analytics` and `integration`. Access tokens expire in 30 minutes, so mint a
+   long-lived one over the WebSocket API (`auth/long_lived_access_token`) and save it to `.token`.
+   `config/mint.py` does this from inside the container; it takes the client name as its second
+   argument, because re-using a name fails with `ValueError: <name> already exists`.
 4. Vendor `custom_components/virtual/` and apply the `verify_domain_control(hass, …)` patch;
    write `virtual.yaml`; add `virtual:` to `configuration.yaml`.
 5. Vendor `custom_components/swissweather/` (needs only `requests`) and drive its config flow

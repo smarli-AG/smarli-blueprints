@@ -3,7 +3,8 @@
 #   checks   every pull request, and main. Runs ci/checks.sh: file checks and
 #            the Readme.md rules for every blueprint.
 #   release  pull requests into main only. Runs ci/check-release.sh: a changed
-#            blueprint needs a higher version.
+#            blueprint needs a higher version, and a changed settings
+#            fingerprint needs a higher fingerprint version.
 #
 # This file does not define what "broken" means. The two scripts do, and a
 # developer runs both on a laptop. This file only runs them on GitHub.
@@ -48,4 +49,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      # check-release.sh calls ci/check-fingerprint.js.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
       - run: ./ci/check-release.sh

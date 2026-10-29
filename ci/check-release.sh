@@ -12,6 +12,9 @@
 #      be higher than the one on main.
 #   2. A new blueprint needs nothing here: ci/check-blueprints.js already
 #      requires release notes.
+#   3. If the blueprint hashes its settings into `schedule_fingerprint`, a
+#      changed hashed list or a changed default of a hashed input needs a
+#      higher fingerprint version (ci/check-fingerprint.js explains why).
 #
 # WHAT COUNTS AS A CHANGE
 #
@@ -68,6 +71,13 @@ while IFS= read -r f; do
   else
     echo "ok        $f — ${old:-no version on main} → $new"
   fi
+  base_copy=$(mktemp)
+  git show "$base:$f" > "$base_copy"
+  if ! fp_out=$(node "$(dirname "$0")/check-fingerprint.js" "$base_copy" "$f"); then
+    echo "FAILED    $f — $fp_out"
+    status=1
+  fi
+  rm -f "$base_copy"
 done < <(git diff --name-only --no-renames "$base" -- 'automation/*.yaml')
 
 echo "$checked changed blueprint(s) compared against $base_ref ($(git rev-parse --short "$base"))"
