@@ -23,7 +23,7 @@ rolled out. Each entry says which change it checks.
 ## Checklist
 
 Needed versions: `cover_DayNight.yaml` 3.1.2 and the smarli. Cover package with the resolver
-`transition` flag (`ha-packages` branch `fix/resolver-transition-flag` until it is merged).
+`transition` flag (`ha-packages` `main` since PR #3, 2026-10-29).
 
 | # | Scenario | Steps | Expected |
 | --- | --- | --- | --- |
