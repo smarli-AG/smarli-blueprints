@@ -9,6 +9,13 @@
 # ab wie viel kmh sollen storen im standard nicht mehr automatisch schliessen?
 
 # ! RELEASE NOTES
+## 3.1.2 | 2026-10-29
+## - Fix: after the schedule settings are edited, the covers are driven to the phase the new schedule calls for. Before, a stored "already commanded" position from the old settings could stop the new close or open time from acting.
+## - Saving the automation with unchanged settings, and the update to this version itself, do not move any cover
+## - At every scheduled open or close, the covers are commanded even if smarli. believes they are already there (e.g. after a move with a Somfy remote). Needs the smarli. Cover package with the resolver "transition" flag; older packages ignore it.
+## - Behavior change: when two automations control the same cover, a later scheduled close also closes a cover that was raised with a remote in between
+## - Requires Home Assistant 2025.4 or newer (was 2024.10)
+## - Fix: Custom Retract/Extend Triggers now retract/extend. Before, they moved the covers to the position the schedule wanted at that moment, so an extend trigger during the day did nothing. The covers now stay where the custom trigger put them until the next scheduled retract or extend.
 ## 3.1.1 | 2026-10-28
 ## - Known limitations: manual operation through the HA app is detected with the current smarli. Cover package
 ## - Known limitations: describe how covers behave during a Presence Simulation
@@ -64,7 +71,7 @@
 #   [br]
 #   ---
 #   [br]
-#   _Version 3.1.1_
+#   _Version 3.1.2_
 # long_description_de: |
 #   __Fahre Deine Storen automatisch ein und aus, basierend auf Sonnenstand, Uhrzeit oder Helligkeit.__
 #   [br]
@@ -87,7 +94,7 @@
 #   [br]
 #   ---
 #   [br]
-#   _Version 3.1.1_
+#   _Version 3.1.2_
 #
 # purpose_en: "Comfort"
 # purpose_de: "Komfort"
@@ -128,7 +135,7 @@ blueprint:
     If somebody operates a cover by hand, the automation leaves that cover alone
     for a set duration. All other covers keep working as usual.
 
-    *Version 3.1.1*
+    *Version 3.1.2*
 
     <details>
     <summary><b>How to set it up</b></summary>
@@ -210,7 +217,7 @@ blueprint:
   author: loocd [smarli. AG]
   source_url: https://github.com/smarli-AG/smarli-blueprints/blob/main/automation/cover_DayNight.yaml
   homeassistant:
-    min_version: 2024.10.0
+    min_version: 2025.4.0 # md5 template filter (settings fingerprint)
 
   ###############
   # User Inputs #
@@ -1239,14 +1246,14 @@ blueprint:
         custom_opening_triggers:
           name: Custom Retract Triggers (optional)
           description: >-
-            Use this to define custom retract triggers in addition to the default triggers. Make sure each one of them has the trigger id `custom_open`.
+            Use this to define custom retract triggers in addition to the default triggers. Make sure each one of them has the trigger id `custom_open`. A custom trigger retracts the covers regardless of the schedule; they stay retracted until the next scheduled retract or extend.
           selector:
             trigger:
           default: []
         custom_closing_triggers:
           name: Custom Extend Triggers (optional)
           description: >-
-            Use this to define custom extend triggers in addition to the default triggers. Make sure each one of them has the trigger id `custom_close`.
+            Use this to define custom extend triggers in addition to the default triggers. Make sure each one of them has the trigger id `custom_close`. A custom trigger extends the covers regardless of the schedule; they stay extended until the next scheduled retract or extend.
           selector:
             trigger:
           default: []
@@ -1291,7 +1298,7 @@ variables:
   # This blueprint's own namespace in the central tracker. Holds this instance's
   # brightness stabilizer bookkeeping keys: <id>::bright_since / <id>::dark_since.
   # The last-commanded position lives in shared.<id>::intent instead (see
-  # my_intent/last_commanded below) — the intent is the single record.
+  # my_intent/last_scheduled below) — the intent is the single record.
   stored_state: "{{ (state_attr('sensor.smarli_automation_tracker', 'data') or {}).get('cover_day_night', {}) }}"
 
   daynight_cycle_method: !input daynight_cycle_method
@@ -1545,17 +1552,90 @@ variables:
     {% if should_use_latest_close and now_ts >= as_timestamp(today_at(latest_close_time)) %}{% set due = true %}{% endif %}
     {{ due }}
 
-  # What this instance last committed to commanding — read back from its own
+  # Fingerprint of every setting that decides which phase the covers belong in:
+  # method, times and their bounds, helper entity ids, covers. It is built from
+  # the raw inputs, not the resolved values, so it changes only when someone
+  # edits the automation, never with the day, the workday sensor or a helper's
+  # value. Weather, wind and suspension settings stay out: they never change the
+  # desired position. The prefix is the fingerprint's VERSION ("fp1"). Bump it
+  # whenever the list below changes, or a default of a listed input changes
+  # (ci/check-release.sh fails otherwise):
+  # either changes every instance's hash at once, and last_scheduled accepts a
+  # stored fingerprint of another version as matching, so a release never
+  # re-commands the whole fleet. The prefix also keeps HA from re-parsing an
+  # all-digit hash as a number after rendering.
+  schedule_fingerprint: >
+    {{ 'fp1:' ~ ({
+         'daynight_cycle_method': daynight_cycle_method,
+         'workday_tracker': workday_tracker,
+         'workday_tomorrow_tracker': workday_tomorrow_tracker,
+         'sunrise_offset_input': sunrise_offset_input,
+         'sunrise_offset_helper': sunrise_offset_helper,
+         'sunset_offset_input': sunset_offset_input,
+         'sunset_offset_helper': sunset_offset_helper,
+         'time_open_workday': time_open_workday,
+         'time_open_workday_helper': time_open_workday_helper,
+         'time_open_non_workday': time_open_non_workday,
+         'time_open_non_workday_helper': time_open_non_workday_helper,
+         'time_close_workday_tomorrow': time_close_workday_tomorrow,
+         'time_close_workday_tomorrow_helper': time_close_workday_tomorrow_helper,
+         'time_close_non_workday_tomorrow': time_close_non_workday_tomorrow,
+         'time_close_non_workday_tomorrow_helper': time_close_non_workday_tomorrow_helper,
+         'brightness_sensor': brightness_sensor,
+         'lux_sensor_delay': lux_sensor_delay,
+         'brightness_open_input': brightness_open_input,
+         'brightness_open_helper': brightness_open_helper,
+         'brightness_close_input': brightness_close_input,
+         'brightness_close_helper': brightness_close_helper,
+         'should_use_earliest_open': should_use_earliest_open,
+         'earliest_open_workday': earliest_open_workday,
+         'earliest_open_workday_helper': earliest_open_workday_helper,
+         'earliest_open_non_workday': earliest_open_non_workday,
+         'earliest_open_non_workday_helper': earliest_open_non_workday_helper,
+         'should_use_earliest_close': should_use_earliest_close,
+         'earliest_close_workday_tomorrow': earliest_close_workday_tomorrow,
+         'earliest_close_workday_tomorrow_helper': earliest_close_workday_tomorrow_helper,
+         'earliest_close_non_workday_tomorrow': earliest_close_non_workday_tomorrow,
+         'earliest_close_non_workday_tomorrow_helper': earliest_close_non_workday_tomorrow_helper,
+         'should_use_latest_open': should_use_latest_open,
+         'latest_open_workday': latest_open_workday,
+         'latest_open_workday_helper': latest_open_workday_helper,
+         'latest_open_non_workday': latest_open_non_workday,
+         'latest_open_non_workday_helper': latest_open_non_workday_helper,
+         'should_use_latest_close': should_use_latest_close,
+         'latest_close_workday_tomorrow': latest_close_workday_tomorrow,
+         'latest_close_workday_tomorrow_helper': latest_close_workday_tomorrow_helper,
+         'latest_close_non_workday_tomorrow': latest_close_non_workday_tomorrow,
+         'latest_close_non_workday_tomorrow_helper': latest_close_non_workday_tomorrow_helper,
+         'cover_entity': cover_entity | sort | list
+       } | to_json(sort_keys=True) | md5) }}
+
+  # What the SCHEDULE last decided — read back from this instance's own
   # published intent, so the intent is the single record instead of a second
-  # bookkeeping key. Absent (never run, or wiped) reads as -1, an impossible
-  # position, which forces a transition on the first evaluation and drives the
-  # covers to the correct phase instead of assuming where they are.
+  # bookkeeping key. It is kept as `phase`, apart from `targets`, because a
+  # custom trigger commands a position against the schedule: comparing the next
+  # heartbeat with that command would undo it within a minute, comparing with
+  # the schedule's own decision lets it hold until the schedule changes phase.
+  # An intent without `phase` (published before 3.1.2) falls back to its target.
+  # Absent (never run, or wiped) reads as -1, an impossible position, which
+  # forces a transition on the first evaluation and drives the covers to the
+  # correct phase instead of assuming where they are. It also reads as -1 when
+  # the intent was published under different schedule settings (its fingerprint
+  # differs): after an edit the old decision says nothing about the new
+  # schedule, and would otherwise hide a due close or open.
   my_intent: >
     {{ (state_attr('sensor.smarli_automation_tracker', 'data') or {})
        .get('shared', {}).get(instance_id ~ '::intent', {}) }}
-  last_commanded: >
+  last_scheduled: >
     {% set vals = my_intent.get('targets', {}).values() | list %}
-    {{ vals[0] | int(-1) if vals | count > 0 else -1 }}
+    {% set phase = my_intent.get('phase', vals[0] if vals | count > 0 else none) %}
+    {% set stored = my_intent.get('fingerprint', '') | string %}
+    {# Only a fingerprint of the SAME version can prove an edit. None (published
+       before 3.1.2) or another version is accepted as matching and replaced at
+       the next transition — see schedule_fingerprint. #}
+    {% set settings_unchanged = stored.split(':')[0] != schedule_fingerprint.split(':')[0]
+                                or stored == schedule_fingerprint %}
+    {{ phase | int(-1) if phase is not none and settings_unchanged else -1 }}
   # Suspension length this instance asks for, in seconds; 0 when the technician
   # turned suspension off. The resolver-side helper takes the MAX across all
   # contributors naming a cover, so this is a request, not a decision.
@@ -1563,30 +1643,55 @@ variables:
     {{ 0 if not should_suspend_after_manual_interaction
        else (suspension_duration | as_timedelta).total_seconds() }}
 
-  # Where the covers should be now. Closing wins over opening in the evening
-  # overlap; outside both phases we hold whatever we last commanded.
+  # Where the schedule puts the covers now. Closing wins over opening in the
+  # evening overlap; outside both phases we hold the last scheduled decision.
   desired_position: >
     {% if schedule_wants_closed %}{{ position_closed }}
     {% elif schedule_wants_open %}{{ position_open }}
-    {% else %}{{ last_commanded }}{% endif %}
+    {% else %}{{ last_scheduled }}{% endif %}
 
-  # Only act when the desired position actually changed since our last command.
-  transition_needed: "{{ desired_position | int != last_commanded | int }}"
+  # Only act when the schedule's decision actually changed.
+  transition_needed: "{{ desired_position | int != last_scheduled | int }}"
 
-  # Every cover gets the same target this run. (No `zip` filter in HA Jinja —
-  # build the dict with the same items()|list+[(k,v)] idiom used in smarli_core.)
+  # Every cover gets the same target in a run. (No `zip` filter in HA Jinja —
+  # build the dicts with the same items()|list+[(k,v)] idiom used in smarli_core.)
   desired_targets: >
     {% set ns = namespace(d={}) %}
     {% for c in cover_entities %}
       {% set ns.d = dict(ns.d.items() | list + [(c, desired_position | int)]) %}
     {% endfor %}
     {{ ns.d }}
+  open_targets: >
+    {% set ns = namespace(d={}) %}
+    {% for c in cover_entities %}
+      {% set ns.d = dict(ns.d.items() | list + [(c, position_open)]) %}
+    {% endfor %}
+    {{ ns.d }}
+  closed_targets: >
+    {% set ns = namespace(d={}) %}
+    {% for c in cover_entities %}
+      {% set ns.d = dict(ns.d.items() | list + [(c, position_closed)]) %}
+    {% endfor %}
+    {{ ns.d }}
 
   # This instance's declaration to the resolver: a TARGET for every cover, never
   # a bound. Day-night says "move to X now"; it never constrains other families.
+  # A heartbeat publishes the schedule's position and records it as `phase`.
+  # A custom trigger publishes its own position (open/close, regardless of the
+  # schedule) and keeps the schedule's last `phase`, so the next heartbeat sees
+  # no change and the custom position holds until the schedule's next phase
+  # change. Without a recorded phase yet (-1), it records the schedule's current
+  # view, for the same reason.
   intent_payload: >
-    {{ {'targets': desired_targets, 'bounds': {}, 'priority': 10,
-        'ts': now_ts | float(0), 'suspension_duration': suspension_seconds | float(0)} }}
+    {% set custom = trigger.id | default('') in ['custom_open', 'custom_close'] %}
+    {% set targets = open_targets if trigger.id | default('') == 'custom_open'
+                     else (closed_targets if trigger.id | default('') == 'custom_close'
+                           else desired_targets) %}
+    {% set phase = desired_position if not custom
+                   else (last_scheduled if last_scheduled | int >= 0 else desired_position) %}
+    {{ {'targets': targets, 'bounds': {}, 'priority': 10,
+        'ts': now_ts | float(0), 'suspension_duration': suspension_seconds | float(0),
+        'phase': phase | int, 'fingerprint': schedule_fingerprint} }}
 
 ############
 # Triggers #
@@ -1723,6 +1828,11 @@ actions:
             data:
               owner: "{{ instance_id }}"
               intent: "{{ intent_payload }}"
+              # A heartbeat run reaches here only on a genuine phase transition,
+              # so the resolver commands even a cover it believes is already
+              # there (a remote may have moved it unseen). A custom trigger can
+              # fire repeatedly, so it keeps the resolver's "only if changed".
+              transition: "{{ trigger.id | default('') == 'heartbeat' }}"
           - alias: Run custom opening actions
             sequence: !input custom_opening_actions
 
@@ -1797,6 +1907,11 @@ actions:
             data:
               owner: "{{ instance_id }}"
               intent: "{{ intent_payload }}"
+              # A heartbeat run reaches here only on a genuine phase transition,
+              # so the resolver commands even a cover it believes is already
+              # there (a remote may have moved it unseen). A custom trigger can
+              # fire repeatedly, so it keeps the resolver's "only if changed".
+              transition: "{{ trigger.id | default('') == 'heartbeat' }}"
           - alias: Run custom closing actions
             sequence: !input custom_closing_actions
 
