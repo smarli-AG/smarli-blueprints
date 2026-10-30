@@ -1,0 +1,59 @@
+default_config:
+
+# No core settings (name, location, time zone, units) here: YAML would override the stored
+# values at every start, and the tests move the time zone and location (T-LocalNoon, T-SunPhase)
+# and must keep them across a restart. bootstrap.ps1 sets them through config/core/update.
+homeassistant:
+  packages: !include_dir_named packages
+  customize:
+    cover.assumed_rts:
+      assumed_state: true
+
+automation: !include automations.yaml
+
+demo:
+
+# Bare entry: imports /config/virtual.yaml as group "imported" (hass-virtual 0.9.x)
+virtual:
+
+input_number:
+  test_lux:
+    name: test_lux
+    min: 0
+    max: 100000
+    step: 1
+    mode: box
+
+template:
+  - sensor:
+      - name: test_lux
+        unique_id: test_lux_sensor
+        device_class: illuminance
+        unit_of_measurement: lx
+        state: "{{ states('input_number.test_lux') | float(0) }}"
+
+logger:
+  default: warning
+  logs:
+    homeassistant.components.template: warning
+
+# Assumed-state cover (one-way radio like Somfy RTS): optimistic template cover reports assumed_state: true
+cover:
+  - platform: template
+    covers:
+      assumed_rts:
+        friendly_name: assumed_rts
+        device_class: shutter
+        optimistic: true
+        open_cover:
+          - event: test_assumed_cmd
+            event_data: { cmd: open }
+        close_cover:
+          - event: test_assumed_cmd
+            event_data: { cmd: close }
+        stop_cover:
+          - event: test_assumed_cmd
+            event_data: { cmd: stop }
+        set_cover_position:
+          - event: test_assumed_cmd
+            event_data: { cmd: set, position: "{{ position }}" }

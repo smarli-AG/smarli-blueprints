@@ -1,0 +1,23 @@
+version: 1
+devices:
+  vfast:
+    - platform: cover
+      name: vfast
+      class: shutter
+      initial_value: 'open'
+      open_close_duration: 6
+      open_close_tick: 1
+  vslow:
+    - platform: cover
+      name: vslow
+      class: shutter
+      initial_value: 'open'
+      open_close_duration: 16
+      open_close_tick: 1
+  vbright:
+    - platform: cover
+      name: vbright
+      class: shutter
+      initial_value: 'open'
+      open_close_duration: 8
+      open_close_tick: 1
