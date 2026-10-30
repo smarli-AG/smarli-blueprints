@@ -138,6 +138,7 @@ FORECAST_HOURLY bit-2 guard passes and `weather.get_forecasts` returns real data
 | `cover.vbright`                             | virtual, **8 s** travel — dedicated to `cover_brightness_test` so it doesn't contend with vfast/vslow                                                                                            |
 | `cover.garage_door`                         | demo, binary (`supported_features` 3), no `current_position` — tests the position-less code paths                                                                                                |
 | `cover.assumed_rts`                         | template cover with `optimistic: true`, plus `homeassistant: customize: cover.assumed_rts: assumed_state: true` (the template cover does not report `assumed_state` by itself; the attribute appears after the entity's next state write). Stands in for a Somfy RTS cover: the mover skips its settle audit |
+| `cover.silent`                              | template cover that reports only position/tilt and a final `open`/`closed`, never `opening`/`closing` — like a Zigbee S-ZB-COV1 via Z2M. Its motor is `script.silent_motor`, shaped by `input_select.silent_mode`: `normal` (1 s reports, 3.5 s start gap, 2.3 s inner gaps), `tiltfirst` (8 s tilt only), `jump` (target at once, then silence), `slowstart` (first report after 7 s), `overshoot` (3 % past the target, back 1 s later). `input_number.silent_churn` drives its icon, to simulate an attribute that changes while idle. `script.turn_off` on the motor = a wall-switch stop. Its writes carry the script's context, so it cannot reproduce contextless (layer 2) reports |
 | `weather.weather_at_8001`                   | real MeteoSwiss, hourly forecasts                                                                                                                                                                |
 | `input_number.test_lux` / `sensor.test_lux` | TEST-ONLY controllable lux (`configuration.yaml`): the template sensor (`device_class: illuminance`) mirrors the input_number so brightness-method tests can force threshold crossings on demand. No `initial:` — it would reset the value on every restart and break restart tests |
 
@@ -191,6 +192,16 @@ Note the id and the entity_id differ: HA derives the entity_id from the **alias*
   the token's `user_id` with no `parent_id`, so `smarli_cover_command_check` suspends the covers
   (correct per "Who counts as a person"). Drive the resolver through an event-triggered stub
   automation instead; the stubs accept `ts` and `transition` overrides in the event data.
+- **A template cover shows the position it was commanded to.** `async_set_cover_position` stores
+  the commanded position unconditionally, and the cover shows it at its next state write until
+  the position template's *result* changes. In a tilt-first move that write is the first tilt
+  report, so `cover.silent` claimed "at target" for the whole tilt phase and the old settle loop
+  passed a test it should have failed. Its position template therefore adds `tilt / 100000`: the
+  result changes on every tilt report and the real position wins. Re-rendering alone is not
+  enough — an unchanged result never reaches the cover.
+- **The history API drops attribute-only changes of covers**, even with
+  `significant_changes_only=false`. To see a cover's position over time, sample
+  `/api/states/<cover>` live instead.
 - **`check_config` does not catch runtime Jinja errors.** Debug templates live instead:
   ```powershell
   Invoke-RestMethod -Uri "$HA_BASE/api/template" -Method Post -Headers (HA-Headers) -Body (@{template='{{ ... }}'} | ConvertTo-Json -Compress) -ContentType "application/json"
@@ -289,6 +300,7 @@ until the PC wakes.
 | `test-fingerprint.ps1`                                        | 3.1.2 settings fingerprint: `fp1:` format; a schedule edit re-publishes and commands; a non-schedule edit does not; a legacy or `fp0:` intent does not re-publish; an `fp1:` mismatch re-publishes exactly once                                    |
 | `test-time-earliest.ps1`                                      | time method with earliest close / earliest open: nothing at T, move at the earliest time; repeated runs without clearing the tracker; covers moved by hand before the run                                                                        |
 | `test-transition-flag.ps1`                                    | resolver `transition` flag: forces a won cover with a stale `::resolved`; not for custom triggers; not for a cover another owner's newer target wins; not for a suspended cover; assumed-state and in-place covers re-commanded without suspension |
+| `test-silent-covers.ps1`                                      | covers without `opening`/`closing` (`cover.silent`): an automated move finishes without suspension for normal, tilt-first, jump-type, slow-start and overshoot reports and with an attribute changing every second; a stop mid-travel suspends; a wall-switch tap away from the end stop inside the quiet window suspends (end-stop rule), after it the mover leaves it to layer 2. `cover.silent` is deliberately not watched by `manual_check`, so every suspension comes from the settle loop |
 | `test-custom-triggers.ps1`                                    | 3.1.2 custom triggers: a custom close/open moves against the schedule and holds through heartbeats and a restart; the next scheduled change takes over; a suspended cover is not commanded and the cancelled command is not executed later |
 
 The Phase 1 scripts (`test-part1*.ps1`, `racetest.ps1`, `verify-assumptions.ps1`) were lost with

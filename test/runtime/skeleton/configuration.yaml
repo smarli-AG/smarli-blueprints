@@ -23,6 +23,89 @@ input_number:
     max: 100000
     step: 1
     mode: box
+  silent_pos:
+    name: silent_pos
+    min: 0
+    max: 100
+    step: 1
+    mode: box
+  silent_tilt:
+    name: silent_tilt
+    min: 0
+    max: 100
+    step: 1
+    mode: box
+  # Drives cover.silent's icon: a test bumps it to simulate an extra attribute that keeps changing.
+  silent_churn:
+    name: silent_churn
+    min: 0
+    max: 1000000
+    step: 1
+    mode: box
+
+# cover.silent's motor behaviour (script.silent_motor), set by test-silent-covers.ps1
+input_select:
+  silent_mode:
+    name: silent_mode
+    options: [normal, tiltfirst, jump, slowstart, overshoot]
+
+# Simulated motor for cover.silent, shaped after a measured Zigbee S-ZB-COV1 (Z2M): position
+# reports every ~1 s, a 3.5 s gap before the first one and a 2.3 s gap inside the travel; never
+# opening/closing. tiltfirst: 8 s of tilt-only reports first (venetian blind). jump: position
+# jumps to the target at once, then silence while the "motor" runs. slowstart: first report after
+# 7 s. overshoot: travels 3 % past the target, then back to it 1 s later.
+# Stopping the script (stop_cover, or script.turn_off) leaves the cover where it is.
+script:
+  silent_motor:
+    mode: restart
+    fields:
+      target:
+        selector:
+          number:
+            min: 0
+            max: 100
+    sequence:
+      - variables:
+          mode: "{{ states('input_select.silent_mode') }}"
+          tgt: "{{ target | int }}"
+          start: "{{ states('input_number.silent_pos') | int }}"
+      - delay:
+          milliseconds: "{{ 7000 if mode == 'slowstart' else 3500 }}"
+      - if: "{{ mode == 'tiltfirst' }}"
+        then:
+          - repeat:
+              count: 8
+              sequence:
+                - action: input_number.set_value
+                  target: { entity_id: input_number.silent_tilt }
+                  data: { value: "{{ repeat.index * 12 }}" }
+                - delay: { seconds: 1 }
+      - if: "{{ mode == 'jump' }}"
+        then:
+          - action: input_number.set_value
+            target: { entity_id: input_number.silent_pos }
+            data: { value: "{{ tgt }}" }
+          - stop: jump done; the real motor would still be running, silently
+      - repeat:
+          while: "{{ states('input_number.silent_pos') | int != tgt }}"
+          sequence:
+            - variables:
+                pos: "{{ states('input_number.silent_pos') | int }}"
+                next: "{{ [pos + 10, tgt] | min if tgt > pos else [pos - 10, tgt] | max }}"
+            - action: input_number.set_value
+              target: { entity_id: input_number.silent_pos }
+              data: { value: "{{ next }}" }
+            - delay:
+                milliseconds: "{{ 2300 if repeat.index % 4 == 0 else 1000 }}"
+      - if: "{{ mode == 'overshoot' and 3 <= tgt <= 97 }}"
+        then:
+          - action: input_number.set_value
+            target: { entity_id: input_number.silent_pos }
+            data: { value: "{{ tgt - 3 if tgt < start else tgt + 3 }}" }
+          - delay: { seconds: 1 }
+          - action: input_number.set_value
+            target: { entity_id: input_number.silent_pos }
+            data: { value: "{{ tgt }}" }
 
 template:
   - sensor:
@@ -57,3 +140,40 @@ cover:
         set_cover_position:
           - event: test_assumed_cmd
             event_data: { cmd: set, position: "{{ position }}" }
+      # A cover that reports only position/tilt and a final open/closed, never opening/closing
+      # (like a Zigbee S-ZB-COV1 via Z2M). Its motor is script.silent_motor.
+      silent:
+        friendly_name: silent
+        device_class: shutter
+        # The template cover stores the position it is commanded to (async_set_cover_position sets
+        # _position unconditionally) and shows it at its next state write until the template RESULT
+        # changes — in a tilt-first move that write is the first tilt report, so the cover would
+        # claim "at target" for the whole tilt phase. The tiny tilt term changes the result on every
+        # tilt report, so the real position wins again; the error is far below the 5 % tolerance.
+        # Subtracted in the upper half: above 100 the template cover rejects the value (unknown).
+        position_template: >-
+          {% set p = states('input_number.silent_pos') | float(0) %}
+          {% set t = states('input_number.silent_tilt') | float(0) / 100000 %}
+          {{ p - t if p > 50 else p + t }}
+        tilt_template: "{{ states('input_number.silent_tilt') | int(0) }}"
+        value_template: "{{ 'closed' if states('input_number.silent_pos') | int(0) == 0 else 'open' }}"
+        icon_template: "mdi:numeric-{{ states('input_number.silent_churn') | int(0) % 10 }}"
+        set_cover_position:
+          - action: script.turn_on
+            target: { entity_id: script.silent_motor }
+            data: { variables: { target: "{{ position }}" } }
+        open_cover:
+          - action: script.turn_on
+            target: { entity_id: script.silent_motor }
+            data: { variables: { target: 100 } }
+        close_cover:
+          - action: script.turn_on
+            target: { entity_id: script.silent_motor }
+            data: { variables: { target: 0 } }
+        stop_cover:
+          - action: script.turn_off
+            target: { entity_id: script.silent_motor }
+        set_cover_tilt_position:
+          - action: input_number.set_value
+            target: { entity_id: input_number.silent_tilt }
+            data: { value: "{{ tilt }}" }
