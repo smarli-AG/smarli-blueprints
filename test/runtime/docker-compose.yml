@@ -1,0 +1,19 @@
+# Disposable Home Assistant for runtime tests. Start it with bootstrap.ps1, not directly: the
+# first boot needs onboarding, a token and a second boot (docs/test-environment.md).
+#
+# The blueprints and the packages are MOUNTED from their checkouts, read-only, so the instance
+# always runs what is checked out — never a stale copy. Package edits still need a restart or the
+# matching YAML reload; blueprint edits need an automation reload.
+services:
+  ha:
+    container_name: ${HA_CONTAINER:-smarli-ha-test}
+    image: ghcr.io/home-assistant/home-assistant:${HA_VERSION:-2025.4}
+    volumes:
+      - ./.state/config:/config
+      - ../../automation:/config/blueprints/automation/smarli:ro
+      - ${HA_PACKAGES_DIR:-../../../ha-packages/packages}:/config/packages:ro
+    ports:
+      - "${HA_PORT:-8123}:8123"
+    environment:
+      - TZ=Europe/Zurich
+    restart: "no"

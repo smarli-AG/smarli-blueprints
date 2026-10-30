@@ -1,6 +1,7 @@
 # smarli. Blueprints — Runtime testing plan
 
-**Status:** plan only, nothing built yet. Written 2026-10-14.
+**Status:** written 2026-10-14. Step 1 done on 2026-10-29 (`test/runtime/`, see
+[test-environment.md](test-environment.md)); steps 2–5 open.
 **Tracking issue:** [#9](https://github.com/smarli-AG/smarli-blueprints/issues/9).
 
 This document records how runtime tests in a Docker Home Assistant instance should become part of
@@ -82,6 +83,12 @@ finding 3. Build this only if a blueprint breaks on an HA upgrade.
 ## Plan
 
 ### Step 1 — Move the environment into this repo
+
+**Done 2026-10-29.** Built as planned, with two decisions: the custom components are downloaded
+at pinned refs by `bootstrap.ps1` instead of vendored (hass-virtual is GPL-3.0), and the runtime
+state lives in the git-ignored `test/runtime/.state/`. The `REFS` line in `results.log` records
+the branch and commit of both repos per run and flags uncommitted changes; it warns rather than
+blocks. The original plan follows.
 
 Put the environment under `test/runtime/` in this repo, so it is versioned and can be rebuilt on
 any machine.
