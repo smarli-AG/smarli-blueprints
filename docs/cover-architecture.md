@@ -124,9 +124,41 @@ value:
 
 Handler rule for ambiguous changes on cover C: **any** unexpired `<C>::moving_*` marker → a smarli. automation is moving C → ignore. None → wall switch → suspend C (duration resolved centrally — see `script.smarli_cover_suspend`, below).
 
-**Layer 3 — per-cover settle loop (catches mid-move intervention).** After commanding, `smarli_cover_move` polls (~2 s) and classifies each cover still listed in its own run's marker: still `opening`/`closing` → leave it (exempt while genuinely moving); a newer run's marker for the same cover has since appeared (`superseded`) → drop it, **do not suspend** — another smarli. run is now driving it, that is not an intervention; stopped at its own target **or** at the current `<cover>::resolved` (the system may have moved on to a different target mid-flight) → **drop it from the marker** (finished cleanly, or correctly overtaken); stopped anywhere else → **drop it and suspend it** (mid-move intervention). The marker is removed per cover as each settles — not held until the slowest sibling finishes. The loop is bounded by `settle_timeout` (a backstop for stuck covers, sized above the slowest cover's travel); if it fires with covers still moving, the marker is left to expire via its refreshed `until` rather than false-suspending them. (This is "Option B" — chosen over a single whole-marker settle wait because the release is per-cover, which matters for instances mixing fast and slow covers; implemented once in the shared script so every cover blueprint inherits it.)
+**Layer 3 — per-cover settle loop (catches mid-move intervention).** After commanding, `smarli_cover_move` polls (~2 s) and classifies each cover still listed in its own run's marker: still `opening`/`closing`, or changed less than `stable_seconds` ago (see "Covers that never report opening/closing" below) → leave it (exempt while genuinely moving); a newer run's marker for the same cover has since appeared (`superseded`) → drop it, **do not suspend** — another smarli. run is now driving it, that is not an intervention; stopped at its own target **or** at the current `<cover>::resolved` (the system may have moved on to a different target mid-flight) → **drop it from the marker** (finished cleanly, or correctly overtaken); stopped anywhere else → **drop it and suspend it** (mid-move intervention). The marker is removed per cover as each settles — not held until the slowest sibling finishes. The loop is bounded by `settle_timeout` (a backstop for stuck covers, sized above the slowest cover's travel); if it fires with covers still moving, the marker is left to expire via its refreshed `until` rather than false-suspending them. (This is "Option B" — chosen over a single whole-marker settle wait because the release is per-cover, which matters for instances mixing fast and slow covers; implemented once in the shared script so every cover blueprint inherits it.)
 
 **Assumed-state covers skip layer 3.** A cover with `assumed_state: true` (one-way radio such as Somfy RTS via Overkiz) shows HA's guess, not its real state — observed in the field stuck at `opening` for days, through opens and closes. `smarli_cover_move` still writes its marker (layer 2), but leaves it out of the settle loop (`audited_covers`): auditing it would either poll until `settle_timeout` for nothing or false-suspend it on a wrong `open`/`closed`. The marker expires via `until`. For these covers, the state-based path (layers 1 and 2) also sees nothing — no state change happens. Only the command entry point of layer 1 (`smarli_cover_command_check`) detects a manual move, and only one sent through HA.
+
+**Covers that never report opening/closing: the quiet window (`stable_seconds`, decided 2026-10-30).** Zigbee S-ZB-COV1-R251 covers (via Z2M, no converter) report only position/tilt and a final `open`/`closed` — never `opening`/`closing`. Measured on an instance with 14 covers and 102 full moves: reports every 1.00 s (p50), worst gap 3.47 s at the start of a move, worst gap inside a move 2.31 s, the state flips to `closed` on the last position report. Venetian blinds move the tilt first for up to 8 s with the position unchanged. One cover jumps its position to the target within ~1 s and then stays silent for the ~50 s the motor runs. The loop used to judge these covers about 3 s after the command, mid-travel, and suspended them after every automated move (layer 3); and after that early release, the cover's own final `closed` report arrived with no marker, so layer 2 could read it as a wall-switch press as well.
+
+The rule (`smarli_cover_move`, `still_moving`): a cover counts as moving while it reports `opening`/`closing`, **or** while its **position or tilt** changed less than `stable_seconds` (default **5**) ago. The loop keeps its own memory per cover (`seen`: last position/tilt, when they last changed) and compares on every 2 s pass, so a tilt-first phase counts as moving and nothing else does — not `last_updated`, which also moves on any other attribute (an integration's extra attributes could otherwise keep an idle cover "moving" until `settle_timeout`, with no audit and layer 2 masked by the live marker). A cover that has not changed at all since the command gets **2 × `stable_seconds`** to start: the loop's first look is ~5 s after the command, and without this a late first report would leave the cover judged at its start position. Only after the window does the audit run: at target or at `<cover>::resolved` (± `position_tolerance`, 5 %) → released; anywhere else → suspended. Covers that report `opening`/`closing` behave as before, plus at most `stable_seconds` at the end; assumed-state covers still skip the audit.
+
+**End-stop rule.** A cover whose target is 0 or 100 and that reached it **exactly**, then moved away, is suspended at once (`left_end`). A cover cannot overshoot its end stop, so leaving it is a deliberate movement — typically a person tapping the wall switch to open the slats a little right after an automated close. Without the rule, 1–2 % would still count as "at target" (tolerance) while the marker keeps layer 2 out, and the same tap would be manual or not depending only on whether it came inside or after the quiet window. Mid-range targets keep the tolerance band, because a cover may overshoot and settle there (50 → 47 → 50 is not an intervention). A cover that never reports the end position exactly (stops at 1 or 99) is judged by the band as before. A run never applies the rule to a cover that a newer smarli. run took over at any point (sticky `s` in the memory): that run moved it off the end stop, and once it settles its marker is gone, so `superseded` alone would no longer show it — found in Docker when a custom close followed by a custom open suspended the cover ~14 s later. Data behind it: all 72 measured closes on the S-ZB-COV1 instance ended at 0 with the state flip on the last position report and nothing after it inside the window.
+
+**The memory needs HA ≥ 2025.4** (since then a `variables` step inside the loop updates a variable of the outer scope instead of shadowing it). The loop checks this itself: `pass_no` must equal `repeat.index`; if it does not, `memory_ok` is false and the loop falls back to `last_updated` for the window and skips the end-stop rule, rather than reading every cover as just changed and never releasing it.
+
+Why 5 s: the worst measured gap (3.47 s) plus one lost report (~1 s), rounded up.
+
+How manual interventions are still caught:
+
+| Situation | Who decides | Result |
+| --- | --- | --- |
+| Automated move, reports every ~1 s with gaps ≤ 3.5 s | quiet window, then audit at target | released, no suspension |
+| Tilt-first blind, 8 s tilt only | tilt changes count as movement | released, no suspension |
+| Overshoot at a mid target (50 → 47 → 50) | band audit after the window | released, no suspension |
+| Extra attribute changing every second while idle | only position and tilt count | released after the window, not held to 180 s |
+| Wall switch taps 0 → 2 % within the window after an automated close | end-stop rule | **suspended** at once (layer 3) |
+| Same tap after the window | marker gone; `closed` → `open` without context | **suspended** (layer 2) — the same verdict either way |
+| First report late (≤ 10 s) | start grace | released, no suspension |
+| Jump-type cover: target at once, then silent travel | audit at target after 5 s | released; a later stop with the wall switch reports a position with no marker → layer 2 suspends |
+| Wall switch stops the cover mid-travel | cover goes quiet → audit not at target / resolved | **suspended** (layer 3) |
+| Wall switch up within 5 s after the automated close ended | marker still live, so layer 2 stays out; the new travel keeps the loop waiting; end position ≠ target | **suspended** (layer 3) |
+| App / dashboard / voice | layer 1 (`user_id`), independent of the loop | **suspended** |
+| Command lost, cover never moves | audit after 10 s at the start position | suspended — a false one, as before, but it also exposes a real fault |
+| Person moves the cover to exactly smarli.'s target | indistinguishable | not detected — the accepted blind spot, outcome equals smarli.'s intent |
+
+**Limits:** a small move *inside* the tolerance band at a mid target (50 → 52 by hand within the window) is not detected — the price of the band. On HA < 2025.4 (memory fallback), an extra attribute that keeps changing while idle would hold the cover until `settle_timeout` (180 s); measured S-ZB-COV1 covers carry no such attribute (only position, tilt, device class, name, features; 0 changes in 2 min idle).
+
+Tested in Docker with `cover.silent` (`test-silent-covers.ps1`): a template cover with only position/tilt, a simulated motor with a 3.5 s start gap and 2.3 s inner gaps, tilt-first, jump-type, a 7 s first report, an overshoot at 50 %, and an icon attribute changing every second; every automated move finishes without a suspension, a stop mid-travel still suspends, and a tap away from the end stop inside the window suspends. The same test against the previous package fails the normal, tilt-first and slow-start cases. Not reproducible in Docker: contextless reports (the test cover's writes carry the script's context), so the layer-2 effect after the window rests on the R2 tests for `cover.vfast` and the reasoning above.
 
 Known residual blind spot (accepted): a manual move _during_ our movement _in the same direction to the same end position_ is indistinguishable — and irrelevant, since the outcome equals the automation's intent. Sure-fire press detection exists only at device level (KNX telegrams, button events) — expose via optional custom triggers, not core mechanism.
 
@@ -203,7 +235,7 @@ Known limitations (documented in the blueprint): manual detection is unreliable 
 **While a simulation runs, smarli. leaves its covers alone; when it stops, they return to what smarli. wants now (decision 2026-10-28).** Three parts, all in `smarli_cover.yaml`:
 
 1. **Hold.** `sensor.smarli_cover_presence_simulation` lists the covers held: those in the `current_entities` attribute of every `presence_simulation` switch that is `on` (state = count, attribute `covers`). The resolver records these covers in `<cover>::resolved` but does not command them. So `::resolved` always holds what smarli. wants _now_ — day-night transitions during the hold included.
-2. **No suspension from replays.** The simulation replays as its own system user, which no person is linked to. On a held cover, a command or state change from a user **without a person** creates no suspension (command check and `manual_check`). A person's hand move during the simulation, or a wall switch (no user, layer 2), still suspends.
+2. **No suspension from replays.** The simulation replays as its own system user, which no person is linked to. On a held cover, a command or state change from a user **without a person** creates no suspension (command check and `manual_check`). A person's hand move during the simulation, or a wall switch (no user, layer 2), still suspends. **The settle loop (layer 3) also stops judging a held cover** (added 2026-10-30): a move the resolver started just before the hold began is still being audited, and a replay moving the cover would otherwise read as an intervention — a suspension nobody caused, which would also block the release. The loop releases a held cover's marker at once, so layer 1 and 2 apply normally again. Tested in Docker by writing the sensor's attribute (`test-silent-covers.ps1`, `simhold`).
 3. **Release.** `automation smarli_cover_simulation_release` triggers when covers leave the sensor's list (the simulation stops, or its entity list shrinks). It moves each released cover that a live intent names to its `<cover>::resolved`, through `smarli_cover_move` directly — the resolver would not command it, because its decision did not change. The move script still skips suspended covers, so a person's hand move during the simulation wins over the release.
 
 Example: day-night closes at 21:00 while the simulation holds the cover (`::resolved` = 0). You come home at 22:30 and turn the simulation off. The cover closes at once — unless you moved it by hand during the last suspension window.
@@ -223,6 +255,38 @@ The sensor expands `current_entities` itself. After an HA restart during a runni
 | before v5.0 | no | only on covers with feedback (layer 2); covers without feedback (Somfy RTS): not at all |
 
 So on an older system day-night still interferes with the simulation. Upgrade Presence Simulation to v7.1 or later when retrofitting or upgrading a system that uses it.
+
+## Open observations (not acted on yet)
+
+Findings worth tackling later. Each says what was seen, why it matters, and the fix considered.
+
+- **Scenes do not always suspend the covers they move (noted 2026-10-30).** Scenes are always
+  triggered by a person, so a cover a scene moves should always be suspended. The Grundinstanz
+  script `script.execute_cover_actions_from_scenes` (called by every scene script) moves covers
+  with `cover.set_cover_position` directly — past the resolver, so without a marker and without
+  updating `<cover>::resolved`. Whether smarli. then suspends depends on how the scene started:
+  - A person directly (dashboard, app, voice): the command carries their `user_id` →
+    `smarli_cover_command_check` (layer 1) suspends. ✓
+  - A button through a smarli. scene blueprint (automation → scene script → this script): the
+    command carries a `parent_id` and no `user_id`, so layer 1 treats it as an automation. Only
+    layer 2 can catch it, and layer 2 runs only on a **state** change (the blueprints' state
+    trigger uses `not_from`/`not_to`, which ignores attribute-only changes). So 30 % → 0 %
+    (`open` → `closed`) suspends, but 30 % → 10 % (stays `open`) does not, and a later smarli.
+    transition or a shade bound can move the cover against the person's choice. ✗
+
+  Considered fix: one step in `execute_cover_actions_from_scenes`, before `set_cover_position`,
+  that calls `script.smarli_cover_suspend` for `cover_entity` (`continue_on_error: true`, so an
+  instance without the smarli. packages does not fail). It covers every start path the same way
+  and also covers the script's later tilt step. Open: where the Grundinstanz scripts are
+  maintained — the script is in neither this repo nor `ha-packages`.
+
+  Related: the script's tilt step (`script.cover_tilt_up` / `cover_tilt_down`, ~2 s after the
+  cover reached 90 % of its move, for every `shutter`/`blind` device class) may be a source of
+  the lone `closed` → `open` 0 → 1 % reports measured 9–22 s after a close on S-ZB-COV1 covers.
+  Not verified: the source of the tilt scripts was not reviewed, and on the measured instance
+  (no smarli. packages) the logbook showed no script runs, so the nudges there came from a wall
+  switch or from Z2M directly. smarli. treats such a nudge as manual (layer 2), which is correct
+  if a person caused it.
 
 ## Requirements for future cover families
 
@@ -244,4 +308,6 @@ So on an older system day-night still interferes with the simulation. Upgrade Pr
 - **Keeping the old fingerprint lists to verify an older-version fingerprint** — every list would have to live in the blueprint forever. Accepting another version as matching costs only an edit missed until the next transition.
 - **A custom trigger that publishes its target and lets the heartbeat compare against it** — the heartbeat sees "schedule says open, last sent closed" and reopens within a minute. The separate `phase` record is what lets a custom position hold.
 - **Custom triggers that override a suspension** — a pause after a manual move protects the person's choice; a custom trigger is not more deliberate than the person standing at the switch.
+- **A power-based "still moving" rule for silent covers** (cover counts as moving while its power sensor draws current) — power reports only about every 10 s, so the rule needs a ~70 s limit, and it adds nothing on a cover that is silent anyway. The quiet window on `last_updated` covers the measured cases without a second entity.
+- **A 4 s or 6 s quiet window** — 4 s leaves no room for a lost report after the worst measured 3.47 s gap; 6 s only lengthens the masked window after every move for no measured benefit. 5 s = worst gap + one lost report.
 - **A resolver heartbeat automation** — the one case it could repair (an orphaned bound whose contributor is gone) has no remaining target to command anyway, so it buys nothing for a per-minute run and a visible system automation.
