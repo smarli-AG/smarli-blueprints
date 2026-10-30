@@ -86,6 +86,30 @@ if (Run "reopen") {
   $w = Watch-Silent 90
   T-Check "silent: a newer smarli. run moving the cover off the end stop does not suspend" ((-not $w.Susp) -and ($w.Pos -ge 95)) "susp=$($w.Susp) final=$($w.State)/$($w.Pos)"
 }
+if (Run "simhold") {
+  # A Presence Simulation hold begins while a smarli. move is still being audited, and a replay stops
+  # the cover halfway. The hold is set by writing the sensor's attribute (no Presence Simulation
+  # integration in this rig; nothing re-renders the sensor here, so the write stays until reset).
+  Write-Host "`n=== Presence Simulation hold begins during a smarli. move"
+  $sim = "sensor.smarli_cover_presence_simulation"
+  function Set-Held($covers) {
+    $body = @{ state = "$(@($covers).Count)"; attributes = @{ covers = @($covers); friendly_name = "smarli. Cover Presence Simulation" } } | ConvertTo-Json -Depth 4 -Compress
+    Invoke-RestMethod -Uri "$HA_BASE/api/states/$sim" -Method Post -Headers (HA-Headers) -Body $body -ContentType "application/json" | Out-Null
+  }
+  try {
+    Start-At 100; Mode "normal"
+    HA-StubDay @{ $c = 0 }
+    HA-Wait { (T-Pos $c) -le 70 } 30 1 | Out-Null
+    Set-Held @($c)
+    HA-Call "script" "turn_off" @{ entity_id = "script.silent_motor" }      # the "replay" stops it halfway
+    $released = HA-Wait { -not (@(HA-KeyNames "shared") -like "$c::moving_*") } 10 1
+    Start-Sleep 12
+    $susp = @(HA-KeyNames "shared") -contains "$c::suspension"
+    T-Check "silent: a cover the simulation holds is not judged by a move started before the hold" ((-not $susp) -and $released) "marker released within 10 s=$released; suspension=$susp; pos=$(T-Pos $c)"
+  } finally {
+    Set-Held @()
+  }
+}
 if (Run "tapafter") {
   $r = Tap-After-Close "wall-switch tap 0 -> 2 % after the mover released the cover" 10
   # The mover is done: the tap is layer 2's job in production (blueprint state trigger, closed -> open
