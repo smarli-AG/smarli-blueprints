@@ -9,6 +9,9 @@
 # ab wie viel kmh sollen storen im standard nicht mehr automatisch schliessen?
 
 # ! RELEASE NOTES
+## 3.1.3 | 2026-11-02
+## - Time method: when the retract time is not before the extend time (earliest and latest times included), a line in the logbook of this automation says so at every reload and start. With such settings the covers never retract, because extending wins whenever both are due.
+## - Needs the smarli. Cover package with the decision log to also see why a cover did not move (paused, held by Presence Simulation, unchanged) and who paused it
 ## 3.1.2 | 2026-10-29
 ## - Fix: after the schedule settings are edited, the covers are driven to the phase the new schedule calls for. Before, a stored "already commanded" position from the old settings could stop the new close or open time from acting.
 ## - Saving the automation with unchanged settings, and the update to this version itself, do not move any cover
@@ -71,7 +74,7 @@
 #   [br]
 #   ---
 #   [br]
-#   _Version 3.1.2_
+#   _Version 3.1.3_
 # long_description_de: |
 #   __Fahre Deine Storen automatisch ein und aus, basierend auf Sonnenstand, Uhrzeit oder Helligkeit.__
 #   [br]
@@ -94,7 +97,7 @@
 #   [br]
 #   ---
 #   [br]
-#   _Version 3.1.2_
+#   _Version 3.1.3_
 #
 # purpose_en: "Comfort"
 # purpose_de: "Komfort"
@@ -135,7 +138,7 @@ blueprint:
     If somebody operates a cover by hand, the automation leaves that cover alone
     for a set duration. All other covers keep working as usual.
 
-    *Version 3.1.2*
+    *Version 3.1.3*
 
     <details>
     <summary><b>How to set it up</b></summary>
@@ -208,6 +211,12 @@ blueprint:
         (otherwise only current conditions block extending).
       - Without a wind sensor, the wind speed comes from the weather entity. That
         is a forecast model, not a measurement on site.
+      - With the time method, the retract time must be before the extend time.
+        Extending wins whenever both are due. If the retract time is not
+        before the extend time, the covers never retract, and the logbook of this
+        automation says so at every reload.
+      - The logbook of each cover shows what smarli. did or skipped, and who
+        paused it. This needs the smarli. Cover package with the decision log.
 
     </details>
 
@@ -1653,6 +1662,24 @@ variables:
   # Only act when the schedule's decision actually changed.
   transition_needed: "{{ desired_position | int != last_scheduled | int }}"
 
+  # Time method only. Extending wins whenever both phases are due, so a retract
+  # time that is not before the extend time can never act: from then on the
+  # extend time has always passed too. Nothing else shows it (no error, the
+  # heartbeat finds no transition), so it is written to the logbook once per
+  # reload and start. The times are the effective ones: the first moment each
+  # phase is due, with earliest and latest applied as in schedule_wants_*.
+  # Empty text = fine.
+  order_warning: >
+    {% if daynight_cycle_method == 'time' %}
+      {% set o = as_timestamp(today_at(open_time)) %}
+      {% set c = as_timestamp(today_at(close_time)) %}
+      {% if should_use_earliest_open %}{% set o = [o, as_timestamp(today_at(earliest_open_time))] | max %}{% endif %}
+      {% if should_use_latest_open %}{% set o = [o, as_timestamp(today_at(latest_open_time))] | min %}{% endif %}
+      {% if should_use_earliest_close %}{% set c = [c, as_timestamp(today_at(earliest_close_time))] | max %}{% endif %}
+      {% if should_use_latest_close %}{% set c = [c, as_timestamp(today_at(latest_close_time))] | min %}{% endif %}
+      {% if o >= c %}Retract time {{ o | timestamp_custom('%H:%M') }} is not before extend time {{ c | timestamp_custom('%H:%M') }}: extending wins whenever both are due, so the covers never retract{% endif %}
+    {% endif %}
+
   # Every cover gets the same target in a run. (No `zip` filter in HA Jinja —
   # build the dicts with the same items()|list+[(k,v)] idiom used in smarli_core.)
   desired_targets: >
@@ -1734,7 +1761,8 @@ conditions:
   - condition: template
     value_template: >
       {{ trigger.id | default('') != 'heartbeat'
-         or transition_needed or stabilizer_needs_update }}
+         or transition_needed or stabilizer_needs_update
+         or (trigger.platform in ['event', 'homeassistant'] and order_warning | trim != '') }}
 
 ###########
 # Actions #
@@ -1761,6 +1789,17 @@ actions:
       ######
       # Heartbeat / custom triggers: bookkeeping, then act on transitions
       ######
+      - alias: Say in the logbook that the retract time is not before the extend time
+        if:
+          - condition: template
+            value_template: "{{ trigger.platform in ['event', 'homeassistant'] and order_warning | trim != '' }}"
+        then:
+          - action: logbook.log
+            data:
+              name: "smarli."
+              message: "{{ order_warning | trim }}"
+              entity_id: "{{ this.entity_id }}"
+
       - alias: Brightness stabilizer bookkeeping
         # Record when a threshold is first crossed / clear it when it's no longer
         # crossed. schedule_wants_* then requires the timestamp to be old enough.
