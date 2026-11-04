@@ -21,6 +21,10 @@ test/runtime/
   run-short.ps1          core suites, ~20 min
   run-long.ps1           schedule suites, ~35 min
   check-config.ps1       check_config on 2024.10 and 2025.4
+  load-test.ps1          many automations and covers on this rig (-Autos/-Covers), ~15 min; adds covers,
+                         restarts the container twice and restores both. Not in run-short/run-long.
+                         The real-hardware version is test/hub-load/ (Pi hub)
+  lib/trace-durations.mjs  run times from stored traces (RIG_TOKEN env, prefix as argument), used by load-test.ps1
   lib/ha.ps1             helpers (HA-Call, HA-Event, HA-State, HA-Tracker, HA-Apply, ...) — dot-source before use
   lib/lib-test.ps1       T-Check/T-Note (results log), cover helpers, logs the repo refs once per run
   lib/lib-test2.ps1      timeline sampling (Sample-Cover, Watch-Cover)

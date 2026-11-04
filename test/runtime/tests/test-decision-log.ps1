@@ -31,6 +31,17 @@ if ($Only.Count -eq 0 -or $Only -contains "pause") {
   T-Check "4d-1 one press gives one pause line, not one per detection path" ($n -eq 1) "pause lines: $n"
 }
 
+if ($Only.Count -eq 0 -or $Only -contains "wall") {
+  Write-Host "`n=== 4d-1b a contextless change (user_id null) still reaches the layer-2 check"
+  # A wall switch has no user; the blueprint passes that as null, and a null user_id once failed the variables step.
+  T-Prep; HA-ClearSuspensions
+  $t0 = Get-Date
+  HA-Call "script" "smarli_cover_manual_check" @{ entity_id = $c; user_id = $null; parent_id = ""; suspension_duration = "00:05:00" }
+  $m = Wait-Log $t0 $c "paused until *(moved by hand, not by an automation*"
+  T-Check "4d-1b null user_id: suspended and logged as a hand move" (($null -ne $m) -and ($null -ne (HA-Shared "$c::suspension"))) "line: $m"
+  HA-ClearSuspensions
+}
+
 if ($Only.Count -eq 0 -or $Only -contains "skip") {
   Write-Host "`n=== 4d-2 a move inside a pause is skipped and says so"
   if ($null -eq (HA-Shared "$c::suspension")) { HA-SetKey "shared" "$c::suspension" ((HA-Now) + 900) }
