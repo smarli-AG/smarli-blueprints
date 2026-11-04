@@ -317,6 +317,15 @@ Findings worth tackling later. Each says what was seen, why it matters, and the 
 - **A suspension blocks every smarli. command, safety included.** Since v5.0, each replayed move suspends the cover (layer 1 sees its system user). Protection therefore needs to override live suspensions — the `override_suspension` idea in the layer-3 section above, which so far no call site needed. The same applies to the Presence Simulation **hold** in the resolver (v7.1 or later): protection must override it too.
 - **Version matters.** Before v5.0 the simulation's commands carry no user; on covers without feedback (Somfy RTS) they are invisible to every layer. Protection cannot rely on detecting the replay.
 
+**Overriding a suspension: two requirements, design open (noted 2026-11-02).** Design `override_suspension` when the first protection blueprint needs it, not before. Both must hold:
+
+- **No fight between automation and person.** A protection that re-asserts its position on every run moves a cover back after each hand move, and each hand move suspends again: up, down, up, down. A person must be able to win after the protection has started.
+- **An old hand move must not block protection.** A cover moved a little 10 minutes ago must still retract when hail starts. A suspension from before the protection began must not stop it.
+
+Candidate that fits both, not built: the protection overrides a live suspension **once, on its own start transition** (the warning begins), and never on a repeat run. A suspension written after that start is respected as usual. This is the heartbeat pattern's "act on transitions only", applied to the override. Only protection automations may set the flag: on a shading or night-closure automation it would take the cover away from the person.
+
+Already possible without the flag: a protection automation can beat other automations' targets with a **bound** (e.g. `min: 100` while the warning lasts). The resolver clamps every target into the bounds, newer ones included. Not verified with a weather case.
+
 ## Decision log (cover-specific)
 
 - **Winner-takes-all priority for covers** — shade holding 20 (partial) vs. day-night wanting 0 (night): priority picks 20, leaving the cover _more open_ than the loser wanted. Priority cannot express "blocks opening, allows closing"; the target/bound split can.
