@@ -266,6 +266,25 @@ Consequences of S5 and S7:
 - **The resolver render (151–251 ms) is one block.** Splitting it into steps stays in the plan.
 - Open: the resolver trace showed 20 `::resolved` write steps for 30 or 40 covers. Not checked yet. It may be a limit of what the trace stores.
 
+### Found while building step 1 (2026-11-04)
+
+- **`this` is not defined in trigger variables.** S1 did not test it. The decision needs the
+  automation's own id (`this.attributes.id`) for its stored intent and brightness keys. So
+  the decision is split: everything without the id (settings, sun and time windows,
+  weather, fingerprint, about 300 lines) stays in the trigger variables; the part that needs
+  the id (brightness timestamps, own intent, last decision, desired position, transition,
+  intent payload) is at the top level, guarded by `decide_ready`, so a cover state change
+  renders only cheap placeholders. It reads single tracker keys, no longer a whole
+  namespace.
+- **The elected watcher can go stale.** `<cover>::watcher` is rewritten only when the
+  resolver runs. Deleting an intent, or changing an automation's covers, does not run it.
+  A stale watcher that is still on would leave the cover unwatched. So a watcher counts
+  only while it is on **and** its own intent still names the cover and watches it (one more
+  key read). Otherwise every automation goes on, as before.
+- **A custom trigger with the id `heartbeat`** (the rig's 5 s heartbeat) carries no
+  decision variables either. It takes the custom-trigger branch, which renders the decision
+  and applies the heartbeat gate there.
+
 Consequences of the local spikes:
 
 - **Section 2, settings in one place:** the settings resolution is an anchored block (`&settings`). The top-level `variables:` use it, so every trigger has the settings. The decision triggers merge it with the decision block (`<<: [*settings, *decide]`), because their variables render before the top level. The settings are then rendered twice on a decision run. That is cheap: the settings are a few lines, the decision is the 100 variables. The merge of a list of anchors is still to be checked when building.

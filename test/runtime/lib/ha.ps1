@@ -89,10 +89,11 @@ function HA-Move { param($targets, $run = "rig") HA-Event "test_mover_fire" @{ t
 function HA-StubDay   { param($targets, [int]$priority = 10, [int]$susp = 1800, $ts = $null, [bool]$transition = $false) $d = @{ targets = $targets; priority = $priority; susp = $susp; transition = $transition }; if ($null -ne $ts) { $d.ts = $ts }; HA-Event "test_stub_day" $d }
 function HA-StubShade { param($bounds, $targets = @{}, [int]$priority = 50, [int]$susp = 1800, $ts = $null) $d = @{ bounds = $bounds; targets = $targets; priority = $priority; susp = $susp }; if ($null -ne $ts) { $d.ts = $ts }; HA-Event "test_stub_shade" $d }
 
-# Remove every *::suspension and *::moving_* key (after bare cover.* calls, which taint context)
+# Remove every *::suspension, *::suspended_at and *::moving_* key (after bare cover.* calls, which taint context).
+# suspended_at too: a blueprint skips manual detection for 60 s after it, which would hide the next test's move.
 function HA-ClearSuspensions {
   foreach ($k in (HA-KeyNames "shared")) {
-    if ($k -like "*::suspension" -or $k -like "*::moving_*") { HA-DelKey "shared" $k }
+    if ($k -like "*::suspension" -or $k -like "*::suspended_at" -or $k -like "*::moving_*") { HA-DelKey "shared" $k }
   }
   Start-Sleep 1
 }
