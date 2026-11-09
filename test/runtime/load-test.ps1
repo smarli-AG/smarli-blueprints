@@ -25,7 +25,7 @@ function Restart-Rig {
 }
 # Peak of the scripts' `current` attribute (runs active or queued) while $seconds pass.
 function Watch-Runs([int]$seconds) {
-  $peak = @{ resolve = 0; manual_check = 0; suspend = 0 }
+  $peak = @{ resolve = 0; request = 0; manual_check = 0; suspend = 0 }
   $end = (Get-Date).AddSeconds($seconds)
   while ((Get-Date) -lt $end) {
     foreach ($k in @($peak.Keys)) {
@@ -50,7 +50,7 @@ function Tracker-Bytes {
 function Report($phase, $t0, $peak) {
   $lines = Smarli-Lines $t0
   $ex = Exceeded-Since $t0
-  Write-Host ("  peak runs: resolve {0} | manual_check {1} | suspend {2}   (limit 50)" -f $peak.resolve, $peak.manual_check, $peak.suspend)
+  Write-Host ("  peak runs: resolve {0} | request {3} | manual_check {1} | suspend {2}" -f $peak.resolve, $peak.manual_check, $peak.suspend, $peak.request)
   Write-Host ("  smarli. logbook lines: {0}  ({1})" -f $lines.Count, (($lines | Group-Object { ($_.message -split ' ')[0..1] -join ' ' } | ForEach-Object { "$($_.Name): $($_.Count)" }) -join ', '))
   Write-Host ("  'exceeded' warnings in the HA log: {0}" -f $ex.Count)
   $ex | Select-Object -First 3 | ForEach-Object { Write-Host "    $($_.Substring(0, [Math]::Min(200, $_.Length)))" }
@@ -129,6 +129,10 @@ $t0 = Get-Date
 $peak = Watch-Runs 45
 Report "phase" $t0 $peak
 node "$PSScriptRoot\lib\trace-durations.mjs" "script.smarli_cover_resolve" | ForEach-Object { Write-Host "  $_" }
+node "$PSScriptRoot\lib\trace-durations.mjs" "script.smarli_cover_request" | ForEach-Object { Write-Host "  $_" }
+Write-Host "  step times of the longest resolver run and the longest automation run:"
+node "$PSScriptRoot\lib\trace-steps.mjs" "script.smarli_cover_resolve" | ForEach-Object { Write-Host "  $_" }
+node "$PSScriptRoot\lib\trace-steps.mjs" "automation.load_" | ForEach-Object { Write-Host "  $_" }
 Start-Sleep 15
 $closed = @($coverIds | Where-Object { (HA-StateStr $_) -eq "closed" }).Count
 Write-Host "  covers closed: $closed / $Covers"

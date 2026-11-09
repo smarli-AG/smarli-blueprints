@@ -9,10 +9,11 @@
 # ab wie viel kmh sollen storen im standard nicht mehr automatisch schliessen?
 
 # ! RELEASE NOTES
-## 3.2.0 | 2026-11-04
+## 3.2.0 | 2026-11-09
 ## - Less load on the hub: a cover state change no longer computes the schedule. Only the heartbeat, a reload, a start and the custom triggers do.
 ## - Manual detection runs once per cover, not once per automation: one automation per cover is elected to check a hand move. A state change caused by an automation, the end of a smarli. move, and repeat changes within 60 s of a pause end the run early, with no logbook entry.
-## - Needs the smarli. Cover package from 2026-11-04 for the elected watcher and the 60 s rule. With an older package, every automation checks every change, as before.
+## - Covers are requested through the new script smarli_cover_request. When many automations change phase in the same minute, one resolver run decides for all of them.
+## - Needs the smarli. Cover package from 2026-11-09 (smarli_cover_request). With an older package, the covers do not move.
 ## 3.1.3 | 2026-11-02
 ## - Time method: when the retract time is not before the extend time (earliest and latest times included), a line in the logbook of this automation says so at every reload and start. With such settings the covers never retract, because extending wins whenever both are due.
 ## - Needs the smarli. Cover package with the decision log to also see why a cover did not move (paused, held by Presence Simulation, unchanged) and who paused it
@@ -187,7 +188,8 @@ blueprint:
       This blueprint requires the **smarli. Core** and **smarli. Cover**
       packages (included in the Grundinstanz):
       `sensor.smarli_automation_tracker` (Core),
-      `script.smarli_cover_manual_check` and `script.smarli_cover_resolve` (Cover).
+      `script.smarli_cover_manual_check` and `script.smarli_cover_request` (Cover,
+      from 2026-11-09).
       To retrofit an older instance, copy both `packages/smarli_core.yaml` and
       `packages/smarli_cover.yaml` from the `smarli-AG/ha-packages` repository
       into `config/packages/`.
@@ -1434,7 +1436,12 @@ variables: &instance
   # change. Without a recorded phase yet (-1), it records the schedule's current
   # view, for the same reason. `watches`: this automation has a state trigger
   # on its covers, so the resolver may elect it as their watcher (see
-  # Conditions).
+  # Conditions). `transition`: a heartbeat publishes only on a genuine phase
+  # change, so the resolver commands even a cover it believes is already there
+  # (a remote may have moved it unseen). A custom trigger can fire repeatedly,
+  # so it keeps the resolver's "only if changed". The flag rides in the intent,
+  # not in the call, so it also works when smarli_cover_request leaves the
+  # resolving to a run another automation started.
   intent_payload: >
     {% if decide_ready is not defined %}{}{% else %}
     {% set custom = trigger.id | default('') in ['custom_open', 'custom_close'] %}
@@ -1445,7 +1452,8 @@ variables: &instance
                    else (last_scheduled if last_scheduled | int >= 0 else desired_position) %}
     {{ {'targets': targets, 'bounds': {}, 'priority': 10,
         'ts': now_ts | float(0), 'suspension_duration': suspension_seconds | float(0),
-        'phase': phase | int, 'fingerprint': schedule_fingerprint, 'watches': true} }}
+        'phase': phase | int, 'fingerprint': schedule_fingerprint, 'watches': true,
+        'transition': trigger.id | default('') == 'heartbeat'} }}
     {% endif %}
 
 ############
@@ -1944,25 +1952,15 @@ actions:
               - alias: Custom opening conditions must pass
                 condition: and
                 conditions: !input custom_opening_conditions
-              - alias: Publish this instance's intent (the resolver arbitrates it against every other contributor)
-                event: smarli_tracker_set
-                event_data:
-                  namespace: shared
-                  key: "{{ instance_id }}::intent"
-                  value: "{{ intent_payload }}"
-              - alias: Resolve and move whatever changed
-                # Called blocking: resolution is milliseconds and never waits for
-                # travel (it fires the mover non-blocking), and blocking keeps the
-                # publish-then-resolve order deterministic.
-                action: script.smarli_cover_resolve
+              - alias: Publish this instance's intent and have it resolved against every other contributor
+                # One call: the request script publishes the intent and makes sure
+                # a resolver run reads it. Blocking, so the custom actions below run
+                # after the request. Forcing a genuine transition rides in the
+                # intent (`transition`, see intent_payload).
+                action: script.smarli_cover_request
                 data:
                   owner: "{{ instance_id }}"
                   intent: "{{ intent_payload }}"
-                  # A heartbeat run reaches here only on a genuine phase transition,
-                  # so the resolver commands even a cover it believes is already
-                  # there (a remote may have moved it unseen). A custom trigger can
-                  # fire repeatedly, so it keeps the resolver's "only if changed".
-                  transition: "{{ trigger.id | default('') == 'heartbeat' }}"
               - alias: Run custom opening actions
                 sequence: !input custom_opening_actions
           - &close_step
@@ -2023,25 +2021,15 @@ actions:
                           {{ ns.hit }}
                     then:
                       - stop: "Closing blocked by weather forecast"
-              - alias: Publish this instance's intent (the resolver arbitrates it against every other contributor)
-                event: smarli_tracker_set
-                event_data:
-                  namespace: shared
-                  key: "{{ instance_id }}::intent"
-                  value: "{{ intent_payload }}"
-              - alias: Resolve and move whatever changed
-                # Called blocking: resolution is milliseconds and never waits for
-                # travel (it fires the mover non-blocking), and blocking keeps the
-                # publish-then-resolve order deterministic.
-                action: script.smarli_cover_resolve
+              - alias: Publish this instance's intent and have it resolved against every other contributor
+                # One call: the request script publishes the intent and makes sure
+                # a resolver run reads it. Blocking, so the custom actions below run
+                # after the request. Forcing a genuine transition rides in the
+                # intent (`transition`, see intent_payload).
+                action: script.smarli_cover_request
                 data:
                   owner: "{{ instance_id }}"
                   intent: "{{ intent_payload }}"
-                  # A heartbeat run reaches here only on a genuine phase transition,
-                  # so the resolver commands even a cover it believes is already
-                  # there (a remote may have moved it unseen). A custom trigger can
-                  # fire repeatedly, so it keeps the resolver's "only if changed".
-                  transition: "{{ trigger.id | default('') == 'heartbeat' }}"
               - alias: Run custom closing actions
                 sequence: !input custom_closing_actions
     default:
