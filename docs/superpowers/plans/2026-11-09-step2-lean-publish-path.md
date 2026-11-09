@@ -50,6 +50,55 @@ and 6. Branches: `feat/cost-budget-architecture` in `ha-packages` and in `smarli
 - **The logbook does not count script runs.** It logs a script turning on, not every run of
   a parallel or queued script. The test counts `script_started` events instead.
 
+## Hub load test (2026-11-09, mogy-dev, Pi 4, quiet, 40 / 30, 1 repetition)
+
+`test/hub-load` from branch `claude/hub-load-test-de6f21`, run against ha-packages `b03cffa`
+and cover_DayNight 3.2.0 (`f20dfe1`). One repetition without the idle scenario: in the
+earlier run, the 3 repetitions gave the same peaks and stalls within about ±20 %. The busy
+run (`burn.mjs`) is left for the check before the merge.
+
+| Burst | Longest stall, before (3.1.3, 3 reps) | Step 2 | Peak runs, step 2 | Dropped |
+| --- | --- | --- | --- | --- |
+| reload | 2.1–3.5 s | 3.2 s (3.9 s in a stopped run) | resolver 2, request 40 | 0 |
+| phase | 4.7–5.3 s | 3.3 s | resolver 2, request 40 | 0 |
+| hand | 2.5–2.8 s | 1.0 s | manual_check 10, suspend 11 | 0 |
+
+All 30 covers closed in the phase burst, and all 30 paused in the hand burst.
+
+Where the phase burst spends its time (traces and ping timeline):
+
+- **Block 1, 0–3 s:** the 40 heartbeat runs and their 40 request runs. Step 2 did not make
+  this block smaller. The request wait (`wait_template`) is rendered again on every tracker
+  change, so 40 waiting runs cost about 40 × 40 renders. Not measured on its own.
+- **The resolver is cheap:** its decision render takes 190 ms, the rest of the run about
+  270 ms. The render is above the 100 ms line of the split decision, but small next to the
+  two blocks.
+- **The mover sends all 30 commands within about 0.3 s** after it starts (3.5 s).
+- **Block 2, 3.3–6.3 s: single tracker writes in one run.** The resolver's last loops and
+  the mover each fire one `smarli_tracker_set` per cover: watcher (up to 30), resolved (30),
+  applied (30, new in step 2, transition runs only) and the mover's moving marker (30).
+  These are about 115 writes. A script step does not yield, so HA processes all events of
+  a loop as one block. Each write renders and publishes the whole tracker (14 KB) again.
+  Isolated on the hub, with the test automations off:
+
+  | Test | Longest stall |
+  | --- | --- |
+  | Plain `cover.close_cover` for 30 covers | 0.03–0.3 s |
+  | `smarli_cover_move` for 30 covers, tracker 14 KB | 1.8–2.8 s (4 runs) |
+  | The same, tracker almost empty (0.1 KB) | 0.54 s |
+  | 30 tracker writes and a plain close at the same moment | 0.94 s |
+
+  The tracker size alone makes about 1.3 s of the mover's 1.9 s: about 45 ms more per
+  write at 14 KB than at 0 KB. The 130 state-change runs in this window are cheap
+  (median 6 ms). 30 writes sent as separate websocket messages showed only 0.56 s,
+  because HA answers pings between messages; inside one script step it cannot.
+  **Consequence:** step 3 (batch tracker events: one write per loop, not one per cover)
+  targets block 2 directly. About 115 writes become about 4. The `::applied` writes of
+  step 2 make block 2 larger until then.
+
+Before the merge, still open: a decision on block 1 (the request wait and the publish cost
+per automation) and the run with `burn.mjs`.
+
 ## Package (`ha-packages/packages/smarli_cover.yaml`)
 
 1. New script `smarli_cover_request` (fields `owner`, `intent`; `mode: parallel`,

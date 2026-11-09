@@ -100,6 +100,7 @@ For hidden/internal state in any blueprint, use the single central **trigger-bas
 
 - One attribute `data` holds everything, structured as `data[namespace][key] = value` (any JSON-serializable value: timestamps, numbers, lists, dicts).
 - Two event types, so the intent is explicit at every call site: `smarli_tracker_set` (payload `namespace`, `key`, `value`) **upserts** the key; `smarli_tracker_remove` (payload `namespace`, `key`) **deletes** it. (A dedicated remove event is used rather than overloading "set with missing value" — a reader must be able to see a delete for what it is.)
+- Batch forms of both: `smarli_tracker_set_many` (payload `namespace`, `items` = dict key → value) and `smarli_tracker_remove_many` (payload `namespace`, `keys` = list). **A run that writes more than one key uses them.** Every write renders and publishes the whole tracker, and a script step does not yield, so one write per key and cover piles up into one long block (on a Pi 4 at 14 KB, 115 single writes in one burst blocked HA for about 3 s). Needs `smarli_core.yaml` from 2026-11-09 — an older core ignores the batch events, so a package that sends them must roll out together with the core.
 - The attribute template reads `this.attributes.data`, switches on `trigger.event.event_type`, merges/removes only the addressed key, and re-emits the whole dict. A `set` with no `value` is a safe no-op (never stores `null`).
 
 **Atomicity model (critical):**
