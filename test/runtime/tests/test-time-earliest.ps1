@@ -8,8 +8,8 @@ $c = "cover.vfast"; $id = "cover_time_test"
 function Both($key1, $key2, $v) { @{ $key1 = $v; $key2 = $v } }
 
 function Sample {
-  $tr = HA-Tracker; $sh = $tr.shared; $cs = HA-State $c
-  $int = $sh.PSObject.Properties["$id::intent"].Value
+  $tr = HA-Tracker; $sh = $tr.cover; $cs = HA-State $c
+  $int = HA-Shared "$id::intent"
   [pscustomobject]@{
     Now = Get-Date; State = $cs.state; Pos = $cs.attributes.current_position
     Target = $(if ($int) { $int.targets.PSObject.Properties[$c].Value } else { $null })

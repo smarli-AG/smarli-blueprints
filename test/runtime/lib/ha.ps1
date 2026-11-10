@@ -41,7 +41,9 @@ function HA-Key {
   if ($null -eq $b) { return $null }
   $b.PSObject.Properties[$key].Value
 }
-function HA-Shared { param($key) HA-Key "shared" $key }
+# A cover-family key: the `cover` namespace (since 2026-11-10), else `shared` (stub contributors and
+# blueprints before cover_DayNight 3.2.0 still write their intents there).
+function HA-Shared { param($key) $v = HA-Key "cover" $key; if ($null -ne $v) { $v } else { HA-Key "shared" $key } }
 function HA-KeyNames { param($ns) $b = (HA-Tracker).$ns; if ($null -ne $b) { $b.PSObject.Properties | ForEach-Object { $_.Name } } }
 function HA-SetKey { param($ns, $key, $value) HA-Event "smarli_tracker_set" @{ namespace = $ns; key = $key; value = $value } }
 function HA-DelKey { param($ns, $key) HA-Event "smarli_tracker_remove" @{ namespace = $ns; key = $key } }
@@ -92,8 +94,8 @@ function HA-StubShade { param($bounds, $targets = @{}, [int]$priority = 50, [int
 # Remove every *::suspension, *::suspended_at and *::moving_* key (after bare cover.* calls, which taint context).
 # suspended_at too: a blueprint skips manual detection for 60 s after it, which would hide the next test's move.
 function HA-ClearSuspensions {
-  foreach ($k in (HA-KeyNames "shared")) {
-    if ($k -like "*::suspension" -or $k -like "*::suspended_at" -or $k -like "*::moving_*") { HA-DelKey "shared" $k }
+  foreach ($k in (HA-KeyNames "cover")) {
+    if ($k -like "*::suspension" -or $k -like "*::suspended_at" -or $k -like "*::moving_*") { HA-DelKey "cover" $k }
   }
   Start-Sleep 1
 }

@@ -64,7 +64,7 @@ if ($Only.Count -eq 0 -or $Only -contains "wall") {
 
 if ($Only.Count -eq 0 -or $Only -contains "skip") {
   Write-Host "`n=== 4d-2 a move inside a pause is skipped and says so"
-  if ($null -eq (HA-Shared "$c::suspension")) { HA-SetKey "shared" "$c::suspension" ((HA-Now) + 900) }
+  if ($null -eq (HA-Shared "$c::suspension")) { HA-SetKey "cover" "$c::suspension" ((HA-Now) + 900) }
   HA-StubDay @{ $c = 100 }; Start-Sleep 3
   $t0 = Get-Date
   HA-StubDay @{ $c = 0 } 10 1800 (HA-Now)

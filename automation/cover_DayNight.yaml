@@ -14,7 +14,8 @@
 ## - Manual detection runs once per cover, not once per automation: one automation per cover is elected to check a hand move. A state change caused by an automation, the end of a smarli. move, and repeat changes within 60 s of a pause end the run early, with no logbook entry.
 ## - Covers are requested through the new script smarli_cover_request. When many automations change phase in the same minute, one resolver run decides for all of them.
 ## - A publishing run is cheaper: the settings and the decision are three dicts (cfg, d, inst) instead of about 100 variables. Custom actions and conditions that read a decision variable must use the new name, e.g. inst.desired_position.
-## - Needs the smarli. Cover package from 2026-11-09 (smarli_cover_request). With an older package, the covers do not move.
+## - The cover state (intents, pauses, moving markers, watchers) lives in the tracker namespace `cover` instead of `shared`. An automation updated from 3.1.3 reads its old intent from `shared` until its first publish, so the update does not move covers.
+## - Needs the smarli. Cover package from 2026-11-10 (smarli_cover_request, cover namespace). With an older package, the covers do not move.
 ## 3.1.3 | 2026-11-02
 ## - Time method: when the retract time is not before the extend time (earliest and latest times included), a line in the logbook of this automation says so at every reload and start. With such settings the covers never retract, because extending wins whenever both are due.
 ## - Needs the smarli. Cover package with the decision log to also see why a cover did not move (paused, held by Presence Simulation, unchanged) and who paused it
@@ -190,7 +191,7 @@ blueprint:
       packages (included in the Grundinstanz):
       `sensor.smarli_automation_tracker` (Core),
       `script.smarli_cover_manual_check` and `script.smarli_cover_request` (Cover,
-      from 2026-11-09).
+      from 2026-11-10).
       To retrofit an older instance, copy both `packages/smarli_core.yaml` and
       `packages/smarli_cover.yaml` from the `smarli-AG/ha-packages` repository
       into `config/packages/`.
@@ -1397,7 +1398,10 @@ variables: &instance
     {% if cfg.should_use_latest_open and now_ts >= as_timestamp(today_at(d.latest_open_time)) %}{% set wants_open = true %}{% endif %}
     {% if cfg.should_use_earliest_close and now_ts < as_timestamp(today_at(d.earliest_close_time)) %}{% set wants_closed = false %}{% endif %}
     {% if cfg.should_use_latest_close and now_ts >= as_timestamp(today_at(d.latest_close_time)) %}{% set wants_closed = true %}{% endif %}
-    {% set my_intent = tracker.get('shared', {}).get(instance_id ~ '::intent', {}) %}
+    {# The own intent lives in `cover`; an automation updated from 3.1.3 still has
+       it in `shared` until its first publish, and must not read it as "never run". #}
+    {% set my_intent = tracker.get('cover', {}).get(instance_id ~ '::intent')
+                       or tracker.get('shared', {}).get(instance_id ~ '::intent', {}) %}
     {% set vals = my_intent.get('targets', {}).values() | list %}
     {% set phase = my_intent.get('phase', vals[0] if vals | count > 0 else none) %}
     {% set stored = my_intent.get('fingerprint', '') | string %}
@@ -1799,22 +1803,23 @@ conditions:
       {%- elif trigger.to_state is none or trigger.to_state.context.parent_id is not none -%}
         false
       {%- else -%}
-        {%- set shared = (state_attr('sensor.smarli_automation_tracker', 'data') or {}).get('shared', {}) -%}
+        {%- set data = state_attr('sensor.smarli_automation_tracker', 'data') or {} -%}
+        {%- set tracked = data.get('cover', {}) -%}
         {%- set c = trigger.entity_id -%}
         {%- set now_s = as_timestamp(now()) -%}
         {%- set ns = namespace(moving=false) -%}
         {%- if trigger.to_state.context.user_id is none -%}
-          {%- for key, m in shared.items() if key.startswith(c ~ '::moving_') -%}
+          {%- for key, m in tracked.items() if key.startswith(c ~ '::moving_') -%}
             {%- if (m.get('until', 0) | float(0)) > now_s -%}{%- set ns.moving = true -%}{%- endif -%}
           {%- endfor -%}
         {%- endif -%}
-        {%- set w = shared.get(c ~ '::watcher', '') | string -%}
+        {%- set w = tracked.get(c ~ '::watcher', '') | string -%}
         {%- set wid = (state_attr(w, 'id') | string) if w != '' else '' -%}
-        {%- set wi = shared.get(wid ~ '::intent', {}) if wid not in ['', 'None'] else {} -%}
+        {%- set wi = (tracked.get(wid ~ '::intent') or data.get('shared', {}).get(wid ~ '::intent', {})) if wid not in ['', 'None'] else {} -%}
         {%- set w_valid = w != '' and is_state(w, 'on') and wi.get('watches', true)
                           and (c in wi.get('targets', {}) or c in wi.get('bounds', {})) -%}
         {%- set elected = not w_valid or w == this.entity_id -%}
-        {%- set recent = now_s - (shared.get(c ~ '::suspended_at', 0) | float(0)) < 60 -%}
+        {%- set recent = now_s - (tracked.get(c ~ '::suspended_at', 0) | float(0)) < 60 -%}
         {{ not ns.moving and elected and not recent }}
       {%- endif -%}
 

@@ -53,7 +53,7 @@ HA-Apply -Time (Close-At $C3); Reload     # back to 00:30:00
 function Seed($fp, $target) {
   $v = @{ targets = @{ $c = $target }; bounds = @{}; priority = 10; ts = ((HA-Now) - 3600); suspension_duration = 1800.0 }
   if ($null -ne $fp) { $v.fingerprint = $fp }
-  HA-SetKey "shared" "$id::intent" $v; Start-Sleep 2
+  HA-SetKey "cover" "$id::intent" $v; Start-Sleep 2
   [double]$v.ts
 }
 # 4a-5: legacy intent without fingerprint, schedule wants 0 and intent says 0 -> NO reset

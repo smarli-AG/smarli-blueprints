@@ -55,7 +55,7 @@ $extra += (@("resolve", "request") | ForEach-Object { @"
 
 # Fire one test_req event; $plan: owner -> @{ targets = @{...}; transition = $bool }
 function Req($plan) { HA-Event "test_req" @{ plan = $plan } }
-function Pause-Ghosts { foreach ($g in $ghost.Values) { HA-SetKey "shared" "$g::suspension" ((HA-Now) + 3600) }; Start-Sleep 1 }
+function Pause-Ghosts { foreach ($g in $ghost.Values) { HA-SetKey "cover" "$g::suspension" ((HA-Now) + 3600) }; Start-Sleep 1 }
 # Calls of smarli_cover_<name> since $since, from the counter automation's traces. Polling the script's
 # `current` attribute misses a burst that is over within one poll.
 function Started($name, [datetimeoffset]$since) {
@@ -120,10 +120,10 @@ if ($Only.Count -eq 0 -or $Only -contains "force") {
 
   # A real cover with a stale decision: resolved 0, but opened by hand. The intent carries a transition and
   # was published with no resolver call of its own (a skipped caller); another owner's call resolves it.
-  T-Place $c 0; HA-DelKey "shared" "$c::applied"
-  HA-SetKey "shared" "$c::resolved" 0
+  T-Place $c 0; HA-DelKey "cover" "$c::applied"
+  HA-SetKey "cover" "$c::resolved" 0
   HA-HandMove $c 100; HA-ClearSuspensions
-  HA-SetKey "shared" "req_01::intent" @{ targets = @{ $c = 0 }; bounds = @{}; priority = 10; ts = (HA-Now); suspension_duration = 0; watches = $false; transition = $true }
+  HA-SetKey "cover" "req_01::intent" @{ targets = @{ $c = 0 }; bounds = @{}; priority = 10; ts = (HA-Now); suspension_duration = 0; watches = $false; transition = $true }
   Start-Sleep 1
   Req @{ "req_02" = @{ targets = @{ $ghost["req_02"] = 7 } } }
   $closed = HA-Wait { (T-Pos $c) -le 5 } 30 0.5
@@ -140,13 +140,13 @@ if ($Only.Count -eq 0 -or $Only -contains "force") {
   Req @{ "req_01" = @{ targets = @{ $c = 0 } } }
   Start-Sleep 8
   T-Check "5b-3 a publish without transition does not command an unchanged decision" ((T-Pos $c) -ge 95) "pos: $(T-Pos $c) | resolved: $(HA-Shared "$c::resolved")"
-  HA-DelKey "shared" "req_01::intent"; T-Settle $c 30; HA-ClearSuspensions
+  HA-DelKey "cover" "req_01::intent"; T-Settle $c 30; HA-ClearSuspensions
 }
 
 if ($Only.Count -eq 0 -or $Only -contains "old") {
   Write-Host "`n=== 5b-4 the resolver call field transition (blueprints before 3.2.0) still forces"
   T-Place $c 0
-  HA-SetKey "shared" "$c::resolved" 0
+  HA-SetKey "cover" "$c::resolved" 0
   HA-HandMove $c 100; HA-ClearSuspensions
   HA-StubDay @{ $c = 0 } -transition $true
   $closed = HA-Wait { (T-Pos $c) -le 5 } 30 0.5
@@ -154,6 +154,6 @@ if ($Only.Count -eq 0 -or $Only -contains "old") {
   HA-DelKey "shared" "stub_day::intent"; T-Settle $c 30; HA-ClearSuspensions
 }
 
-foreach ($o in $owners) { HA-DelKey "shared" "$o::intent" }
+foreach ($o in $owners) { HA-DelKey "cover" "$o::intent" }
 HA-Apply
 T-Prep

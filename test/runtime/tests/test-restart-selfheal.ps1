@@ -20,11 +20,11 @@ $sec = [int](HA-Template "{{ now().second }}"); if ($sec -gt 40 -or $sec -lt 3) 
 
 # (1) stale-but-consistent: current fingerprint, target 0, while the schedule wants 100
 $oldTs = (HA-Now) - 3600
-HA-SetKey "shared" "cover_time_test::intent" @{ targets = @{ $f = 0 }; bounds = @{}; priority = 10; ts = $oldTs; suspension_duration = 1800.0; fingerprint = $fp }
-HA-SetKey "shared" "$f::resolved" 0
+HA-SetKey "cover" "cover_time_test::intent" @{ targets = @{ $f = 0 }; bounds = @{}; priority = 10; ts = $oldTs; suspension_duration = 1800.0; fingerprint = $fp }
+HA-SetKey "cover" "$f::resolved" 0
 # (2) sentinel: no intent for the brightness instance, but a persisted dark_since older than the 20 s stabilizer
-HA-DelKey "shared" "cover_brightness_test::intent"
-HA-DelKey "shared" "$b::resolved"
+HA-DelKey "cover" "cover_brightness_test::intent"; HA-DelKey "shared" "cover_brightness_test::intent"
+HA-DelKey "cover" "$b::resolved"
 HA-SetKey "cover_day_night" "cover_brightness_test::dark_since" ((HA-Now) - 100)
 Start-Sleep 2
 $pre = "pre-restart: time intent target=$(T-Target 'cover_time_test' $f) ts=$([math]::Round($oldTs)) vfast=$(T-Cover $f); brightness intent=$(if ($null -eq (T-Intent 'cover_brightness_test')) {'none'} else {'present'}) vbright=$(T-Cover $b) lux=$(HA-StateStr 'sensor.test_lux')"
@@ -39,7 +39,7 @@ T-Settle $f 30; T-Settle $b 30
 $ti = T-Intent "cover_time_test"; $bi = T-Intent "cover_brightness_test"
 T-Check "restart: stale intent (target 0, current fp) re-published to the schedule's 100 and cover moved" (((T-Target "cover_time_test" $f) -eq 100) -and ($ti.ts -gt $oldTs) -and ((HA-Shared "$f::resolved") -eq 100) -and ((T-Pos $f) -ge 95)) "api up after ${tUp}s; intent target=$(T-Target 'cover_time_test' $f) ts+$([math]::Round($ti.ts - $oldTs))s resolved=$(HA-Shared "$f::resolved") vfast=$(T-Cover $f) | $pre"
 T-Check "restart: -1 sentinel (no intent + persisted dark_since) publishes the close and moves the cover" (($null -ne $bi) -and ((T-Target "cover_brightness_test" $b) -eq 0) -and ((T-Pos $b) -le 5)) "intent target=$(T-Target 'cover_brightness_test' $b) resolved=$(HA-Shared "$b::resolved") vbright=$(T-Cover $b) dark_since kept=$(HA-Key 'cover_day_night' 'cover_brightness_test::dark_since')"
-T-Check "restart: no false suspension from the heal moves" (-not (@(HA-KeyNames "shared") | ? { $_ -like "*::suspension" })) "keys=$((@(HA-KeyNames 'shared')) -join ',')"
+T-Check "restart: no false suspension from the heal moves" (-not (@(HA-KeyNames "cover") | ? { $_ -like "*::suspension" })) "keys=$((@(HA-KeyNames 'cover')) -join ',')"
 } finally {
   # leave instances off, lux back to 100, the fast heartbeat back in, the sun at home
   HA-Call "automation" "turn_off" @{ entity_id = @("automation.covers_day_night_time", "automation.covers_day_night_brightness") }

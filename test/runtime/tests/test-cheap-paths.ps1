@@ -96,7 +96,7 @@ if ($Only.Count -eq 0 -or $Only -contains "watcher") {
 if ($Only.Count -eq 0 -or $Only -contains "stale") {
   Write-Host "`n=== 5a-3b a stale watcher (on, but its intent no longer names the cover) is ignored"
   HA-ClearSuspensions; T-Place $c 100; HA-ClearSuspensions
-  HA-SetKey "shared" "$c::watcher" "automation.stub_day_target"; Start-Sleep 1
+  HA-SetKey "cover" "$c::watcher" "automation.stub_day_target"; Start-Sleep 1
   $t1 = [datetimeoffset]::Now
   HA-Call "cover" "close_cover" @{ entity_id = $c }
   Start-Sleep 3; HA-ClearSuspensions

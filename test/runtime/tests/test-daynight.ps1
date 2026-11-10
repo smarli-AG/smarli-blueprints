@@ -16,7 +16,7 @@ HA-Wait { (HA-Shared "cover.vfast::resolved") -eq 100 } 15 | Out-Null
 T-Settle "cover.vfast" 30
 T-Check "daynight: resolver commanded the cover (closed -> open)" (((HA-Shared "cover.vfast::resolved") -eq 100) -and ((T-Pos "cover.vfast") -ge 95)) "resolved=$(HA-Shared 'cover.vfast::resolved') cover=$(T-Cover 'cover.vfast')"
 $cdn = @(HA-KeyNames "cover_day_night")
-$sh = @(HA-KeyNames "shared")
+$sh = @(HA-KeyNames "cover")
 T-Check "daynight: no legacy per-instance record (last_commanded/last_position/automation_in_progress)" (-not (($cdn + $sh) | ? { $_ -match "last_commanded|last_position|automation_in_progress|suspensions$" })) "cover_day_night=$($cdn -join ',') shared=$($sh -join ',')"
 T-Check "daynight: no suspension from own move" (-not ($sh | ? { $_ -like "*::suspension" })) "shared=$($sh -join ',')"
 HA-Call "automation" "turn_off" @{ entity_id = "automation.covers_day_night_time" }

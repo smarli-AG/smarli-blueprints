@@ -50,6 +50,7 @@ All blueprint files live in one flat location, `automation/` — they are **not*
 ## General blueprint-engineering conventions
 
 - **Keep the number of variables in scope small.** HA walks every variable in scope at every step of a run (trace snapshot, scope lookups) and renders each variable on its own. On a Pi 4, 12 steps took 47 ms with 100 template variables, 32 ms with 100 constants, and 8 ms with 3 (2026-11-10). Group raw inputs in one dict (`cfg: {name: !input name, ...}`) and derived values in one template that returns a dict; keep as named variables only what conditions and steps read often. `cover_DayNight` 3.2.0 shows the shape (`cfg`, `d`, `inst`).
+- **Package scripts and automations: `max: 200` and `max_exceeded: warning`, one call for many entities.** A dropped run must show in the log, never vanish (`silent`); the limit is a safety net, not a throttle. A script that acts on many entities (suspend, move) takes a list and does one batch write and one service call per command, not one run per entity: on a Pi 4 a command to 40 covers was 40 queued runs (2026-11-10). A run that must see its own tracker write waits once, for the whole batch.
 - **Prefer a `device` selector/trigger over an `entity` selector/state trigger whenever an input targets specific hardware.** A `device` selector's filter can constrain by `manufacturer`, `model`, and `model_id` — precise enough to scope a blueprint to one exact product (e.g. `model_id: "S-ZB-1RE1-R251"` for the smarli. relay). An `entity` selector's filter is limited to `domain`/`device_class`/`integration` — it cannot distinguish one hardware model from another on the same integration, so a blueprint built for one product could silently match unrelated hardware. Resolve the device down to its entities in `trigger_variables` (`device_entities()`) when the automation still needs entity IDs, rather than asking the user to pick entities directly.
 
 ### Smarli. relay button-press pattern
@@ -112,9 +113,11 @@ For hidden/internal state in any blueprint, use the single central **trigger-bas
 
 **Namespaces:**
 
-- One namespace per blueprint family (e.g. `cover_day_night`) for family-specific state.
-- A dedicated **`shared`** namespace for state used by more than one blueprint (e.g. cover suspensions — a manual override must pause _every_ cover automation targeting that device).
-- Decision rule: read/written by more than one blueprint → `shared`; only one → the blueprint's own namespace.
+- One namespace per **family** for the state every blueprint of that family shares, owned by the family's package: **`cover`** for the cover family (intents, suspensions, moving markers, watchers, `::resolved`). A manual override must pause _every_ cover automation targeting that device, and every cover blueprint reads it there.
+- One namespace per **blueprint** for state only that blueprint reads (e.g. `cover_day_night` for the brightness timestamps).
+- **`shared`** only for state more than one family reads. Today nothing new; it still holds the intents of blueprints before cover_DayNight 3.2.0, which the cover resolver reads too (until 2026-11-10 all cover state lived in `shared`; `smarli_cover_namespace_migration` moves the old per-cover keys).
+- Decision rule: read by more than one family → `shared`; by more than one blueprint of one family → the family namespace; only one blueprint → its own namespace.
+- **Moving state between namespaces:** the package must stay compatible with blueprints already in the field, because packages roll out before technicians re-import blueprints. Readers look in both places until a migration has run, writers of the old version keep working, and a migration never overwrites a newer key. See the cover namespace migration (`smarli_cover.yaml`) for the pattern.
 - **Key grammar:** every tracker key is `<owner>::<name>`, owner being an automation id, an `entity_id`, or the literal `global`. This is what lets `script.smarli_tracker_gc` in `smarli_core.yaml` collect keys whose owner no longer exists without knowing any family's key names — automation ids are regenerated on every create, so delete-and-recreate would otherwise leak a key per cycle. The GC ships as two entities: the script is `script.smarli_tracker_gc`, while the automation that triggers it carries config-level `id: smarli_tracker_gc` but slugifies to `automation.smarli_tracker_garbage_collection` — don't assume the two names match.
 
 **Rules:**

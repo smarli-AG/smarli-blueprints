@@ -95,10 +95,10 @@ $since = [datetimeoffset]::Now.AddSeconds(-1)
 HA-StubDay $targets
 $done = HA-Wait { @($covers | Where-Object { [int](HA-Shared "$_::resolved") -ne $targets[$_] }).Count -eq 0 } 20 0.5
 foreach ($c in $covers) { T-Settle $c 60 }
-HA-Wait { @(HA-KeyNames "shared" | Where-Object { $_ -like "*::moving_*" }).Count -eq 0 } 30 1 | Out-Null
+HA-Wait { @(HA-KeyNames "cover" | Where-Object { $_ -like "*::moving_*" }).Count -eq 0 } 30 1 | Out-Null
 Start-Sleep 3
 $n = Writes $since
-$left = @(HA-KeyNames "shared" | Where-Object { $_ -like "*::moving_*" })
+$left = @(HA-KeyNames "cover" | Where-Object { $_ -like "*::moving_*" })
 $pos = ($covers | ForEach-Object { "$($_.Substring(6))=$(T-Pos $_)" }) -join ' '
 T-Check "6-4 every cover is resolved and reaches its target" ($done -and @($covers | Where-Object { [math]::Abs((T-Pos $_) - $targets[$_]) -gt 5 }).Count -eq 0) "targets: $(($targets.GetEnumerator() | ForEach-Object { "$($_.Name.Substring(6))=$($_.Value)" }) -join ' ') | pos: $pos"
 T-Check "6-4 every moving marker is released" ($left.Count -eq 0) "left: $($left -join ',')"
