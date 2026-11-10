@@ -52,12 +52,12 @@ if ($Only.Count -eq 0 -or $Only -contains "lean") {
   Write-Host "`n=== 5a-1 a cover state change carries no decision variables"
   $reload = Runs "cover_time_test" $tReload | Where-Object { $_.trigger -like "*automation_reloaded*" } | Select-Object -First 1
   $rv = if ($reload) { Vars "cover_time_test" $reload } else { @() }
-  T-Check "5a-1 the reload run has the decision (todays_sunrise)" ($rv -contains "todays_sunrise") "vars: $($rv.Count)"
+  T-Check "5a-1 the reload run has the decision (d)" ($rv -contains "d") "vars: $($rv.Count)"
   $t0 = [datetimeoffset]::Now
   HA-Move @{ $c = 60 } "lean"; Start-Sleep 4
   $sr = StateRun "cover_time_test" $t0
   $sv = if ($sr) { Vars "cover_time_test" $sr } else { @() }
-  T-Check "5a-1 a state-change run has no decision (no todays_sunrise)" ($null -ne $sr -and $sv -notcontains "todays_sunrise") "run: $($sr.trigger) -> $($sr.script_execution) | vars: $($sv.Count)"
+  T-Check "5a-1 a state-change run has no decision (no d)" ($null -ne $sr -and $sv -notcontains "d") "run: $($sr.trigger) -> $($sr.script_execution) | vars: $($sv.Count)"
   T-Check "5a-1 a state change caused by smarli. ends in conditions" ($sr.script_execution -eq "failed_conditions") "execution: $($sr.script_execution)"
   T-Settle $c 30; HA-ClearSuspensions
 }

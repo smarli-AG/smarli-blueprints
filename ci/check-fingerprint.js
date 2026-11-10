@@ -47,7 +47,9 @@ function extract(text) {
     const m = l.match(/^\s+(\w+): !input (\w+)\s*$/);
     if (m) source[m[1]] = m[2];
   }
-  const listed = [...block.join(' ').matchAll(/'\w+':\s*([a-z_]\w*)/g)].map((m) => m[1]);
+  // A hashed value is a bare variable (`x`) or a key of the inputs dict
+  // (`cfg.x`, cover_DayNight 3.2.0); `x` is then the name in `source`.
+  const listed = [...block.join(' ').matchAll(/'\w+':\s*(?:cfg\.)?([a-z_]\w*)/g)].map((m) => m[1]);
 
   // The `default:` of every input, as text: the line plus any deeper lines.
   const defaults = {};

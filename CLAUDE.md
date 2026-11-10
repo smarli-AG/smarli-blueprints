@@ -49,6 +49,7 @@ All blueprint files live in one flat location, `automation/` — they are **not*
 
 ## General blueprint-engineering conventions
 
+- **Keep the number of variables in scope small.** HA walks every variable in scope at every step of a run (trace snapshot, scope lookups) and renders each variable on its own. On a Pi 4, 12 steps took 47 ms with 100 template variables, 32 ms with 100 constants, and 8 ms with 3 (2026-11-10). Group raw inputs in one dict (`cfg: {name: !input name, ...}`) and derived values in one template that returns a dict; keep as named variables only what conditions and steps read often. `cover_DayNight` 3.2.0 shows the shape (`cfg`, `d`, `inst`).
 - **Prefer a `device` selector/trigger over an `entity` selector/state trigger whenever an input targets specific hardware.** A `device` selector's filter can constrain by `manufacturer`, `model`, and `model_id` — precise enough to scope a blueprint to one exact product (e.g. `model_id: "S-ZB-1RE1-R251"` for the smarli. relay). An `entity` selector's filter is limited to `domain`/`device_class`/`integration` — it cannot distinguish one hardware model from another on the same integration, so a blueprint built for one product could silently match unrelated hardware. Resolve the device down to its entities in `trigger_variables` (`device_entities()`) when the automation still needs entity IDs, rather than asking the user to pick entities directly.
 
 ### Smarli. relay button-press pattern

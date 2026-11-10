@@ -106,3 +106,36 @@ before); 60 / 40 phase burst, last cover at 6.2 s (step 3: 8.5 s), longest stall
 reload stall unchanged at about 4.3 s. Core suites: 117 PASS.
 
 The suspend script still waits per call for its own write; the hand test can show the same pattern.
+
+## Cheaper publish run: three dicts instead of about 100 variables (2026-11-10)
+
+Hub spike: 12 `if` steps took 47 ms with 100 template variables, 32 ms with 100 constants, and 8 ms
+with 3. HA walks every variable in scope at every step (trace snapshot, scope lookups). The publish
+run of `cover_DayNight` had about 100 variables in scope.
+
+Change: `cfg` (raw inputs), `d` (every derived value, one template), `inst` (instance part). Steps read
+`d.*` / `inst.*`. The fingerprint hashes the same values; its prefix is now `fp2:`, and a stored `fp1:`
+is accepted as matching (checked on the hub: same hash `84c7…`, no re-publish on reload).
+`ci/check-fingerprint.js` now reads `cfg.<name>` as the input `<name>`, so a changed default of a
+hashed input is still caught (checked with a changed `time_open_workday` default).
+
+Single publish run on the hub: steps before the request call 7–8 ms (before: about 20 ms). Reload
+with 60 first publishes: longest stall 2.9–3.2 s (fence: 4.5–5.6 s; before the fence 5.7–7.1 s).
+
+Hub matrix (one repetition):
+
+| Size, hub | Code | Idle stall | Phase: last cover moves | Phase stall | Reload stall |
+| --- | --- | --- | --- | --- | --- |
+| 40 / 30 quiet | step 3 | 264 ms | 4.5 s | 2.7 s | 2.8 s |
+| 40 / 30 quiet | fence | 265 ms | 4.9 s | 3.4 s | 2.8 s |
+| 40 / 30 quiet | dicts | 57 ms | 2.6 s | 1.3 s | 1.9 s |
+| 60 / 40 quiet | step 3 | 459 ms | 8.5 s | 4.7 s | 4.3 s |
+| 60 / 40 quiet | fence | 508 ms | 6.2 s | 3.8 s | 4.3 s |
+| 60 / 40 quiet | dicts | 82 ms | 5.4 s | 2.5 s | 4.1 s |
+| 60 / 40 busy | dicts | 72 ms | 4.9 s | 2.0 s | 2.7 s |
+
+Tests: short and long suites 159 PASS; the 5 that expected `fp1:` or a `todays_sunrise` variable are
+updated (4a-6 now tests the real upgrade path, a stored `fp1:`) and pass, 31 PASS.
+
+Custom actions and conditions (Danger Zone) that read a decision variable by name must use the new
+name, e.g. `inst.desired_position`. Noted in the 3.2.0 release notes.

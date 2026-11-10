@@ -11,7 +11,7 @@ $i = T-Intent "cover_time_test"
 T-Check "daynight: intent published under <automation id>::intent" $ok "intent=$($i | ConvertTo-Json -Compress -Depth 5)"
 T-Check "daynight: target is the numeric position 100 for the configured cover" (($i.targets.'cover.vfast' -eq 100) -and ($i.targets.'cover.vfast' -is [int])) "targets=$($i.targets | ConvertTo-Json -Compress)"
 T-Check "daynight: no bound, priority 10, suspension 1800 s" ((@($i.bounds.PSObject.Properties).Count -eq 0) -and ($i.priority -eq 10) -and ($i.suspension_duration -eq 1800)) "bounds=$($i.bounds | ConvertTo-Json -Compress) priority=$($i.priority) susp=$($i.suspension_duration)"
-T-Check "daynight: intent carries fingerprint fp1:<md5>" ($i.fingerprint -match '^fp1:[0-9a-f]{32}$') "fingerprint=$($i.fingerprint)"
+T-Check "daynight: intent carries fingerprint fp2:<md5>" ($i.fingerprint -match '^fp2:[0-9a-f]{32}$') "fingerprint=$($i.fingerprint)"
 HA-Wait { (HA-Shared "cover.vfast::resolved") -eq 100 } 15 | Out-Null
 T-Settle "cover.vfast" 30
 T-Check "daynight: resolver commanded the cover (closed -> open)" (((HA-Shared "cover.vfast::resolved") -eq 100) -and ((T-Pos "cover.vfast") -ge 95)) "resolved=$(HA-Shared 'cover.vfast::resolved') cover=$(T-Cover 'cover.vfast')"

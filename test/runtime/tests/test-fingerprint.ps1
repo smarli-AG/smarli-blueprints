@@ -1,4 +1,4 @@
-# 4a  settings fingerprint (cover_DayNight 3.1.2, "fp1:" version prefix). Time-method instance on cover.vfast.
+# 4a  settings fingerprint (cover_DayNight 3.1.2; version prefix "fp2:" since 3.2.0). Time-method instance on cover.vfast.
 . "$PSScriptRoot\..\lib\ha.ps1"; . "$PSScriptRoot\..\lib\lib-test.ps1"
 $c = "cover.vfast"; $id = "cover_time_test"
 function Reload { HA-Call "automation" "reload"; Start-Sleep 5 }
@@ -15,7 +15,7 @@ Reload
 Wait-Newer $null | Out-Null
 HA-Wait { (T-Target $id $c) -eq 0 } 20 | Out-Null; T-Settle $c 30
 $i = T-Intent $id; $F1 = $i.fingerprint
-T-Check "4a-1 published intent carries fingerprint fp1:<md5>" (($F1 -match '^fp1:[0-9a-f]{32}$') -and ($i.targets.$c -eq 0)) "fingerprint=$F1 target=$($i.targets.$c) cover=$(T-Cover $c)"
+T-Check "4a-1 published intent carries fingerprint fp2:<md5>" (($F1 -match '^fp2:[0-9a-f]{32}$') -and ($i.targets.$c -eq 0)) "fingerprint=$F1 target=$($i.targets.$c) cover=$(T-Cover $c)"
 
 # 4a-2: stored intent targets 0, something else opens the cover (stub contributor, resolved=100), then a schedule edit
 HA-StubDay @{ $c = 100 }
@@ -26,7 +26,7 @@ HA-Apply -Time (Close-At $C2); Reload
 $re = Wait-Newer $ts0 25
 HA-Wait { (T-Pos $c) -le 5 } 25 | Out-Null; T-Settle $c 30
 $i = T-Intent $id; $F2 = $i.fingerprint
-T-Check "4a-2 schedule edit (same fp1 version) re-publishes and the cover is commanded to 0" ($re -and ($F2 -ne $F1) -and ((T-Pos $c) -le 5) -and ((HA-Shared "$c::resolved") -eq 0)) "$pre | after: republished=$re ts+$([math]::Round($i.ts-$ts0,1))s fp $F1 -> $F2 resolved=$(HA-Shared "$c::resolved") cover=$(T-Cover $c)"
+T-Check "4a-2 schedule edit (same fp2 version) re-publishes and the cover is commanded to 0" ($re -and ($F2 -ne $F1) -and ((T-Pos $c) -le 5) -and ((HA-Shared "$c::resolved") -eq 0)) "$pre | after: republished=$re ts+$([math]::Round($i.ts-$ts0,1))s fp $F1 -> $F2 resolved=$(HA-Shared "$c::resolved") cover=$(T-Cover $c)"
 
 # 4a-3: cover moved by a person-path outside smarli (suspension cleared), resolved stays 0, then a schedule edit
 HA-DelKey "shared" "stub_day::intent"
@@ -60,15 +60,15 @@ function Seed($fp, $target) {
 $old = Seed $null 0; Reload; Start-Sleep 2
 $i = T-Intent $id
 T-Check "4a-5 legacy intent (no fingerprint, target = schedule) -> no re-publish" ([double]$i.ts -eq $old) "ts unchanged=$([double]$i.ts -eq $old) fingerprint=$($i.fingerprint)"
-# 4a-6: fp0: prefix (other version) -> NO reset
-$old = Seed "fp0:00000000000000000000000000000000" 0; Reload; Start-Sleep 2
+# 4a-6: fp1: prefix (3.1.x, another version; the upgrade to 3.2.0) -> NO reset
+$old = Seed "fp1:00000000000000000000000000000000" 0; Reload; Start-Sleep 2
 $i = T-Intent $id
-T-Check "4a-6 fp0: intent (other version, target = schedule) -> no re-publish" ([double]$i.ts -eq $old) "ts unchanged=$([double]$i.ts -eq $old) fingerprint=$($i.fingerprint)"
+T-Check "4a-6 fp1: intent (other version, target = schedule) -> no re-publish" ([double]$i.ts -eq $old) "ts unchanged=$([double]$i.ts -eq $old) fingerprint=$($i.fingerprint)"
 # 4a-7: same version, other hash -> reset: exactly one republish
-$old = Seed "fp1:00000000000000000000000000000000" 0; Reload
+$old = Seed "fp2:00000000000000000000000000000000" 0; Reload
 $re = Wait-Newer $old 15
 $i = T-Intent $id; $ts1 = [double]$i.ts
-T-Check "4a-7 fp1: with a different hash -> one re-publish with the current fingerprint" ($re -and ($i.fingerprint -eq $F3)) "republished=$re fingerprint=$($i.fingerprint) (expected $F3)"
+T-Check "4a-7 fp2: with a different hash -> one re-publish with the current fingerprint" ($re -and ($i.fingerprint -eq $F3)) "republished=$re fingerprint=$($i.fingerprint) (expected $F3)"
 Reload; Start-Sleep 20     # >= 3 heartbeats (5 s)
 $i = T-Intent $id
 T-Check "4a-7b ...and no second re-publish (reload + natural heartbeat)" ([double]$i.ts -eq $ts1) "ts unchanged=$([double]$i.ts -eq $ts1)"
