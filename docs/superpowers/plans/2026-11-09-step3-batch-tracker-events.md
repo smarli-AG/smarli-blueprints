@@ -82,3 +82,27 @@ That is block 1 (request runs and their waits), the open item before the merge.
 Method error found and fixed: the block 2 probes of step 2 left `hubload_00..39` turned off, and HA
 keeps that state across reload and restart. The first matrix of steps 1 and 2 was invalid. `run.mjs`
 now turns every hubload automation on before a size and marks a run `INVALID` when intents are missing.
+
+## Block 1: the reload burst (2026-11-09, profiler on mogy-dev)
+
+Reload at 60 / 40, longest stall, split with `_rl.mjs` (automations off / intents kept / intents removed):
+reload alone 1.3–2.1 s, reload with intents kept 1.9 s, reload with 60 first publishes 5.7–7.1 s.
+
+The profiler (HA `profiler.start`, 12–14 s around the reload; it slows HA by 2–3 times, so only the
+shares count) showed two causes:
+
+1. **The request wait.** Each of the 60 callers waited until its own write was visible. Every
+   tracker write re-rendered every waiting template: 3600 renders per burst. Fixed in ha-packages
+   `9f1279f`: the request no longer waits; a resolver run writes a fence key
+   (`global::resolve_fence`) and waits for it. The tracker renders writes in order, so every
+   intent fired before the run is visible. The S6 rule still holds, with one wait per resolver run.
+   The four tracker event types are also excluded from the recorder.
+2. **The publish run itself.** Each automation that publishes holds HA for about 55 ms on the Pi
+   (S5: 53–61 ms): top-level variables, the `if` steps before the intent write, and their trace.
+   60 runs in one block are about 3.3 s. Open: the next change makes this run cheaper.
+
+Hub matrix after the fence (one repetition): at most 3 script runs at once in every size (40–60
+before); 60 / 40 phase burst, last cover at 6.2 s (step 3: 8.5 s), longest stall 3.8 s (4.7 s);
+reload stall unchanged at about 4.3 s. Core suites: 117 PASS.
+
+The suspend script still waits per call for its own write; the hand test can show the same pattern.
