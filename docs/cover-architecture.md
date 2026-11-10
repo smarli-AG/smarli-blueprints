@@ -261,7 +261,7 @@ The reason of a pause comes from its caller: `<service> sent by <person>` (comma
 
 **Rules for new log lines.** Log on a decision, never per heartbeat: a blueprint retries a blocked close every minute, and a line per retry would flood the logbook (the weather block and failed custom conditions are deliberately not logged for that reason; they would need a "logged once" key first). Keep `continue_on_error: true` on every `logbook.log` call, so a logging failure never stops a move. The `logbook` integration is part of `default_config`.
 
-Tested in Docker with `test-decision-log.ps1` (passes, 2026-11-02). `smarli_cover_suspend` is `mode: queued` and waits for its tracker write before it logs. Two detection paths can suspend the same cover within milliseconds, and in parallel mode both read the old suspension and both log.
+Tested in Docker with `test-decision-log.ps1` (passes, 2026-11-02). `smarli_cover_suspend` is `mode: queued` and waits for its tracker write before it logs. Two detection paths can suspend the same cover within milliseconds, and in parallel mode both read the old suspension and both log. Since 2026-11-10 one run takes a list of covers: the command check and the settle audit pass every cover of one command in one call, so one command to 40 covers is one write and one wait, not 40 runs in a row. A cover whose live suspension already ends within 60 s of the new one gets no second write and no second line; this also means a second press never shortens a live suspension.
 
 ## Presence Simulation
 
