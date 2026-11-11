@@ -57,7 +57,7 @@ no dropped runs, peak runs 50 → 3. Reload stall about the same (3.0 → 2.7 s)
 | Spread of cover start times | 0.5 s | ≤ 0.1 s, met | 0.5 s | ≤ 0.1 s, met |
 | First cover command | 2 s | 2.1 s, at target | 3 s | 3.3 s, 10 % over |
 
-Open: the phase and reload stall targets need a written decision (section 1) or a further step. What is
+Decision on the missed targets: spec section 1, "Decision on the missed targets (2026-11-11)". What is
 left in the phase stall is the second-0 block: every automation decides in the same second.
 
 ## Notes
@@ -65,8 +65,10 @@ left in the phase stall is the second-0 block: every automation decides in the s
 - Baseline reload, repetition 2: the 3.1.3 automations did not publish. Only repetition 1 counts
   (3.2 s quiet, 3.0 s busy; an earlier hub run gave 2.8–3.5 s).
 - Step 5, idle at 20 / 15: 3 of 4 repetitions (2 in the matrix, 2 in a re-run) had one
-  stall of 0.25–1.1 s. The hub logbook shows no automation or script run at those times, so the cause is
-  outside the cover code. The larger sizes are clean (52–60 ms).
+  stall of 0.25–1.1 s. The hub logbook has 0 entries in a 5 s window around each stall; the same query
+  gives 79 entries (20 automations, 29 scripts, 30 covers) at a phase burst of the same run. The stalls are
+  not at second 0, when the heartbeat runs. So no automation or script ran: the cause is outside the cover
+  code. The larger sizes are clean (52–60 ms).
 - All covers reached their targets in every run. No cover started twice.
 
 ## Full matrix

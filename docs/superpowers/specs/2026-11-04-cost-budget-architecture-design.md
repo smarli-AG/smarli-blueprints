@@ -63,6 +63,33 @@ quiet-hub values must stay about 25 % below them.
 These targets are a goal for the design. Whether each one is reachable is part of the spikes.
 A target that turns out to be unreachable needs a written decision, not a silent change.
 
+### Decision on the missed targets (2026-11-11, after step 5)
+
+Measured: `docs/superpowers/plans/2026-11-11-hub-matrix-all-phases.md` (worse of 2 repetitions).
+
+| Target | 40 / 30 quiet | 60 / 40 busy | Decision |
+| --- | --- | --- | --- |
+| Longest stall, phase change (1 s / 1.5 s) | 1.3 s | 2.4 s | Missed. Accepted for the merge. Target stays. |
+| Longest stall, reload (1 s / 1.5 s) | 1.9 s | 2.7 s | Missed. Accepted for the merge. Target relaxed for reload only, see below. |
+| First cover command (2 s / 3 s) | 2.1 s | 3.3 s | Missed by 0.1 s and 0.3 s. Accepted. Target stays. |
+
+Why the merge goes ahead:
+
+- No target got worse than the baseline: phase stall 9.5 → 2.4 s, first cover 4.1 → 3.3 s, reload
+  3.0 → 2.7 s (60 / 40 busy). The steps fix the dropped runs, which lost decisions and pauses.
+- The phase stall happens at most a few times per day per instance, at a phase change. The 60 / 40 case is
+  the largest instance we plan for; at 20 / 15 the phase stall is 0.4–1.6 s.
+- What is left in the phase stall and the first cover command is the second-0 block: every automation
+  decides in the same second. The only known lever is to spread the decisions over the first seconds of
+  the minute. That makes covers move up to some seconds later and less together, which is a product
+  choice, not a cost fix. It needs its own design and its own hub test.
+
+Reload: a reload happens only when a technician saves an automation or HA starts. Nobody waits for a
+cover at that moment. The reload target becomes 3 s at 60 / 40 busy (measured 2.7 s). The phase and
+first-command targets stay as they are, as the goal for a later step.
+
+Owner of this decision: Pascal. It can be changed with new measurements.
+
 ## 2. Blueprints: cheap by default
 
 - **Top-level `variables:` hold only what every trigger needs:** the inputs as values and
