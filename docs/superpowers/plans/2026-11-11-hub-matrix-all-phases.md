@@ -44,7 +44,8 @@ Hub: Raspberry Pi 4 (`mogy-dev`, Frigate with one camera). Runner: branch `claud
 - **Step 5** is a structure change. No KPI change, as expected.
 
 Total, baseline → step 5: phase stall −75 %, hand stall −73 %, idle stall −89 %, last cover 4.3 → 3.3 s,
-no dropped runs, peak runs 50 → 3. Reload stall about the same (3.0 → 2.7 s). Tracker 14.6 → 20.1 KB.
+no dropped runs, peak runs 50 → 3. Reload stall not better: 3.0 → 2.7 s busy, but 3.2 → 4.3 s quiet
+(the quiet values of the steps range from 2.4 to 4.3 s, so the noise is large). Tracker 14.6 → 20.1 KB.
 
 ## Budget check (step 5)
 
@@ -52,7 +53,7 @@ no dropped runs, peak runs 50 → 3. Reload stall about the same (3.0 → 2.7 s)
 | --- | --- | --- | --- | --- |
 | Longest stall, phase change | 1 s | 1.3 s, missed | 1.5 s | 2.4 s, missed |
 | Longest stall, person's command | 1 s | 0.7 s, met | 1.5 s | 1.3 s, met |
-| Longest stall, reload | 1 s | 1.9 s, missed | 1.5 s | 2.7 s, missed |
+| Longest stall, reload | 1 s | 1.9 s, missed | 1.5 s | 2.7 s, missed (quiet: 4.3 s) |
 | Most script runs at once | ≤ 10 | 3, met | ≤ 15 | 3, met |
 | Spread of cover start times | 0.5 s | ≤ 0.1 s, met | 0.5 s | ≤ 0.1 s, met |
 | First cover command | 2 s | 2.1 s, at target | 3 s | 3.3 s, 10 % over |
