@@ -122,7 +122,7 @@ Consequence of the scene/automation split: the same visible action can behave di
 
 **HomeKit Bridge** could be detected cheaply: for every command it fires a `homekit_state_change` event (with `entity_id` and `service`) in the same context as the service call. A second trigger on that event would cover it. It must reuse the command check's target resolution (HomeKit can expose cover groups) and its tilt filter. Its own `call_service` event carries no `user_id`, so there is no double detection. **Side effect:** HomeKit does not say who sent a command, so **Apple Home automations** ("close at sunset") count as a person, the same as a tap in the Home app or Siri — they would win against day-night for the suspension window. Not built yet; mssw does not use HomeKit Bridge. (mssw has `homekit_controller`, which is the other direction: HA controlling a tado bridge.)
 
-**Layer 2 — per-cover moving markers (disambiguate the window).** Before commanding a cover, `smarli_cover_move` writes one marker **per cover, per run** — key `<cover>::moving_<run>`, the run token living in the key so concurrent runs never collide and there is nothing to race:
+**Layer 2 — per-cover moving markers (disambiguate the window).** Before commanding a cover, the resolver (in its batch write) or `smarli_cover_move` (when called directly) writes one marker **per cover, per run** — key `<cover>::moving_<run>`, the run token living in the key so concurrent runs never collide and there is nothing to race:
 
 ```yaml
 namespace: cover # the family namespace: cover X may belong to several cover blueprints;
@@ -220,6 +220,16 @@ Tested in `test-namespace.ps1`.
 - Version mix is safe both ways: an old blueprint never sends the flag (old behaviour), and an old resolver ignores it (each script's own service accepts any keys, `SCRIPT_SERVICE_SCHEMA = Schema(dict)`).
 - **Accepted behaviour change:** when two instances control one cover, a later scheduled close now also closes a cover raised with a remote in between. That is a planned close, so it is the expected result.
 - What Docker cannot show (a real RTS motor receiving "close" while closed, a real remote) is in the hardware checklist, `docs/cover-hardware-tests.md` (H1–H7).
+
+**Button path: immediate requests and scoped runs (package 2026-11-12).** A heartbeat request waits in a 200 ms collect window, so one resolver run serves a whole phase change. A person who presses a button waits for that window, and at a large house also for a resolver run over every cover (1047 ms at 22 / 132, `docs/superpowers/analysis/2026-11-11-button-latency.md`). So a caller sends `immediate: true` to `smarli_cover_request` for every trigger that is not the heartbeat (cover_DayNight 3.2.0: the custom triggers):
+
+- An immediate request never skips, and its resolver run has no collect window. The window prevents no reversal: a second run commands a cover only if its result differs. The run yields 1 ms before it reads: the other automations on the same button were triggered by the same event and publish only when the loop is free. They queue behind it, the older runs skip, and the newest decides for all. Without the yield each automation ran its own resolver and 8 automations on one button took 2.9 s at 22 / 132.
+- No fence when no run was in the queue at the call: then no caller can have skipped for this run, and its own intent is overlaid.
+- **Scoped run.** It decides only the caller's covers and the covers of intents that arrived after the previous fence. `smarli_cover_request` stamps every intent with `seq` (the write time, taken in the render that fires the write), and the fence value is `{id, ts}`. A run reads the previous fence before it writes its own. Every intent with `seq` before that fence was read by a run that finished, so a cover outside the scope cannot have a new decision. This keeps the skip rule safe: a heartbeat caller that skips for a queued scoped run has a newer `seq`, so it is in scope. An intent without `seq` is always in scope. Covers outside the scope keep their records and watchers; heartbeat runs stay full, so a watcher change after an automation is turned off waits for the next full run.
+- The resolver writes the layer-2 moving markers in its own batch write, starts the mover (`marked: true`), and only then removes lost watchers and writes the log lines. The mover writes markers only when called directly (the Presence Simulation release), and removes the resolver's marker of a cover that a pause dropped in between.
+- A button does not command a cover that a person paused by hand (unchanged, Pascal 2026-11-12).
+
+Tested in `test-request.ps1` (5b-5); measured with `test/hub-load/button.mjs`.
 
 **Suspension duration is cover-level, not automation-level.** Several automations watch one cover and all fire on the same wall-switch press, so `script.smarli_cover_suspend` takes the **maximum** `suspension_duration` across active intents naming that cover (falling back to the caller's value only while no intent names it yet); an automation with suspension turned off contributes 0.
 

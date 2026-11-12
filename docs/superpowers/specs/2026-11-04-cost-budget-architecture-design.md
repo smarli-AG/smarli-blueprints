@@ -67,28 +67,111 @@ A target that turns out to be unreachable needs a written decision, not a silent
 
 Measured: `docs/superpowers/plans/2026-11-11-hub-matrix-all-phases.md` (worse of 2 repetitions).
 
-| Target | 40 / 30 quiet | 60 / 40 busy | Decision |
-| --- | --- | --- | --- |
-| Longest stall, phase change (1 s / 1.5 s) | 1.3 s | 2.4 s | Missed. Accepted for the merge. Target stays. |
-| Longest stall, reload (1 s / 1.5 s) | 1.9 s | 2.7 s | Missed. Accepted for the merge. Target relaxed for reload only, see below. |
-| First cover command (2 s / 3 s) | 2.1 s | 3.3 s | Missed by 0.1 s and 0.3 s. Accepted. Target stays. |
+| Target | 40 / 30 quiet | 60 / 40 quiet | 60 / 40 busy | Proposed decision |
+| --- | --- | --- | --- | --- |
+| Longest stall, phase change (1 s / 1.5 s) | 1.3 s | 2.4 s | 2.4 s | Missed. Accepted for the merge. Target stays. |
+| Longest stall, reload (1 s / 1.5 s) | 1.9 s | 4.3 s | 2.7 s | Missed. Open, see below. |
+| First cover command (2 s / 3 s) | 2.1 s | 3.4 s | 3.3 s | Missed by 0.1–0.4 s. Accepted. Target stays. |
 
-Why the merge goes ahead:
+Status: proposed, not approved. A first version of this section (same day) took the reload value from
+the busy run only (2.7 s) and claimed that no target got worse; the quiet run says otherwise.
 
-- No target got worse than the baseline: phase stall 9.5 → 2.4 s, first cover 4.1 → 3.3 s, reload
-  3.0 → 2.7 s (60 / 40 busy). The steps fix the dropped runs, which lost decisions and pauses.
-- The phase stall happens at most a few times per day per instance, at a phase change. The 60 / 40 case is
-  the largest instance we plan for; at 20 / 15 the phase stall is 0.4–1.6 s.
+Why the merge can go ahead:
+
+- Phase stall and first cover got much better than the baseline at 60 / 40 busy: phase stall
+  9.5 → 2.4 s, first cover 4.1 → 3.3 s. The steps fix the dropped runs, which lost decisions and pauses.
+- Reload did not get better: 3.0 → 2.7 s busy, but 3.2 → 4.3 s quiet (worse of 2 repetitions; the
+  steps between them range from 2.4 to 4.3 s, so the noise is large). How much of it is HA re-creating
+  the automations and how much is the setup run of each automation is not measured.
+- The phase stall happens a few times per day per instance, at a phase change. At 20 / 15 it is 0.4 s.
+- Installation sizes (entity registers of 94 instances, 2026-10-29): 76 have covers; median 12, 90 %
+  have 30 or fewer. The largest have 81 and 109 covers (109 is a production facility). A 109-cover
+  instance is not tested; extrapolated from about 40 ms per transitioning automation, its phase stall
+  is about 5 s or more. No dropped runs are expected there (peak 3 runs against `max: 200`).
 - What is left in the phase stall and the first cover command is the second-0 block: every automation
-  decides in the same second. The only known lever is to spread the decisions over the first seconds of
-  the minute. That makes covers move up to some seconds later and less together, which is a product
-  choice, not a cost fix. It needs its own design and its own hub test.
+  decides in the same second and writes its intent into the full tracker. Known levers, none measured:
+  spread the decisions over the first seconds of the minute (covers then start in waves, a product
+  choice); make each intent write cheaper (smaller store for intents, or no tracker write when the
+  request carries the fresh intent); one central evaluator for all instances (largest gain, breaks
+  "trigger distributed"). Each needs its own design and its own hub test.
 
-Reload: a reload happens only when a technician saves an automation or HA starts. Nobody waits for a
-cover at that moment. The reload target becomes 3 s at 60 / 40 busy (measured 2.7 s). The phase and
-first-command targets stay as they are, as the goal for a later step.
+Reload: it happens on "Reload automations", on HA start, and probably every time a technician saves any
+automation in the UI (HA fires `automation_reloaded` then too; not verified). Nobody waits for a cover
+at that moment, but the rest of the house freezes for its duration. Options: accept up to about 4.5 s at
+60 / 40, or measure the split first.
 
 Owner of this decision: Pascal. It can be changed with new measurements.
+
+### Decisions after the second-0 analysis (2026-11-11)
+
+Source: `docs/superpowers/analysis/2026-11-11-second-0-block-holistic.md` (sections 4.1–4.7), then
+a discussion with Pascal. Approved by Pascal unless marked open.
+
+**Sizes and targets.** The test sizes 20 / 15, 40 / 30 and 60 / 40 (automations / covers) stress
+the wrong dimension: the largest real installation has few automations and many covers (22 / 132).
+New budget, replacing the table above:
+
+| Measure | Real sizes 1 / 12, 8 / 27, 22 / 132 | Stress test 30 / 160 | Every size |
+| --- | --- | --- | --- |
+| Longest stall, phase change | 1 s | 1.5 s | |
+| First cover command after the phase change (from the family's heartbeat second) | 2 s | 3 s | |
+| Spread of start times of covers that move together | 0.5 s | 0.5 s | |
+| Button event to first cover command | | | 0.2 s |
+| Highest run count of any script | | | at most 50 % of its `max` (replaces the 25 % rule) |
+
+60 / 40 stays in the history, without a target. The hub test generator (`test/hub-load/gen.mjs`)
+uses a round robin when there are more than 3 covers per automation, so every cover is in use.
+
+**Heartbeat second per family: light 2, cover 4**, families that are not time-critical later (6, 8, …).
+`smarli_slot` is shared, so families close together do not block each other. No `time_pattern` uses second 0: every
+customer automation with a time trigger fires there. Each family gets one fixed second, written as a
+literal at its heartbeat trigger, with a comment that points to a table in `CLAUDE.md` (family,
+second, reason). `ci/check-blueprints.js` fails a `time_pattern` without `seconds`, with second 0,
+or with a value that differs from the table. Constraints from Pascal: light comes before cover, and
+the seconds stay close together, so a light and a cover that both react to sunset do not start far
+apart. It applies only to the heartbeat: a button, a reload and HA start are events.
+
+**Button path (holistic 4.2), approved 2026-11-12: window 0.** Source: the button measurement
+(`docs/superpowers/analysis/2026-11-11-button-latency.md`, today 323 ms at 1 / 12 and 1047 ms at
+22 / 132). The 200 ms window prevents no reversal: a second resolve commands a cover only if the
+result differs. Design:
+
+- The blueprint sends `immediate: true` for every trigger that is not the heartbeat.
+- An immediate request never skips, and calls the resolver with no collect window. The run yields
+  1 ms before it reads, so the other automations on the same button publish and queue behind it; the
+  older runs then skip and the newest decides for all (without it, 8 automations on one button took
+  2.9 s at 22 / 132; with it 0.85 s). The resolver
+  takes no fence when no run was in the queue at the call (then no other caller can depend on it).
+- **Scoped run.** An immediate run resolves only some covers: the caller's covers, plus the covers
+  of every intent that arrived after the previous fence. `smarli_cover_request` stamps each intent
+  with `seq` (the write time). The fence value holds its own time, and a run reads the previous
+  fence before it writes its own. Every intent with `seq` before that fence was read by a run that
+  finished, so it is handled. This keeps the skip rule safe: a heartbeat caller that skips for a
+  queued scoped run is in that run's scope. An intent without `seq` (written before this change)
+  is always in scope. Heartbeat runs (window 200 ms) stay full.
+- The resolver writes the moving markers in its own batch write, and starts the mover before the
+  remove write and the log lines. The mover writes markers only when the resolver did not (the
+  release path calls it directly).
+- Unchanged: a button does not command a cover that a person paused by hand (Pascal, 2026-11-12).
+
+**Transition slots (holistic 4.3, variant a).** A shared `script.smarli_slot` in `smarli_core.yaml`
+spreads the intent writes of a burst; the resolver waits until no slot run is left. Open: the decision
+cost per run before the request (4–18 ms) decides whether the wait stays in the package or the
+blueprint steps get cheaper first (rule: 22 × that cost ≤ 0.3 s).
+
+**Newer `ts` wins inside the tracker render (holistic 4.4).**
+
+**Remove the 3.1.3 compatibility code (holistic 4.5).** mssw is a test setup: re-import and a clean
+tracker are fine.
+
+**Blueprints: `max: 200`, `max_exceeded: warning` (holistic 4.6).** Extends the package rule.
+
+**One tracker sensor per family, now (holistic 4.7).** Nothing is in the field, so this is the
+cheap moment. Reverses section 4 and the rejected list.
+
+**Custom actions run after the request, not after the covers move.** At a large installation they
+can run up to about 1.5 s before the covers start. Accepted; the input descriptions and the Danger
+Zone text say "after the request".
 
 ## 2. Blueprints: cheap by default
 
@@ -167,9 +250,10 @@ Condition order for the cover state trigger, cheapest first. Each check can end 
 
 ## 4. Tracker contract (every family)
 
-- **One sensor**, `sensor.smarli_automation_tracker`. Size was not the problem (16 KB at
-  60 / 40, no hard limit, excluded from the recorder). The number of writes and large reads
-  are, and a split fixes neither.
+- ~~**One sensor**, `sensor.smarli_automation_tracker`.~~ Reversed on 2026-11-11: **one tracker
+  sensor per family**, defined in the family's package. A write renders only its own family's keys.
+  See "Decisions after the second-0 analysis" in section 1. (The old reason, "size was not the
+  problem", came before S5, which measured about 0.7 ms per KB on every write.)
 - **One namespace per family** (`cover`, later `light`, …). `shared` only for state that more
   than one family reads. Today nothing.
 - **New batch events** `smarli_tracker_set_many` (namespace + dict of key → value) and
@@ -351,7 +435,9 @@ Updated after the spikes. Each step ends with its runtime tests and the hub load
 ## Considered and rejected
 
 - **Central watcher per cover:** breaks plug and play, or runs on every state change.
-- **One tracker sensor per family:** size was not the problem. More mechanism, no gain.
+- ~~**One tracker sensor per family:** size was not the problem. More mechanism, no gain.~~
+  Reversed on 2026-11-11: S5 showed that every write costs about 0.7 ms per KB of the whole
+  tracker, so size is a cost. See "Decisions after the second-0 analysis" in section 1.
 - **Exact triggers instead of the heartbeat** (time, sun, numeric_state per input): empty
   helper inputs cannot be used in a trigger, and the heartbeat is restart-safe. Kept the
   heartbeat and made it cheap instead.

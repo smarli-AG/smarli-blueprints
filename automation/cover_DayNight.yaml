@@ -15,7 +15,8 @@
 ## - Covers are requested through the new script smarli_cover_request. When many automations change phase in the same minute, one resolver run decides for all of them.
 ## - A publishing run is cheaper: the settings and the decision are three dicts (cfg, d, inst) instead of about 100 variables. Custom actions and conditions that read a decision variable must use the new name, e.g. inst.desired_position.
 ## - The cover state (intents, pauses, moving markers, watchers) lives in the tracker namespace `cover` instead of `shared`. An automation updated from 3.1.3 reads its old intent from `shared` until its first publish, so the update does not move covers.
-## - Needs the smarli. Cover package from 2026-11-10 (smarli_cover_request, cover namespace). With an older package, the covers do not move.
+## - Custom triggers (e.g. a button) move the covers faster: the request asks for an immediate resolve, with no collect window and only for the covers that need it. A cover paused by hand still does not move.
+## - Needs the smarli. Cover package from 2026-11-12 (smarli_cover_request with `immediate`, cover namespace). With a package from 2026-11-10, custom triggers keep the old speed. With an older package, the covers do not move.
 ## 3.1.3 | 2026-11-02
 ## - Time method: when the retract time is not before the extend time (earliest and latest times included), a line in the logbook of this automation says so at every reload and start. With such settings the covers never retract, because extending wins whenever both are due.
 ## - Needs the smarli. Cover package with the decision log to also see why a cover did not move (paused, held by Presence Simulation, unchanged) and who paused it
@@ -191,7 +192,7 @@ blueprint:
       packages (included in the Grundinstanz):
       `sensor.smarli_automation_tracker` (Core),
       `script.smarli_cover_manual_check` and `script.smarli_cover_request` (Cover,
-      from 2026-11-10).
+      from 2026-11-12 for the fast custom-trigger path; 2026-11-10 at least).
       To retrofit an older instance, copy both `packages/smarli_core.yaml` and
       `packages/smarli_cover.yaml` from the `smarli-AG/ha-packages` repository
       into `config/packages/`.
@@ -1926,6 +1927,8 @@ actions:
                 data:
                   owner: "{{ instance_id }}"
                   intent: "{{ inst.intent_payload }}"
+                  # A custom trigger is someone waiting (a button): no collect window.
+                  immediate: "{{ trigger.id | default('') != 'heartbeat' }}"
               - alias: Run custom opening actions
                 sequence: !input custom_opening_actions
           - &close_step
@@ -1995,6 +1998,8 @@ actions:
                 data:
                   owner: "{{ instance_id }}"
                   intent: "{{ inst.intent_payload }}"
+                  # A custom trigger is someone waiting (a button): no collect window.
+                  immediate: "{{ trigger.id | default('') != 'heartbeat' }}"
               - alias: Run custom closing actions
                 sequence: !input custom_closing_actions
     default:
