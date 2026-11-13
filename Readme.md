@@ -523,7 +523,7 @@ Most rules in this Readme are checked automatically. The setup copies the one in
 
 | Script | What it checks | Where it runs |
 | --- | --- | --- |
-| `ci/checks.sh` | Group `files`: merge-conflict markers, tab indentation in YAML. Group `blueprints`: every `automation/*.yaml` against this Readme, through `ci/check-blueprints.js`. | By hand, in the pre-commit hook, and in CI on every pull request and on `main`. |
+| `ci/checks.sh` | Group `files`: merge-conflict markers, tab indentation in YAML. Group `blueprints`: every `automation/*.yaml` against this Readme, through `ci/check-blueprints.js`. Group `tracker`: every tracker namespace that a blueprint writes to has a tracker sensor in the packages, through `ci/check-tracker-templates.js` of the ha-packages repository (see [Tracker namespaces across both repositories](#tracker-namespaces-across-both-repositories)). | By hand, in the pre-commit hook, and in CI on every pull request and on `main`. In CI, `tracker` is its own job. |
 | `ci/check-release.sh` | A blueprint that differs from `main` needs a higher version in its release notes. Edits to the dev notes above `# ! RELEASE NOTES` do not count. A blueprint with a settings fingerprint (`schedule_fingerprint`, see `docs/cover-architecture.md`) also needs a higher fingerprint version (`fp1:` → `fp2:`) when the hashed list or the default of a hashed input changed, through `ci/check-fingerprint.js`. | By hand, and in CI on pull requests into `main`. |
 
 Run them:
@@ -555,7 +555,7 @@ The hook runs `ci/checks.sh` before every commit, from any terminal or the VS Co
 **`main` is protected.** The GitHub ruleset "protect main" enforces these rules, with no bypass for anyone:
 
 - Every change reaches `main` through a pull request. A direct push is rejected.
-- The `checks` and `release` status checks must pass.
+- The `checks` and `release` status checks must pass. (`tracker` is not required yet. It can pass only when ha-packages `main` has `ci/check-tracker-templates.js`.)
 - The branch must be up to date with `main` before the merge.
 - Every review thread must be resolved. No approval is required.
 - Nobody can delete `main` or force-push to it.
@@ -576,6 +576,27 @@ If you rename a CI job, update the required status checks in the ruleset too. Ot
 Put a deliberate break in a fixture's `allow` line. Fix every other break.
 
 **When a rule in this Readme changes, change `ci/check-blueprints.js` in the same commit.** Each rule in that file names the Readme section it enforces. If the two disagree, this Readme wins.
+
+### Tracker namespaces across both repositories
+
+A blueprint writes tracker data with the events `smarli_tracker_set` and the others, each with a `namespace`. The packages in [`smarli-AG/ha-packages`](https://github.com/smarli-AG/ha-packages) have one tracker sensor for each namespace (`sensor.smarli_tracker_<namespace>`). If no sensor serves a namespace, the write is lost, and Home Assistant shows no error.
+
+Both repositories check this, each against the `main` of the other:
+
+- **smarli-blueprints** (group `tracker`): every namespace that a blueprint writes to has a sensor on ha-packages `main`.
+- **ha-packages**: every namespace that blueprints `main` writes to still has a sensor.
+
+So change a namespace in three steps. Each step is its own pull request, and each one passes CI:
+
+1. **ha-packages adds** the new tracker sensor and keeps the old one. Wait until the installs have this package version.
+2. **smarli-blueprints changes** the blueprint to the new namespace.
+3. **ha-packages removes** the old sensor, after no installed blueprint writes to it.
+
+CI checks the two `main` branches. It cannot see which versions an install has. Steps 1 and 3 must also wait for the installs.
+
+**Local runs** use the sibling checkout `../ha-packages`, on its current branch. Set `HA_PACKAGES` to use another folder. Without the sibling checkout, the group reports "NOT checked" and passes.
+
+**CI** reads ha-packages `main` with a token of the GitHub App `smarli-ha-packages-read`. The app has only "Contents: read" and is installed on ha-packages only. Its Client ID is the repository variable `HA_PACKAGES_APP_CLIENT_ID`. Its private key is the repository secret `HA_PACKAGES_APP_PRIVATE_KEY`. Do not install this app on other repositories. A different need gets its own app. Pull requests from forks get no secrets, so the `tracker` job fails for them.
 
 ## Home Assistant reference links
 
