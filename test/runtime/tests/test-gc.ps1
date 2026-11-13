@@ -27,13 +27,13 @@ HA-SetKey "shared" "cover.does_not_exist::resolved" 50
 HA-SetKey "shared" "cover.vfast::resolved" 100
 HA-SetKey "shared" "global::keepme" 1
 HA-SetKey "shared" "stub_day::intent" @{ targets = @{ "cover.vfast" = 100 }; ts = 1 }
-HA-SetKey "cover_day_night" "gc_dead_auto::bright_since" 123
-HA-SetKey "cover_day_night" "cover_time_test::dark_since" 456
+HA-SetKey "cover_automation_memory" "gc_dead_auto::bright_since" 123
+HA-SetKey "cover_automation_memory" "cover_time_test::dark_since" 456
 HA-SetKey "shared" "no_grammar_key" 1
 Start-Sleep 2
 HA-Call "script" "smarli_tracker_gc"
 Start-Sleep 4
-$sh = @(HA-KeyNames "shared"); $cd = @(HA-KeyNames "cover_day_night"); $ts = $sh
+$sh = @(HA-KeyNames "shared"); $cd = @(HA-KeyNames "cover_automation_memory"); $ts = $sh
 T-Check "gc: dead automation id removed (shared)" (-not ($sh -contains "gc_dead_auto::intent")) "present=$($sh -contains 'gc_dead_auto::intent')"
 T-Check "gc: ghost (unavailable) automation key removed" (-not ($sh -contains "gc_ghost_victim::intent")) "ghost entity state before delete=$before after delete=$ghostState; key present=$($sh -contains 'gc_ghost_victim::intent')"
 T-Check "gc: key of a missing entity removed" (-not ($sh -contains "cover.does_not_exist::resolved")) "present=$($sh -contains 'cover.does_not_exist::resolved')"
@@ -41,5 +41,5 @@ T-Check "gc: dead automation key removed in family namespace" (-not ($cd -contai
 T-Check "gc: live keys kept (entity, global, live automation, off automation)" (($sh -contains "cover.vfast::resolved") -and ($sh -contains "global::keepme") -and ($sh -contains "stub_day::intent") -and ($cd -contains "cover_time_test::dark_since")) "shared=$($sh -join ',') cdn=$($cd -join ',')"
 T-Check "gc: key without '::' left alone" ($ts -contains "no_grammar_key") "shared=$($ts -join ',')"
 foreach ($k in "global::keepme", "cover.vfast::resolved", "stub_day::intent") { HA-DelKey "shared" $k }
-HA-DelKey "cover_day_night" "cover_time_test::dark_since"; HA-DelKey "shared" "no_grammar_key"
+HA-DelKey "cover_automation_memory" "cover_time_test::dark_since"; HA-DelKey "shared" "no_grammar_key"
 T-Prep

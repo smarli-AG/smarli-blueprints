@@ -101,7 +101,7 @@ function T-Prep {
   if (-not $KeepInstances) {
     HA-Call "automation" "turn_off" @{ entity_id = @("automation.covers_day_night_time", "automation.covers_day_night_brightness") }
   }
-  foreach ($ns in "cover", "shared") {   # "cover" = intents and recorded state (HA-KeyNames, HA-DelKey)
+  foreach ($ns in "cover", "shared") {   # "cover" = intents and cover memory (HA-KeyNames, HA-DelKey)
     foreach ($k in (HA-KeyNames $ns)) {
       $drop = ($k -like "*::suspension") -or ($k -like "*::suspended_at") -or ($k -like "*::moving_*") -or ($k -like "cover.*::resolved") -or ($k -like "cover.*::applied") -or ($k -like "cover.*::watcher") -or ($k -like "stub_*::intent")
       if (-not $KeepIntents -and ($k -like "cover_*_test::intent")) { $drop = $true }

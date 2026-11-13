@@ -42,18 +42,18 @@ only the sensor of its namespace.
 | Namespace | Sensor | Holds | Defined in |
 | --- | --- | --- | --- |
 | `cover_intents` | `sensor.smarli_tracker_cover_intents` | intents, the resolver fence | `smarli_cover.yaml` |
-| `cover_recorded_state` | `sensor.smarli_tracker_cover_recorded_state` | per-cover state, moving markers | `smarli_cover.yaml` |
-| `cover_day_night` | `sensor.smarli_tracker_cover_day_night` | brightness timestamps | `smarli_cover.yaml` |
+| `cover_memory` | `sensor.smarli_tracker_cover_memory` | per-cover state, moving markers | `smarli_cover.yaml` |
+| `cover_automation_memory` | `sensor.smarli_tracker_cover_automation_memory` | brightness timestamps | `smarli_cover.yaml` |
 | `shared` | `sensor.smarli_tracker_shared` | state read by more than one family (empty today) | `smarli_core.yaml` |
 
 - **The fence must stay with the intents.** It works because one sensor renders its writes in the
   order they were fired: once the fence is visible, every earlier intent is visible. This holds within
   one sensor only. Both live in `cover_intents`.
 - **Each write touches one kind.** The intent write and the fence go to `cover_intents`. The
-  resolver's batch write, the remove write, suspend and the mover's marker writes go to `cover_recorded_state`.
+  resolver's batch write, the remove write, suspend and the mover's marker writes go to `cover_memory`.
   No write needs two sensors at once.
 - **Attribute shape.** Each sensor's `data` attribute holds its namespace's keys directly
-  (`state_attr('sensor.smarli_tracker_cover_recorded_state', 'data').get('cover.x::resolved')`), not
+  (`state_attr('sensor.smarli_tracker_cover_memory', 'data').get('cover.x::resolved')`), not
   `{namespace: {...}}`. A static attribute `namespace` names the namespace, for the garbage collection.
 - **Garbage collection** (`smarli_core.yaml`) reads every `sensor.smarli_tracker_*` and removes keys
   whose owner is gone, per sensor, with that sensor's `namespace`.
@@ -99,8 +99,10 @@ and blueprint must roll out together: an old blueprint would read the removed
 
 ## Decisions (Pascal, 2026-11-13)
 
-1. Names: `cover_intents` and `cover_recorded_state` ("what smarli. has recorded about each cover", not the HA entity state).
+1. Names: `cover_intents` and `cover_memory` (what smarli. remembers about each cover). First chosen as `cover_recorded_state`; renamed the same day: "state" has a fixed meaning in HA (an entity's value, an automation on or off).
 2. No migration at the update: the covers are commanded once and running pauses are lost. Accepted, also on mssw.
 3. Only this update counts: package and blueprint update together. No compatibility period for older blueprints.
 4. Template sharing: one copy per package file, shared there with a YAML anchor, plus a CI check that
    the copies are equal. No macro file in `custom_templates/`.
+5. State that one automation keeps for itself goes to the family sensor `cover_automation_memory` (renamed from `cover_day_night`, which was named after one blueprint). A new blueprint of the family stores such state there, with no package change. A family that stores state has up to three tracker sensors: intents, memory, automation memory.
+6. A check fails when a package or blueprint writes to a namespace that no tracker sensor serves: such a write is lost silently.

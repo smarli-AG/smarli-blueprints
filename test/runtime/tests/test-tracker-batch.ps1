@@ -24,7 +24,7 @@ $extra = @"
     - trigger: event
       event_type: state_changed
       event_data:
-        entity_id: sensor.smarli_tracker_cover_recorded_state
+        entity_id: sensor.smarli_tracker_cover_memory
   actions:
     - stop: counted
 # Counts cover service calls sent by a script (the mover); a person's calls have no parent.

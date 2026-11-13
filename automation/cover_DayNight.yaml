@@ -14,7 +14,7 @@
 ## - Manual detection runs once per cover, not once per automation: one automation per cover is elected to check a hand move. A state change caused by an automation, the end of a smarli. move, and repeat changes within 60 s of a pause end the run early, with no logbook entry.
 ## - Covers are requested through the new script smarli_cover_request. When many automations change phase in the same minute, one resolver run decides for all of them.
 ## - A publishing run is cheaper: the settings and the decision are three dicts (inputs, schedule, decision) instead of about 100 variables. Custom actions and conditions that read a decision variable must use the new name, e.g. decision.desired_position.
-## - The cover state lives in its own tracker sensors, one per kind of data: what the automations want (`sensor.smarli_tracker_cover_intents`), what smarli. has recorded about each cover (`sensor.smarli_tracker_cover_recorded_state`), and the brightness timestamps (`sensor.smarli_tracker_cover_day_night`). A write only renders its own sensor, so writes are cheaper. At the update from 3.1.3 every automation commands its covers once at the next heartbeat, and a running pause after a hand move is lost.
+## - The cover state lives in its own tracker sensors, one per kind of data: what the automations want (`sensor.smarli_tracker_cover_intents`), what smarli. has recorded about each cover (`sensor.smarli_tracker_cover_memory`), and the brightness timestamps (`sensor.smarli_tracker_cover_automation_memory`). A write only renders its own sensor, so writes are cheaper. At the update from 3.1.3 every automation commands its covers once at the next heartbeat, and a running pause after a hand move is lost.
 ## - Custom triggers (e.g. a button) move the covers faster: the request asks for an immediate resolve, with no collect window and only for the covers that need it. A cover paused by hand still does not move.
 ## - Needs the smarli. Core and Cover packages from 2026-11-13 (the tracker sensors). Update the packages and this blueprint together: with older packages the covers do not move, and an older blueprint with these packages commands its covers every minute.
 ## 3.1.3 | 2026-11-02
@@ -1336,7 +1336,7 @@ variables: &instance
   # (see Triggers). Read as decision.<name>:
   #   bright_since / dark_since  when each brightness threshold was first crossed
   #                              (<id>::bright_since / <id>::dark_since in
-  #                              sensor.smarli_tracker_cover_day_night), or none
+  #                              sensor.smarli_tracker_cover_automation_memory), or none
   #   stabilizer_needs_update    the stored "since" timestamps no longer match the
   #                              current reading: this run writes or clears one
   #   last_scheduled             what the SCHEDULE last decided (see below)
@@ -1374,7 +1374,7 @@ variables: &instance
   # another automation started.
   decision: >
     {% if schedule_evaluated is not defined %}{}{% else %}
-    {% set brightness_record = state_attr('sensor.smarli_tracker_cover_day_night', 'data') or {} %}
+    {% set brightness_record = state_attr('sensor.smarli_tracker_cover_automation_memory', 'data') or {} %}
     {% set bright_since = brightness_record.get(instance_id ~ '::bright_since') %}
     {% set dark_since = brightness_record.get(instance_id ~ '::dark_since') %}
     {% set m = inputs.daynight_cycle_method %}
@@ -1799,7 +1799,7 @@ conditions:
       {%- elif trigger.to_state is none or trigger.to_state.context.parent_id is not none -%}
         false
       {%- else -%}
-        {%- set recorded = state_attr('sensor.smarli_tracker_cover_recorded_state', 'data') or {} -%}
+        {%- set recorded = state_attr('sensor.smarli_tracker_cover_memory', 'data') or {} -%}
         {%- set c = trigger.entity_id -%}
         {%- set now_s = as_timestamp(now()) -%}
         {%- set ns = namespace(moving=false) -%}
@@ -1872,7 +1872,7 @@ actions:
                 then:
                   - event: smarli_tracker_set
                     event_data:
-                      namespace: cover_day_night
+                      namespace: cover_automation_memory
                       key: "{{ instance_id }}::bright_since"
                       value: "{{ now_ts }}"
               - if:
@@ -1881,7 +1881,7 @@ actions:
                 then:
                   - event: smarli_tracker_remove
                     event_data:
-                      namespace: cover_day_night
+                      namespace: cover_automation_memory
                       key: "{{ instance_id }}::bright_since"
               - if:
                   - condition: template
@@ -1889,7 +1889,7 @@ actions:
                 then:
                   - event: smarli_tracker_set
                     event_data:
-                      namespace: cover_day_night
+                      namespace: cover_automation_memory
                       key: "{{ instance_id }}::dark_since"
                       value: "{{ now_ts }}"
               - if:
@@ -1898,7 +1898,7 @@ actions:
                 then:
                   - event: smarli_tracker_remove
                     event_data:
-                      namespace: cover_day_night
+                      namespace: cover_automation_memory
                       key: "{{ instance_id }}::dark_since"
           - &open_step
             alias: Open — reached the day phase (or a custom opening trigger fired)

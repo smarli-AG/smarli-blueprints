@@ -6,12 +6,12 @@
 $c = "cover.vbright"; $id = "cover_brightness_test"
 function Set-Lux($v) { HA-Call "input_number" "set_value" @{ entity_id = "input_number.test_lux"; value = $v }; Start-Sleep 1 }
 function Tick { HA-Call "automation" "reload"; Start-Sleep 4 }       # automation_reloaded = heartbeat trigger
-function Ck($k) { HA-Key "cover_day_night" "$id::$k" }
+function Ck($k) { HA-Key "cover_automation_memory" "$id::$k" }
 
 try {
 T-SunPhase "night"
 T-Prep; HA-Apply
-foreach ($k in "bright_since", "dark_since") { HA-DelKey "cover_day_night" "$id::$k" }
+foreach ($k in "bright_since", "dark_since") { HA-DelKey "cover_automation_memory" "$id::$k" }
 Set-Lux 100
 T-Place $c 100
 HA-Call "automation" "turn_on" @{ entity_id = "automation.covers_day_night_brightness" }

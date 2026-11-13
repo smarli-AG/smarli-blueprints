@@ -33,11 +33,11 @@ function HA-State    { param($id) Invoke-RestMethod -Uri "$HA_BASE/api/states/$i
 function HA-StateStr { param($id) try { (HA-State $id).state } catch { "missing" } }
 # The tracker: one sensor per namespace (sensor.smarli_tracker_<namespace>, 2026-11-13). The
 # pseudo-namespace "cover" is the cover family as one: a key goes to cover_intents when it is an
-# intent or the resolver fence, else to cover_recorded_state. So a test names "cover" and the
+# intent or the resolver fence, else to cover_memory. So a test names "cover" and the
 # helpers find the right sensor.
-function Cover-Ns { param($key) if ($key -match '::intent$' -or $key -eq 'global::resolve_fence') { 'cover_intents' } else { 'cover_recorded_state' } }
+function Cover-Ns { param($key) if ($key -match '::intent$' -or $key -eq 'global::resolve_fence') { 'cover_intents' } else { 'cover_memory' } }
 function Tracker-Data { param($ns) try { (HA-State "sensor.smarli_tracker_$ns").attributes.data } catch { $null } }
-# {namespace: data} of every tracker sensor, plus "cover": cover_intents and cover_recorded_state together.
+# {namespace: data} of every tracker sensor, plus "cover": cover_intents and cover_memory together.
 function HA-Tracker {
   $out = [ordered]@{}
   # A variable first: Windows PowerShell 5.1 passes a JSON array down a pipeline as one object.
@@ -46,7 +46,7 @@ function HA-Tracker {
     $out[$s.entity_id.Substring('sensor.smarli_tracker_'.Length)] = $s.attributes.data
   }
   $cover = [ordered]@{}
-  foreach ($ns in 'cover_intents', 'cover_recorded_state') {
+  foreach ($ns in 'cover_intents', 'cover_memory') {
     if ($null -ne $out[$ns]) { foreach ($p in $out[$ns].PSObject.Properties) { $cover[$p.Name] = $p.Value } }
   }
   # New-Object, not a [pscustomobject] cast: Windows PowerShell 5.1 cannot cast a dictionary held in a variable.

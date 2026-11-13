@@ -25,8 +25,8 @@ $names = @(HA-KeyNames "cover")
 T-Check "markers: no leftover moving_* keys" (-not ($names | ? { $_ -like "cover.vfast::moving_*" -or $_ -like "cover.vslow::moving_*" })) "keys=$($names -join ',')"
 $legacy = @($names | ? { $_ -notlike "*::*" -or $_ -in @("automation_in_progress", "suspensions") -or $_ -like "*::moving_run" -or $_ -like "*::automation_in_progress" })
 T-Check "markers: no legacy keys in shared" ($legacy.Count -eq 0) "legacy=$($legacy -join ',')"
-$cdn = @(HA-KeyNames "cover_day_night")
+$cdn = @(HA-KeyNames "cover_automation_memory")
 $badcdn = @($cdn | ? { $_ -notmatch "::(bright_since|dark_since)$" })
-T-Check "markers: cover_day_night namespace holds only stabilizer keys" ($badcdn.Count -eq 0) "keys=$($cdn -join ',')"
+T-Check "markers: cover_automation_memory namespace holds only stabilizer keys" ($badcdn.Count -eq 0) "keys=$($cdn -join ',')"
 T-Check "markers: no suspension from own moves" (-not ($names | ? { $_ -like "*::suspension" })) "suspension keys=$(($names | ? { $_ -like '*::suspension' }) -join ',')"
 T-Prep

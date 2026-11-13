@@ -216,7 +216,7 @@ Note the id and the entity_id differ: HA derives the entity_id from the **alias*
   then take each entity's first `closing`/`opening` entry.
 - **One tracker sensor per namespace** (`sensor.smarli_tracker_<namespace>`, 2026-11-13). The helpers
   in `lib/ha.ps1` accept the pseudo-namespace `cover`: an intent or the resolver fence goes to
-  `cover_intents`, every other key to `cover_recorded_state`. A sensor is `unknown`, with no
+  `cover_intents`, every other key to `cover_memory`. A sensor is `unknown`, with no
   attributes, until its first write. A namespace without a sensor stores nothing: generic tracker
   tests use `shared`.
 - **The tracker survives restarts via `.storage/core.restore_state`, not the recorder**, so
