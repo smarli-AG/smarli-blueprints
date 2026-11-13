@@ -218,3 +218,33 @@ included (render, state write, recorder, websocket subscribers). Medians of 12 b
 - **Real effect of a split by kind (intents in one sensor, per-cover records in another):** about
   50–80 ms less for 8 automations on one button, about 6–10 ms for one, about 0.13–0.22 s less loop
   work at a phase change at 22 / 132 (22 intent writes). Nothing at 1 / 12 (2 KB).
+
+## Tracker split by kind (2026-11-13, afternoon)
+
+One tracker sensor per namespace (`docs/superpowers/specs/2026-11-13-tracker-split-design.md`):
+`cover_intents` (8.4 KB at 22 / 132), `cover_recorded_state` (16.3 KB), `cover_day_night`, `shared`.
+Same probe, hub and house sizes; "before" is the previous section's package.
+
+| House (automations / covers) | On the button | Before | After the split |
+| --- | --- | --- | --- |
+| 1 / 12 | 1 | 97 ms (max 114) | 88 ms (max 103) |
+| 22 / 132 | 1 | 145 ms (max 165) | 119 ms (max 150) |
+| 22 / 132 | 8 | 557 ms (max 2133) | 431 ms (max 740) |
+
+No cover started twice or reversed; every press moved all its covers. Medians, ms after the event:
+
+| Step | 22 / 132, 8 before | after | 22 / 132, 1 before | after |
+| --- | --- | --- | --- | --- |
+| Last of the requests | 197 | 190 | 20 | 21 |
+| Deciding run reads (after the fence) | 394 | 292 | 60 | 46 |
+| Variables render | 85 | 74 | 37 | 33 |
+| Mover started | 494 | 378 | 102 | 84 |
+| First cover | 557 | 431 | 145 | 119 |
+
+- **The gain is larger than the write test predicted** (126 ms instead of 50–80 ms with 8 on the
+  button). The intent writes and the fence now render 8 KB instead of 25 KB, and the resolver's batch
+  write renders 16 KB. The decisions themselves did not change (last request at about 190 ms).
+- **0.2 s holds for one automation per button at every size.** With 8 automations on one button it
+  is 431 ms: about 190 ms of decisions (8 × about 24 ms), about 100 ms until the deciding run reads,
+  about 85 ms of resolver work, about 55 ms from mover start to the first cover.
+- The 2 s outlier of the earlier rows did not occur in these 12 presses (max 740 ms).

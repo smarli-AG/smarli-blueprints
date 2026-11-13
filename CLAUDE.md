@@ -92,15 +92,19 @@ Why this shape:
 - **`trigger.platform != 'template'`** lets any custom trigger (a different platform) through unconditionally — the guard only needs to filter the two template triggers this pattern owns.
 - **Known limit:** this only tells you *that* one of the watched relays toggled, not *which one* — with `multiple: true`, pressing relay A and pressing relay B are indistinguishable from this trigger alone. Fine for "any of these buttons does the same thing" (all-off, one shared scene); not suitable if different buttons in the same input must do different things — that needs separate inputs, one relay each.
 
-## State tracking: central tracker sensor, not predefined helpers
+## State tracking: tracker sensors, not predefined helpers
 
-For hidden/internal state in any blueprint, use the single central **trigger-based template sensor** `sensor.smarli_automation_tracker` (friendly name `smarli. Automation Tracker`) — a generic key-value store. Never require users/technicians to predefine helper entities (`input_boolean`, `input_number`, …) for tracking.
+For hidden/internal state in any blueprint, use the **tracker**: trigger-based template sensors, one per namespace, `sensor.smarli_tracker_<namespace>` — a generic key-value store. Never require users/technicians to predefine helper entities (`input_boolean`, `input_number`, …) for tracking.
 
-**Why:** requiring predefined helpers adds manual setup friction per automation. A trigger-based template sensor restores state across restarts, enables wall-switch/physical manual-operation detection (which `context` alone cannot catch), and consolidates all tracking into one debuggable entity — with core HA only.
+**Why:** requiring predefined helpers adds manual setup friction per automation. A trigger-based template sensor restores state across restarts, enables wall-switch/physical manual-operation detection (which `context` alone cannot catch), and keeps all tracking in a few debuggable entities — with core HA only.
+
+**Why one sensor per namespace (2026-11-13):** every write renders the whole sensor and hands it to the recorder and the websocket clients. With one sensor for everything, a write paid for every key of every family: on a Pi 4, 8 writes took 215 ms on a 24.6 KB tracker and about 165 ms on an 8.3 KB one. Now a write renders only the sensor of its namespace. Design: `docs/superpowers/specs/2026-11-13-tracker-split-design.md`.
 
 **Design — generic KV store:**
 
-- One attribute `data` holds everything, structured as `data[namespace][key] = value` (any JSON-serializable value: timestamps, numbers, lists, dicts).
+- Each tracker sensor has an attribute `data` = `{key: value}` (any JSON-serializable value: timestamps, numbers, lists, dicts) and a static attribute `namespace`. All of them listen to the same four events, with an `event_data: { namespace: ... }` filter on each trigger.
+- **The `data` template is the same text for every tracker sensor.** HA cannot share a template across package files (a `{% macro %}` exists only in its own template, imports read only from `custom_templates/`, and a YAML anchor works only inside one file). So each package file holds one copy (`data: &tracker_data >`) and its other tracker sensors use `data: *tracker_data`. `ci/check-tracker-templates.js` in `ha-packages` keeps the copies equal and checks each sensor's namespace and triggers. A shared macro file was rejected: one more file outside `packages/` that every installation must have.
+- **Writes that must be ordered must go to one sensor.** One sensor renders its writes in the order they were fired; two sensors give no order between them. Example: the resolver fence lives with the intents (`cover_intents`).
 - Two event types, so the intent is explicit at every call site: `smarli_tracker_set` (payload `namespace`, `key`, `value`) **upserts** the key; `smarli_tracker_remove` (payload `namespace`, `key`) **deletes** it. (A dedicated remove event is used rather than overloading "set with missing value" — a reader must be able to see a delete for what it is.)
 - Batch forms of both: `smarli_tracker_set_many` (payload `namespace`, `items` = dict key → value) and `smarli_tracker_remove_many` (payload `namespace`, `keys` = list). **A run that writes more than one key uses them.** Every write renders and publishes the whole tracker, and a script step does not yield, so one write per key and cover piles up into one long block (on a Pi 4 at 14 KB, 115 single writes in one burst blocked HA for about 3 s). Needs `smarli_core.yaml` from 2026-11-09 — an older core ignores the batch events, so a package that sends them must roll out together with the core.
 - The attribute template reads `this.attributes.data`, switches on `trigger.event.event_type`, merges/removes only the addressed key, and re-emits the whole dict. A `set` with no `value` is a safe no-op (never stores `null`).
@@ -113,18 +117,19 @@ For hidden/internal state in any blueprint, use the single central **trigger-bas
 
 **Namespaces:**
 
-- One namespace per **family** for the state every blueprint of that family shares, owned by the family's package: **`cover`** for the cover family (intents, suspensions, moving markers, watchers, `::resolved`). A manual override must pause _every_ cover automation targeting that device, and every cover blueprint reads it there.
+- A family's namespaces are split by **kind of data**, so a write of one kind never pays for the other. The cover family: **`cover_intents`** (what the automations want, plus the resolver fence) and **`cover_recorded_state`** (what smarli. has recorded about each cover: `::resolved`, `::applied`, `::watcher`, `::suspension`, `::suspended_at`, moving markers). A manual override must pause _every_ cover automation targeting that device, and every cover blueprint reads it there.
 - One namespace per **blueprint** for state only that blueprint reads (e.g. `cover_day_night` for the brightness timestamps).
-- **`shared`** only for state more than one family reads. Today nothing new; it still holds the intents of blueprints before cover_DayNight 3.2.0, which the cover resolver reads too (until 2026-11-10 all cover state lived in `shared`; `smarli_cover_namespace_migration` moves the old per-cover keys).
-- Decision rule: read by more than one family → `shared`; by more than one blueprint of one family → the family namespace; only one blueprint → its own namespace.
-- **Moving state between namespaces:** the package must stay compatible with blueprints already in the field, because packages roll out before technicians re-import blueprints. Readers look in both places until a migration has run, writers of the old version keep working, and a migration never overwrites a newer key. See the cover namespace migration (`smarli_cover.yaml`) for the pattern.
+- **`shared`** (`sensor.smarli_tracker_shared`, in `smarli_core.yaml`) only for state more than one family reads. Empty today.
+- Decision rule: read by more than one family → `shared`; by more than one blueprint of one family → a family namespace; only one blueprint → its own namespace.
+- **A family's tracker sensors live in the family's package** (`smarli_<family>.yaml`), with one copy of the template (see above). The recorder exclusion is a glob in `smarli_core.yaml` (`sensor.smarli_tracker_*`): HA cannot merge a `recorder:` block from two package files.
+- **Moving state between namespaces or sensors:** when blueprints are in the field, the package must stay compatible with them, because packages roll out before technicians re-import blueprints: readers look in both places until a migration has run, and a migration never overwrites a newer key. The 2026-11-13 split had no field instances and no migration: at the update every automation commands its covers once and running pauses are lost.
 - **Key grammar:** every tracker key is `<owner>::<name>`, owner being an automation id, an `entity_id`, or the literal `global`. This is what lets `script.smarli_tracker_gc` in `smarli_core.yaml` collect keys whose owner no longer exists without knowing any family's key names — automation ids are regenerated on every create, so delete-and-recreate would otherwise leak a key per cycle. The GC ships as two entities: the script is `script.smarli_tracker_gc`, while the automation that triggers it carries config-level `id: smarli_tracker_gc` but slugifies to `automation.smarli_tracker_garbage_collection` — don't assume the two names match.
 
 **Rules:**
 
 - Keep the sensor `state:` static (e.g. `"ok"`) — never compute live counts that go stale between events. Evaluate expiry at read-time (`expiry <= now`).
-- Read with `(state_attr('sensor.smarli_automation_tracker', 'data') or {}).get('<namespace>', {})` — safe before first render.
-- Don't route high-frequency sensor data through the tracker (every write snapshots the full attribute into the recorder).
+- Read with `state_attr('sensor.smarli_tracker_<namespace>', 'data') or {}` — safe before the first write (a new tracker sensor is `unknown` and has no attributes until then). Read it in the template that needs it; do not copy a whole sensor into a variable (HA renders every variable to text and parses it back).
+- Don't route high-frequency sensor data through the tracker (every write renders and publishes the whole sensor).
 - For snapshot-and-restore of entity states within one runtime (e.g. lights before a scene), prefer core `scene.create` with `snapshot_entities` — the tracker is for state that must survive restarts or be read by other automations.
 
 ## Delivery split: Grundinstanz package vs. blueprint
@@ -133,9 +138,9 @@ For hidden/internal state in any blueprint, use the single central **trigger-bas
 
 **Trigger distributed, logic centralized.** Blueprints keep entity-scoped state triggers on their own devices (self-registering: the set of watched entities is derived from the set of automations), but all shared logic lives in **package files**, shipped with the Grundinstanz. Packages are split by blueprint family, `smarli_<family>.yaml`, over a single foundation file — HA merges same-domain sections (`script:`, `template:`, …) across all package files at load, so multiple files each carrying a `script:` block is expected, not a conflict (entity/object IDs must stay unique, which the `smarli_` prefix guarantees):
 
-- `packages/smarli_core.yaml` (in `ha-packages`) — the **foundation every family reads**: `sensor.smarli_automation_tracker`, the KV store. Nothing family-specific goes here.
+- `packages/smarli_core.yaml` (in `ha-packages`) — the **foundation every family reads**: the tracker template, `sensor.smarli_tracker_shared`, the recorder exclusion of every tracker sensor, and the tracker garbage collection. Nothing family-specific goes here.
 - Each family with shared logic gets its own `smarli_<family>.yaml` — see the [Blueprint families](#blueprint-families) table above for what exists and where its detail lives.
-- Genuinely cross-family state stays in the tracker's `shared` namespace, in `smarli_core.yaml`.
+- Genuinely cross-family state goes to `sensor.smarli_tracker_shared`, in `smarli_core.yaml`.
 
 Retrofit ships `smarli_core.yaml` + the feature file(s) for the families in use. The Grundinstanz includes the whole `packages/` dir, so on managed instances the split is transparent.
 

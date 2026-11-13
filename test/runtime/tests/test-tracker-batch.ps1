@@ -4,7 +4,7 @@
 # - malformed payloads change nothing; the single events still work
 # - a resolver + mover cycle for 4 covers writes the tracker a few times, not once per key and cover
 . "$PSScriptRoot\..\lib\ha.ps1"; . "$PSScriptRoot\..\lib\lib-test.ps1"
-$ns = "test_batch"
+$ns = "shared"
 $covers = @("cover.vfast", "cover.vslow", "cover.living_room_window", "cover.hall_window")
 
 # Counts tracker writes: every write changes the `data` attribute, so it fires state_changed.
@@ -20,7 +20,11 @@ $extra = @"
     - trigger: event
       event_type: state_changed
       event_data:
-        entity_id: sensor.smarli_automation_tracker
+        entity_id: sensor.smarli_tracker_cover_intents
+    - trigger: event
+      event_type: state_changed
+      event_data:
+        entity_id: sensor.smarli_tracker_cover_recorded_state
   actions:
     - stop: counted
 # Counts cover service calls sent by a script (the mover); a person's calls have no parent.
@@ -123,6 +127,6 @@ $pos = ($covers | ForEach-Object { "$($_.Substring(6))=$(T-Pos $_)" }) -join ' '
 T-Check "6-5 every cover reaches 100" (@($covers | Where-Object { [math]::Abs((T-Pos $_) - 100) -gt 5 }).Count -eq 0) "pos: $pos"
 T-Check "6-5 one service call per command kind ($groups), not one per cover ($($covers.Count))" ($calls -eq $groups) "calls: $calls"
 
-HA-DelKey "shared" "stub_day::intent"
+HA-DelKey "cover" "stub_day::intent"
 HA-Apply
 T-Prep

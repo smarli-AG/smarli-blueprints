@@ -192,23 +192,16 @@ Several cover automations can control one cover. They never command it themselve
 
 **Contributor rules.** Publish only on change (edge-based — an idle house writes nothing). Publish a **target** only when genuinely deciding "move now", inside your own operating window; withdrawing a constraint outside that window means dropping the bound **silently**, with no target — otherwise a shade family whose condition clears at 22:00 reopens covers that day-night closed at 21:00. Anything that must _hold_ against later events is a bound, not a target. Keep owning your own manual detection (scripts cannot see `trigger`).
 
-Cover keys follow the general `<owner>::<name>` tracker key grammar (see root `CLAUDE.md`):
+Cover keys follow the general `<owner>::<name>` tracker key grammar (see root `CLAUDE.md`). One tracker sensor per kind of data (`sensor.smarli_tracker_<namespace>`):
 
 ```text
-cover:   <automation_id>::intent   <cover>::resolved   <cover>::suspension   <cover>::moving_<run>
-         <cover>::suspended_at   <cover>::watcher   <cover>::applied   global::resolve_fence
-shared:  <automation_id>::intent   (only blueprints before cover_DayNight 3.2.0)
-cover_day_night:  <automation_id>::bright_since | ::dark_since
+cover_intents:         <automation_id>::intent   global::resolve_fence
+cover_recorded_state:  <cover>::resolved   <cover>::applied   <cover>::watcher
+                       <cover>::suspension   <cover>::suspended_at   <cover>::moving_<run>
+cover_day_night:       <automation_id>::bright_since | ::dark_since
 ```
 
-**The family namespace `cover` (2026-11-10).** All per-cover state and the intents of cover_DayNight 3.2.0 live in `cover`, the namespace of the cover family; until then they lived in `shared`. Packages roll out before technicians re-import blueprints, so the package stays compatible with 3.1.3 automations in the field:
-
-- `smarli_cover_namespace_migration` moves every `cover.*` key from `shared` to `cover` at start and after an automation reload, drops the old fence, and never overwrites a key that already exists in `cover` (a newer one). Set before remove: renders are ordered, so no reader sees a key in neither namespace.
-- Until the migration has run, the resolver also reads `cover.*` keys still in `shared`. Without this, a resolver run right after the update would find no `::resolved` key and command every cover.
-- Intents stay where their writer puts them: 3.1.3 writes to `shared` and reads its own intent back from there, so the resolver, `smarli_cover_suspend` and the command check read intents from both namespaces (a `cover` intent wins).
-- cover_DayNight 3.2.0 reads its own intent from `cover`, else from `shared`: an automation updated from 3.1.3 must not read "never run", which would re-publish and move its covers. `smarli_cover_request` removes the old `shared` copy at the first publish.
-
-Tested in `test-namespace.ps1`.
+**One tracker sensor per kind of data (2026-11-13).** Every write renders its whole sensor, so the cover family splits its state: what the automations want (`cover_intents`) and what smarli. has recorded about each cover (`cover_recorded_state`). An intent write renders about 8 KB instead of 25 KB at 22 / 132 (8 writes: about 165 ms instead of 215 ms on the hub). The resolver fence stays with the intents: one sensor renders its writes in the order they were fired, and the fence relies on that order. No write needs both sensors. The `shared` namespace and the migration from it (2026-11-10) are gone with 3.1.3 compatibility; the split had no instance in the field, so it has no migration either. Design: `docs/superpowers/specs/2026-11-13-tracker-split-design.md`.
 
 **A genuine transition is always commanded (`transition: true`).** `<cover>::resolved` is the resolver's "sticky record": an unchanged decision is never re-commanded. That rule exists for good reasons — a re-command of a cover already in place costs a full marker/command/settle cycle (a real bug once re-commanded covers on every unchanged republish), a transition cancelled by a suspension must not be executed later (_cancel, not pause_), and the accepted "removed cover keeps its old target" gap relies on it. But the record is only a memory, not where the cover is: a one-way remote on an assumed-state cover (Somfy RTS via Overkiz) or an automation outside smarli. moves the cover unseen, and the next genuine transition to the remembered position was then dropped silently (found 2026-10-29: a remote-raised shutter never closed at the scheduled time). So a caller passes `transition: true` when it publishes because its own decision changed; the resolver then also counts as changed every cover whose winning target is that caller's. Everything else stays as it was:
 

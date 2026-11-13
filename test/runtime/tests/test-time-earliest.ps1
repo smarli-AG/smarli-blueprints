@@ -27,7 +27,7 @@ function Run-Scenario($name, $kind, $prep) {
   HA-ClearSuspensions
   $baseline = if ($kind -eq "close") { 100 } else { 0 }
   switch ($prep) {
-    "stub" { HA-StubDay @{ $c = $baseline }; Start-Sleep 4; T-Settle $c 30; HA-DelKey "shared" "stub_day::intent"; HA-ClearSuspensions }
+    "stub" { HA-StubDay @{ $c = $baseline }; Start-Sleep 4; T-Settle $c 30; HA-DelKey "cover" "stub_day::intent"; HA-ClearSuspensions }
     "hand" { HA-HandMove $c (100 - (T-Pos $c)) }
     "handkeep" {
       HA-Call "cover" "set_cover_position" @{ entity_id = $c; position = [int](100 - (T-Pos $c)) }

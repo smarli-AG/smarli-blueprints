@@ -31,22 +31,39 @@ function HA-Event {
 }
 function HA-State    { param($id) Invoke-RestMethod -Uri "$HA_BASE/api/states/$id" -Headers (HA-Headers) }
 function HA-StateStr { param($id) try { (HA-State $id).state } catch { "missing" } }
-function HA-Tracker  { (HA-State "sensor.smarli_automation_tracker").attributes.data }
+# The tracker: one sensor per namespace (sensor.smarli_tracker_<namespace>, 2026-11-13). The
+# pseudo-namespace "cover" is the cover family as one: a key goes to cover_intents when it is an
+# intent or the resolver fence, else to cover_recorded_state. So a test names "cover" and the
+# helpers find the right sensor.
+function Cover-Ns { param($key) if ($key -match '::intent$' -or $key -eq 'global::resolve_fence') { 'cover_intents' } else { 'cover_recorded_state' } }
+function Tracker-Data { param($ns) try { (HA-State "sensor.smarli_tracker_$ns").attributes.data } catch { $null } }
+# {namespace: data} of every tracker sensor, plus "cover": cover_intents and cover_recorded_state together.
+function HA-Tracker {
+  $out = [ordered]@{}
+  # A variable first: Windows PowerShell 5.1 passes a JSON array down a pipeline as one object.
+  $all = Invoke-RestMethod -Uri "$HA_BASE/api/states" -Headers (HA-Headers)
+  foreach ($s in ($all | Where-Object { $_.entity_id -like 'sensor.smarli_tracker_*' })) {
+    $out[$s.entity_id.Substring('sensor.smarli_tracker_'.Length)] = $s.attributes.data
+  }
+  $cover = [ordered]@{}
+  foreach ($ns in 'cover_intents', 'cover_recorded_state') {
+    if ($null -ne $out[$ns]) { foreach ($p in $out[$ns].PSObject.Properties) { $cover[$p.Name] = $p.Value } }
+  }
+  # New-Object, not a [pscustomobject] cast: Windows PowerShell 5.1 cannot cast a dictionary held in a variable.
+  $out['cover'] = New-Object PSObject -Property $cover
+  New-Object PSObject -Property $out
+}
 # Value of one tracker key, or $null. Property names with '::' need the quoted form.
 function HA-Key {
   param($ns, $key)
-  $d = HA-Tracker
+  $d = Tracker-Data $(if ($ns -eq 'cover') { Cover-Ns $key } else { $ns })
   if ($null -eq $d) { return $null }
-  $b = $d.$ns
-  if ($null -eq $b) { return $null }
-  $b.PSObject.Properties[$key].Value
+  $d.PSObject.Properties[$key].Value
 }
-# A cover-family key: the `cover` namespace (since 2026-11-10), else `shared` (stub contributors and
-# blueprints before cover_DayNight 3.2.0 still write their intents there).
-function HA-Shared { param($key) $v = HA-Key "cover" $key; if ($null -ne $v) { $v } else { HA-Key "shared" $key } }
+function HA-Shared { param($key) HA-Key "cover" $key }
 function HA-KeyNames { param($ns) $b = (HA-Tracker).$ns; if ($null -ne $b) { $b.PSObject.Properties | ForEach-Object { $_.Name } } }
-function HA-SetKey { param($ns, $key, $value) HA-Event "smarli_tracker_set" @{ namespace = $ns; key = $key; value = $value } }
-function HA-DelKey { param($ns, $key) HA-Event "smarli_tracker_remove" @{ namespace = $ns; key = $key } }
+function HA-SetKey { param($ns, $key, $value) HA-Event "smarli_tracker_set" @{ namespace = $(if ($ns -eq 'cover') { Cover-Ns $key } else { $ns }); key = $key; value = $value } }
+function HA-DelKey { param($ns, $key) HA-Event "smarli_tracker_remove" @{ namespace = $(if ($ns -eq 'cover') { Cover-Ns $key } else { $ns }); key = $key } }
 function HA-Template {
   param($tpl)
   Invoke-RestMethod -Uri "$HA_BASE/api/template" -Method Post -Headers (HA-Headers) `
@@ -181,16 +198,10 @@ function Build-Automations {
         payload: >
           {{ {'targets': trigger.event.data.targets, 'bounds': {}, 'priority': trigger.event.data.priority | default(10) | int,
               'ts': trigger.event.data.ts | default(as_timestamp(now())) | float(0), 'suspension_duration': trigger.event.data.susp | default(1800) | float(0)} }}
-    - event: smarli_tracker_set
-      event_data:
-        namespace: shared
-        key: stub_day::intent
-        value: "{{ payload }}"
-    - action: script.smarli_cover_resolve
+    - action: script.smarli_cover_request
       data:
         owner: stub_day
-        intent: "{{ payload }}"
-        transition: "{{ trigger.event.data.transition | default(false) | bool }}"
+        intent: "{{ dict(payload, transition=trigger.event.data.transition | default(false) | bool) }}"
 
 - id: stub_shade
   alias: stub_shade_bound
@@ -204,16 +215,10 @@ function Build-Automations {
           {{ {'targets': trigger.event.data.targets | default({}), 'bounds': trigger.event.data.bounds | default({}),
               'priority': trigger.event.data.priority | default(50) | int,
               'ts': trigger.event.data.ts | default(as_timestamp(now())) | float(0), 'suspension_duration': trigger.event.data.susp | default(1800) | float(0)} }}
-    - event: smarli_tracker_set
-      event_data:
-        namespace: shared
-        key: stub_shade::intent
-        value: "{{ payload }}"
-    - action: script.smarli_cover_resolve
+    - action: script.smarli_cover_request
       data:
         owner: stub_shade
-        intent: "{{ payload }}"
-        transition: "{{ trigger.event.data.transition | default(false) | bool }}"
+        intent: "{{ dict(payload, transition=trigger.event.data.transition | default(false) | bool) }}"
 
 - id: cover_sun_test
   alias: covers_day_night_sun

@@ -10,7 +10,7 @@ T-Prep; T-Place $c 100
 
 function Run-Case($label, $dayTarget, $dayPrio, $shadeTarget, $shadePrio, $expect) {
   if ($Fresh) {
-    HA-DelKey "shared" "stub_day::intent"; HA-DelKey "shared" "stub_shade::intent"; HA-DelKey "cover" "$c::resolved"
+    HA-DelKey "cover" "stub_day::intent"; HA-DelKey "cover" "stub_shade::intent"; HA-DelKey "cover" "$c::resolved"
     T-Place $c (100 - $expect)       # start at the opposite end so a missing command is visible
   }
   $ts = HA-Now

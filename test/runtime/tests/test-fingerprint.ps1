@@ -29,7 +29,7 @@ $i = T-Intent $id; $F2 = $i.fingerprint
 T-Check "4a-2 schedule edit (same fp2 version) re-publishes and the cover is commanded to 0" ($re -and ($F2 -ne $F1) -and ((T-Pos $c) -le 5) -and ((HA-Shared "$c::resolved") -eq 0)) "$pre | after: republished=$re ts+$([math]::Round($i.ts-$ts0,1))s fp $F1 -> $F2 resolved=$(HA-Shared "$c::resolved") cover=$(T-Cover $c)"
 
 # 4a-3: cover moved by a person-path outside smarli (suspension cleared), resolved stays 0, then a schedule edit
-HA-DelKey "shared" "stub_day::intent"
+HA-DelKey "cover" "stub_day::intent"
 HA-HandMove $c 100
 $pre = "before edit: resolved=$(HA-Shared "$c::resolved") cover=$(T-Cover $c) susp=$(HA-Shared "$c::suspension")"
 $ts0 = IntentTs
@@ -51,15 +51,12 @@ T-Check "4a-4b ...and still no republish after a natural heartbeat (observation:
 HA-Apply -Time (Close-At $C3); Reload     # back to 00:30:00
 
 function Seed($fp, $target) {
-  $v = @{ targets = @{ $c = $target }; bounds = @{}; priority = 10; ts = ((HA-Now) - 3600); suspension_duration = 1800.0 }
+  # A 3.2.0 intent: phase = what the schedule last decided (an intent without phase is no longer read).
+  $v = @{ targets = @{ $c = $target }; bounds = @{}; priority = 10; ts = ((HA-Now) - 3600); suspension_duration = 1800.0; phase = $target }
   if ($null -ne $fp) { $v.fingerprint = $fp }
   HA-SetKey "cover" "$id::intent" $v; Start-Sleep 2
   [double]$v.ts
 }
-# 4a-5: legacy intent without fingerprint, schedule wants 0 and intent says 0 -> NO reset
-$old = Seed $null 0; Reload; Start-Sleep 2
-$i = T-Intent $id
-T-Check "4a-5 legacy intent (no fingerprint, target = schedule) -> no re-publish" ([double]$i.ts -eq $old) "ts unchanged=$([double]$i.ts -eq $old) fingerprint=$($i.fingerprint)"
 # 4a-6: fp1: prefix (3.1.x, another version; the upgrade to 3.2.0) -> NO reset
 $old = Seed "fp1:00000000000000000000000000000000" 0; Reload; Start-Sleep 2
 $i = T-Intent $id

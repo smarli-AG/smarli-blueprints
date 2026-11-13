@@ -6,7 +6,6 @@
 # - burst: all 20 call at once; every decision lands; the resolver runs fewer times than there are callers
 # - spread: callers one after another, 0.2-1 s apart (not covered by hub spike S6)
 # - force: a transition intent forces its cover once, also when its caller skipped the resolver call
-# - old: the resolver call field `transition` (blueprints before 3.2.0) still forces
 # - immediate: a button request (smarli_cover.yaml 2026-11-12) has no collect window and resolves only
 #   its own covers and the covers of newer intents; mixed with a burst, no intent is lost
 param([string[]]$Only = @())
@@ -145,17 +144,6 @@ if ($Only.Count -eq 0 -or $Only -contains "force") {
   Start-Sleep 8
   T-Check "5b-3 a publish without transition does not command an unchanged decision" ((T-Pos $c) -ge 95) "pos: $(T-Pos $c) | resolved: $(HA-Shared "$c::resolved")"
   HA-DelKey "cover" "req_01::intent"; T-Settle $c 30; HA-ClearSuspensions
-}
-
-if ($Only.Count -eq 0 -or $Only -contains "old") {
-  Write-Host "`n=== 5b-4 the resolver call field transition (blueprints before 3.2.0) still forces"
-  T-Place $c 0
-  HA-SetKey "cover" "$c::resolved" 0
-  HA-HandMove $c 100; HA-ClearSuspensions
-  HA-StubDay @{ $c = 0 } -transition $true
-  $closed = HA-Wait { (T-Pos $c) -le 5 } 30 0.5
-  T-Check "5b-4 an old-style transition call commands an unchanged decision" $closed "pos: $(T-Pos $c) | resolved: $(HA-Shared "$c::resolved")"
-  HA-DelKey "shared" "stub_day::intent"; T-Settle $c 30; HA-ClearSuspensions
 }
 
 if ($Only.Count -eq 0 -or $Only -contains "immediate") {

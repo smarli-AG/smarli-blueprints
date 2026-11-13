@@ -23,7 +23,7 @@ $oldTs = (HA-Now) - 3600
 HA-SetKey "cover" "cover_time_test::intent" @{ targets = @{ $f = 0 }; bounds = @{}; priority = 10; ts = $oldTs; suspension_duration = 1800.0; fingerprint = $fp }
 HA-SetKey "cover" "$f::resolved" 0
 # (2) sentinel: no intent for the brightness instance, but a persisted dark_since older than the 20 s stabilizer
-HA-DelKey "cover" "cover_brightness_test::intent"; HA-DelKey "shared" "cover_brightness_test::intent"
+HA-DelKey "cover" "cover_brightness_test::intent"
 HA-DelKey "cover" "$b::resolved"
 HA-SetKey "cover_day_night" "cover_brightness_test::dark_since" ((HA-Now) - 100)
 Start-Sleep 2

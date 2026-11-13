@@ -43,9 +43,15 @@ function Smarli-Lines([datetime]$t) {
   $u = "$HA_BASE/api/logbook/$($t.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ'))"
   @(Invoke-RestMethod -Uri $u -Headers (HA-Headers) | Where-Object { $_.name -eq "smarli." })
 }
+# All tracker sensors together (one per namespace since 2026-11-13).
 function Tracker-Bytes {
-  $a = (HA-State "sensor.smarli_automation_tracker").attributes
-  [Text.Encoding]::UTF8.GetByteCount(($a | ConvertTo-Json -Depth 10 -Compress))
+  $n = 0
+  # A variable first: Windows PowerShell 5.1 passes a JSON array down a pipeline as one object.
+  $all = Invoke-RestMethod -Uri "$HA_BASE/api/states" -Headers (HA-Headers)
+  foreach ($s in ($all | Where-Object { $_.entity_id -like 'sensor.smarli_tracker_*' })) {
+    $n += [Text.Encoding]::UTF8.GetByteCount(($s.attributes | ConvertTo-Json -Depth 10 -Compress))
+  }
+  $n
 }
 function Report($phase, $t0, $peak) {
   $lines = Smarli-Lines $t0
@@ -93,7 +99,7 @@ $job = Start-Job { param($b, $t) Invoke-RestMethod -Method Post -Uri "$b/api/ser
 $peak = Watch-Runs 40
 Remove-Job $job -Force
 Report "reload" $t0 $peak
-$intents = @(HA-KeyNames "shared" | Where-Object { $_ -like "load_*::intent" }).Count
+$intents = @(HA-KeyNames "cover" | Where-Object { $_ -like "load_*::intent" }).Count
 $open = @($coverIds | Where-Object { (HA-StateStr $_) -eq "open" }).Count
 Write-Host "  intents written: $intents / $Autos | covers open: $open / $Covers"
 
@@ -150,7 +156,7 @@ Write-Host "  covers paused: $susp / $Covers"
 Write-Host "`n== Restore"
 HA-Apply
 T-Prep
-foreach ($k in (HA-KeyNames "shared")) { if ($k -like "load_*" -or $k -like "cover.vload*") { HA-DelKey "shared" $k } }
+foreach ($k in (HA-KeyNames "cover")) { if ($k -like "load_*" -or $k -like "cover.vload*") { HA-DelKey "cover" $k } }
 if (-not $KeepCovers) {
   Move-Item "$virtual.load-backup" $virtual -Force
   Restart-Rig

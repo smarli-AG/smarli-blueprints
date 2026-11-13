@@ -214,10 +214,11 @@ Note the id and the entity_id differ: HA derives the entity_id from the **alias*
 - **`last_changed` is the _latest_ transition, not the start of a move.** Measuring when covers
   began moving needs the history API: `/api/history/period/<iso8601>?filter_entity_id=cover.vfast,cover.vslow`,
   then take each entity's first `closing`/`opening` entry.
-- **The tracker cannot delete a namespace.** `smarli_tracker_remove` removes a key and always
-  re-inserts the (possibly empty) namespace bucket. Emptied namespaces persist; assert on keys.
-  They can be purged out-of-band by POSTing a cleaned `data` attribute to
-  `/api/states/sensor.smarli_automation_tracker`.
+- **One tracker sensor per namespace** (`sensor.smarli_tracker_<namespace>`, 2026-11-13). The helpers
+  in `lib/ha.ps1` accept the pseudo-namespace `cover`: an intent or the resolver fence goes to
+  `cover_intents`, every other key to `cover_recorded_state`. A sensor is `unknown`, with no
+  attributes, until its first write. A namespace without a sensor stores nothing: generic tracker
+  tests use `shared`.
 - **The tracker survives restarts via `.storage/core.restore_state`, not the recorder**, so
   excluding it from the recorder is safe and does not lose state across a restart.
 - **PowerShell here is 5.1**: no `&&`/`||` chaining, no ternary, no `if(){}` as an expression.
@@ -311,7 +312,6 @@ until the PC wakes.
 | `test-cheap-paths.ps1`                                        | 3.2.0 cheap runs: a cover state change carries no decision variables (trace) and ends in conditions when smarli. caused it; `suspend` writes `<cover>::suspended_at`; the resolver elects one watcher per cover and skips a winner that does not watch; a stale watcher is ignored; within 60 s of a pause the end state ends in conditions; after that only the elected watcher goes on; a custom trigger decides and moves, and a person's command during that move pauses. Uses the real per-minute heartbeat (the 5 s one would push runs out of the 5 stored traces) and a second time instance on `cover.vbright` |
 | `test-request.ps1`                                            | `smarli_cover_request`: 20 request automations, each the only caller for a ghost cover (no entity, paused, so nothing moves). A burst of all 20 lands every decision and the resolver runs fewer times than there are callers; callers 0.2–1 s apart lose no intent; a transition in the intent forces its cover once, also when its caller skipped the resolver call; the old resolver call field `transition` still forces; immediate (button) requests: mixed into a burst, every decision lands; a lone one has no collect window and no fence; a button run leaves covers of older intents alone, the next full run decides them again |
 | `test-tracker-batch.ps1`                                      | Tracker batch events: `smarli_tracker_set_many` writes every key in one write, skips null values and empty keys, overwrites existing keys; `smarli_tracker_remove_many` removes exactly the listed keys; malformed payloads change nothing; the single events still work; a resolver + mover cycle for 4 covers writes the tracker at most 8 times (17 with one write per key and cover); the mover sends one service call per command kind, not one per cover |
-| `test-namespace.ps1`                                          | Cover namespace: the migration moves `cover.*` keys from `shared` to `cover` after a reload, keeps intents in `shared`, drops the old fence and never overwrites a newer key; before the migration the resolver still reads an old `::resolved` in `shared` (no move); `smarli_cover_request` removes the caller's old intent from `shared`; an automation updated from 3.1.3 reads its old intent from `shared` and does not re-publish or move |
 
 The Phase 1 scripts (`test-part1*.ps1`, `racetest.ps1`, `verify-assumptions.ps1`) were lost with
 the old folder and not rebuilt.

@@ -78,16 +78,16 @@ if ($Only.Count -eq 0 -or $Only -contains "watcher") {
   $w0 = HA-Shared "$c::watcher"
   T-Check "5a-3 a watcher is elected after the reload" ($w0 -in @("automation.covers_day_night_time", "automation.covers_day_night_time2")) "watcher: $w0"
   $p = @{ targets = @{ $c = 100 }; bounds = @{}; priority = 10; ts = (HA-Now) + 5; suspension_duration = 1800; watches = $false }
-  HA-SetKey "shared" "stub_day::intent" $p
+  HA-SetKey "cover" "stub_day::intent" $p
   HA-Call "script" "smarli_cover_resolve" @{ owner = "stub_day"; intent = $p }; Start-Sleep 2
   $w1 = HA-Shared "$c::watcher"
   T-Check "5a-3 a newer winner that does not watch is not elected" ($w1 -in @("automation.covers_day_night_time", "automation.covers_day_night_time2")) "watcher: $w1"
   $p.watches = $true; $p.ts = (HA-Now) + 6
-  HA-SetKey "shared" "stub_day::intent" $p
+  HA-SetKey "cover" "stub_day::intent" $p
   HA-Call "script" "smarli_cover_resolve" @{ owner = "stub_day"; intent = $p }; Start-Sleep 2
   $w2 = HA-Shared "$c::watcher"
   T-Check "5a-3 a winner that watches is elected" ($w2 -eq "automation.stub_day_target") "watcher: $w2"
-  HA-DelKey "shared" "stub_day::intent"; Start-Sleep 1
+  HA-DelKey "cover" "stub_day::intent"; Start-Sleep 1
   # The key still names the stub until the resolver runs again. A resolver run elects a blueprint instance.
   HA-Call "script" "smarli_cover_resolve" @{}; Start-Sleep 2
   T-Check "5a-3 without the stub, the next resolver run elects a blueprint instance" ((HA-Shared "$c::watcher") -in @("automation.covers_day_night_time", "automation.covers_day_night_time2")) "watcher: $(HA-Shared "$c::watcher")"
