@@ -13,7 +13,7 @@
 ## - Less load on the hub: a cover state change no longer computes the schedule. Only the heartbeat, a reload, a start and the custom triggers do.
 ## - Manual detection runs once per cover, not once per automation: one automation per cover is elected to check a hand move. A state change caused by an automation, the end of a smarli. move, and repeat changes within 60 s of a pause end the run early, with no logbook entry.
 ## - Covers are requested through the new script smarli_cover_request. When many automations change phase in the same minute, one resolver run decides for all of them.
-## - A publishing run is cheaper: the settings and the decision are three dicts (cfg, d, inst) instead of about 100 variables. Custom actions and conditions that read a decision variable must use the new name, e.g. inst.desired_position.
+## - A publishing run is cheaper: the settings and the decision are three dicts (inputs, schedule, decision) instead of about 100 variables. Custom actions and conditions that read a decision variable must use the new name, e.g. decision.desired_position.
 ## - The cover state (intents, pauses, moving markers, watchers) lives in the tracker namespace `cover` instead of `shared`. An automation updated from 3.1.3 reads its old intent from `shared` until its first publish, so the update does not move covers.
 ## - Custom triggers (e.g. a button) move the covers faster: the request asks for an immediate resolve, with no collect window and only for the covers that need it. A cover paused by hand still does not move.
 ## - Needs the smarli. Cover package from 2026-11-12 (smarli_cover_request with `immediate`, cover namespace). With a package from 2026-11-10, custom triggers keep the old speed. With an older package, the covers do not move.
@@ -1310,13 +1310,13 @@ blueprint:
 # Only what every trigger needs. HA renders these on EVERY run, before the
 # conditions, and on a Pi every render blocks all of HA. A cover state change
 # starts every automation that watches the cover, so this block stays small.
-# The settings resolution and the decision logic are the `decide` block on the
+# The settings resolution and the decision logic are the `evaluate_schedule` block on the
 # triggers that decide (see Triggers): HA renders trigger variables only for
 # their own trigger. Trigger variables render BEFORE this block and cannot use
-# `this`, so `decide` merges only the settings below (`<<: *settings`), and the
+# `this`, so `evaluate_schedule` merges only the settings below (`<<: *settings`), and the
 # part that needs this automation's id stays here (see "instance part").
 variables: &instance
-  # The settings every trigger needs; `decide` merges them (`<<: *settings`).
+  # The settings every trigger needs; `evaluate_schedule` merges them (`<<: *settings`).
   <<: &settings
     should_suspend_after_manual_interaction: !input should_suspend_after_manual_interaction
     suspension_duration: !input suspension_duration
@@ -1329,11 +1329,11 @@ variables: &instance
   # --- instance part ------------------------------------------------------
   # Everything that needs this automation's own id: its stored brightness
   # timestamps, its last published intent, and what depends on them. `this` is
-  # not defined in trigger variables, so this part cannot live in `decide`.
-  # It renders for real only after `decide` (decide_ready); on any other run
+  # not defined in trigger variables, so this part cannot live in `evaluate_schedule`.
+  # It renders for real only after `evaluate_schedule` (schedule_evaluated); on any other run
   # (a cover state change) it is an empty dict. It reads single tracker keys,
-  # never a whole namespace. One variable for the same reason as `cfg` and `d`
-  # (see Triggers). Read as inst.<name>:
+  # never a whole namespace. One variable for the same reason as `inputs` and `schedule`
+  # (see Triggers). Read as decision.<name>:
   #   bright_since / dark_since  when each brightness threshold was first crossed
   #                              (<id>::bright_since / <id>::dark_since in this
   #                              blueprint's namespace), or none
@@ -1373,32 +1373,32 @@ variables: &instance
   # resolver's "only if changed". The flag rides in the intent, not in the call,
   # so it also works when smarli_cover_request leaves the resolving to a run
   # another automation started.
-  inst: >
-    {% if decide_ready is not defined %}{}{% else %}
+  decision: >
+    {% if schedule_evaluated is not defined %}{}{% else %}
     {% set tracker = state_attr('sensor.smarli_automation_tracker', 'data') or {} %}
     {% set own = tracker.get('cover_day_night', {}) %}
     {% set bright_since = own.get(instance_id ~ '::bright_since') %}
     {% set dark_since = own.get(instance_id ~ '::dark_since') %}
-    {% set m = cfg.daynight_cycle_method %}
+    {% set m = inputs.daynight_cycle_method %}
     {% set stabilizer_needs_update = m == 'brightness' and (
-         (d.bright_enough_to_open and bright_since is none) or (not d.bright_enough_to_open and bright_since is not none)
-         or (d.dark_enough_to_close and dark_since is none) or (not d.dark_enough_to_close and dark_since is not none)) %}
+         (schedule.bright_enough_to_open and bright_since is none) or (not schedule.bright_enough_to_open and bright_since is not none)
+         or (schedule.dark_enough_to_close and dark_since is none) or (not schedule.dark_enough_to_close and dark_since is not none)) %}
     {# Which phase does the schedule put us in right now? Each combines the chosen
        method with the optional earliest (delays) and latest (forces) time windows. #}
     {% if m == 'sun' %}
-      {% set wants_open = d.todays_sunrise | float(0) > 0 and now_ts >= d.todays_sunrise | float(0) + d.sunrise_offset_seconds | float(0) %}
-      {% set wants_closed = d.todays_sunset | float(0) > 0 and now_ts >= d.todays_sunset | float(0) + d.sunset_offset_seconds | float(0) %}
+      {% set wants_open = schedule.todays_sunrise | float(0) > 0 and now_ts >= schedule.todays_sunrise | float(0) + schedule.sunrise_offset_seconds | float(0) %}
+      {% set wants_closed = schedule.todays_sunset | float(0) > 0 and now_ts >= schedule.todays_sunset | float(0) + schedule.sunset_offset_seconds | float(0) %}
     {% elif m == 'time' %}
-      {% set wants_open = now_ts >= as_timestamp(today_at(d.open_time)) %}
-      {% set wants_closed = now_ts >= as_timestamp(today_at(d.close_time)) %}
+      {% set wants_open = now_ts >= as_timestamp(today_at(schedule.open_time)) %}
+      {% set wants_closed = now_ts >= as_timestamp(today_at(schedule.close_time)) %}
     {% else %}
-      {% set wants_open = d.brightness_open_armed and bright_since is not none and (now_ts - bright_since | float(0)) >= d.stabilizer_seconds | float(0) %}
-      {% set wants_closed = d.brightness_close_armed and dark_since is not none and (now_ts - dark_since | float(0)) >= d.stabilizer_seconds | float(0) %}
+      {% set wants_open = schedule.brightness_open_armed and bright_since is not none and (now_ts - bright_since | float(0)) >= schedule.stabilizer_seconds | float(0) %}
+      {% set wants_closed = schedule.brightness_close_armed and dark_since is not none and (now_ts - dark_since | float(0)) >= schedule.stabilizer_seconds | float(0) %}
     {% endif %}
-    {% if cfg.should_use_earliest_open and now_ts < as_timestamp(today_at(d.earliest_open_time)) %}{% set wants_open = false %}{% endif %}
-    {% if cfg.should_use_latest_open and now_ts >= as_timestamp(today_at(d.latest_open_time)) %}{% set wants_open = true %}{% endif %}
-    {% if cfg.should_use_earliest_close and now_ts < as_timestamp(today_at(d.earliest_close_time)) %}{% set wants_closed = false %}{% endif %}
-    {% if cfg.should_use_latest_close and now_ts >= as_timestamp(today_at(d.latest_close_time)) %}{% set wants_closed = true %}{% endif %}
+    {% if inputs.should_use_earliest_open and now_ts < as_timestamp(today_at(schedule.earliest_open_time)) %}{% set wants_open = false %}{% endif %}
+    {% if inputs.should_use_latest_open and now_ts >= as_timestamp(today_at(schedule.latest_open_time)) %}{% set wants_open = true %}{% endif %}
+    {% if inputs.should_use_earliest_close and now_ts < as_timestamp(today_at(schedule.earliest_close_time)) %}{% set wants_closed = false %}{% endif %}
+    {% if inputs.should_use_latest_close and now_ts >= as_timestamp(today_at(schedule.latest_close_time)) %}{% set wants_closed = true %}{% endif %}
     {# The own intent lives in `cover`; an automation updated from 3.1.3 still has
        it in `shared` until its first publish, and must not read it as "never run". #}
     {% set my_intent = tracker.get('cover', {}).get(instance_id ~ '::intent')
@@ -1414,13 +1414,13 @@ variables: &instance
     {% set last_scheduled = phase | int(-1) if phase is not none and settings_unchanged else -1 %}
     {# Closing wins over opening in the evening overlap; outside both phases we
        hold the last scheduled decision. #}
-    {% set desired_position = d.position_closed if wants_closed
-                              else (d.position_open if wants_open else last_scheduled) %}
+    {% set desired_position = schedule.position_closed if wants_closed
+                              else (schedule.position_open if wants_open else last_scheduled) %}
     {% set ns = namespace(targets=[]) %}
     {% for c in cover_entities %}{% set ns.targets = ns.targets + [(c, desired_position | int)] %}{% endfor %}
     {% set custom = trigger.id | default('') in ['custom_open', 'custom_close'] %}
-    {% set targets = d.open_targets if trigger.id | default('') == 'custom_open'
-                     else (d.closed_targets if trigger.id | default('') == 'custom_close'
+    {% set targets = schedule.open_targets if trigger.id | default('') == 'custom_open'
+                     else (schedule.closed_targets if trigger.id | default('') == 'custom_close'
                            else dict(ns.targets)) %}
     {% set phase = desired_position if not custom
                    else (last_scheduled if last_scheduled | int >= 0 else desired_position) %}
@@ -1429,7 +1429,7 @@ variables: &instance
         'last_scheduled': last_scheduled | int, 'desired_position': desired_position | int,
         'transition_needed': desired_position | int != last_scheduled | int,
         'intent_payload': {'targets': targets, 'bounds': {}, 'priority': 10,
-          'ts': now_ts | float(0), 'suspension_duration': d.suspension_seconds | float(0),
+          'ts': now_ts | float(0), 'suspension_duration': schedule.suspension_seconds | float(0),
           'phase': phase | int, 'fingerprint': schedule_fingerprint, 'watches': true,
           'transition': trigger.id | default('') == 'heartbeat'}} }}
     {% endif %}
@@ -1446,19 +1446,19 @@ triggers:
     # Rendered only for this trigger and the two below that reuse it, never for
     # a cover state change. Custom triggers render it in their own branch (see
     # Actions). Triggers stay dumb: they never use these variables.
-    variables: &decide
+    variables: &evaluate_schedule
       <<: *settings
       # Set only here: the instance part at the top level renders for real only
       # when the decision has rendered (see Variables).
-      decide_ready: true
+      schedule_evaluated: true
       now_ts: "{{ as_timestamp(now()) }}"
 
-      # The raw inputs and the derived values are two dicts, `cfg` and `d`, not
+      # The raw inputs and the derived values are two dicts, `inputs` and `schedule`, not
       # about 85 single variables. HA walks every variable in scope at every step
       # of a run (trace snapshot and scope lookups) and renders each one on its
       # own: on a Pi 4, 12 steps took 47 ms with 100 variables and 8 ms with 3
       # (hub spike, 2026-11-10). At a phase change every automation runs at once.
-      cfg:
+      inputs:
         daynight_cycle_method: !input daynight_cycle_method
         workday_tracker: !input workday_tracker
         workday_tomorrow_tracker: !input workday_tomorrow_tracker
@@ -1507,21 +1507,22 @@ triggers:
         wind_speed_threshold_input: !input wind_speed_threshold
         wind_speed_threshold_helper: !input wind_speed_threshold_helper
 
-      # Every derived value of the decision, read as d.<name>. Resolution pattern
+      # Today's schedule, worked out from the inputs, plus the current readings
+      # (brightness, weather), read as schedule.<name>. Resolution pattern
       # used throughout: pick the workday or non-workday value, prefer the helper
       # entity's value over the blueprint input, and fall back to the input
       # default if the helper is empty or doesn't hold a valid value.
-      d: >
-        {% set m = cfg.daynight_cycle_method %}
-        {% set is_workday = cfg.workday_tracker != '' and is_state(cfg.workday_tracker, 'on') %}
-        {% set is_workday_tomorrow = cfg.workday_tomorrow_tracker != '' and is_state(cfg.workday_tomorrow_tracker, 'on') %}
+      schedule: >
+        {% set m = inputs.daynight_cycle_method %}
+        {% set is_workday = inputs.workday_tracker != '' and is_state(inputs.workday_tracker, 'on') %}
+        {% set is_workday_tomorrow = inputs.workday_tomorrow_tracker != '' and is_state(inputs.workday_tomorrow_tracker, 'on') %}
 
         {# --- sun method. An offset may be negative (open before actual sunrise). #}
-        {% set minutes = states(cfg.sunrise_offset_helper) | float(cfg.sunrise_offset_input)
-           if cfg.sunrise_offset_helper != '' else cfg.sunrise_offset_input %}
+        {% set minutes = states(inputs.sunrise_offset_helper) | float(inputs.sunrise_offset_input)
+           if inputs.sunrise_offset_helper != '' else inputs.sunrise_offset_input %}
         {% set sunrise_offset_seconds = minutes | float(0) * 60 %}
-        {% set minutes = states(cfg.sunset_offset_helper) | float(cfg.sunset_offset_input)
-           if cfg.sunset_offset_helper != '' else cfg.sunset_offset_input %}
+        {% set minutes = states(inputs.sunset_offset_helper) | float(inputs.sunset_offset_input)
+           if inputs.sunset_offset_helper != '' else inputs.sunset_offset_input %}
         {% set sunset_offset_seconds = minutes | float(0) * 60 %}
         {# sun.sun's next_rising/next_setting always point to the future; subtract a
            day when they already point to tomorrow to get *today's* event (approx,
@@ -1534,23 +1535,23 @@ triggers:
            else (next if next | timestamp_custom('%j') == now_ts | timestamp_custom('%j') else next - 86400) %}
 
         {# --- time method #}
-        {% set helper = cfg.time_open_workday_helper if is_workday else cfg.time_open_non_workday_helper %}
-        {% set fallback = cfg.time_open_workday if is_workday else cfg.time_open_non_workday %}
+        {% set helper = inputs.time_open_workday_helper if is_workday else inputs.time_open_non_workday_helper %}
+        {% set fallback = inputs.time_open_workday if is_workday else inputs.time_open_non_workday %}
         {% set value = states(helper) if helper != '' else fallback %}
         {% set open_time = value if ':' in value else fallback %}
-        {% set helper = cfg.time_close_workday_tomorrow_helper if is_workday_tomorrow else cfg.time_close_non_workday_tomorrow_helper %}
-        {% set fallback = cfg.time_close_workday_tomorrow if is_workday_tomorrow else cfg.time_close_non_workday_tomorrow %}
+        {% set helper = inputs.time_close_workday_tomorrow_helper if is_workday_tomorrow else inputs.time_close_non_workday_tomorrow_helper %}
+        {% set fallback = inputs.time_close_workday_tomorrow if is_workday_tomorrow else inputs.time_close_non_workday_tomorrow %}
         {% set value = states(helper) if helper != '' else fallback %}
         {% set close_time = value if ':' in value else fallback %}
 
         {# --- brightness method. The stabilizer: how long brightness must stay past
            a threshold before acting. #}
-        {% set stabilizer_seconds = (cfg.lux_sensor_delay | as_timedelta).total_seconds() %}
-        {% set open_lux_level = states(cfg.brightness_open_helper) | float(cfg.brightness_open_input)
-           if cfg.brightness_open_helper != '' else cfg.brightness_open_input %}
-        {% set close_lux_level = states(cfg.brightness_close_helper) | float(cfg.brightness_close_input)
-           if cfg.brightness_close_helper != '' else cfg.brightness_close_input %}
-        {% set lux = states(cfg.brightness_sensor) | float(-1) if cfg.brightness_sensor != '' else -1 %}
+        {% set stabilizer_seconds = (inputs.lux_sensor_delay | as_timedelta).total_seconds() %}
+        {% set open_lux_level = states(inputs.brightness_open_helper) | float(inputs.brightness_open_input)
+           if inputs.brightness_open_helper != '' else inputs.brightness_open_input %}
+        {% set close_lux_level = states(inputs.brightness_close_helper) | float(inputs.brightness_close_input)
+           if inputs.brightness_close_helper != '' else inputs.brightness_close_input %}
+        {% set lux = states(inputs.brightness_sensor) | float(-1) if inputs.brightness_sensor != '' else -1 %}
         {# Instantaneous readings (before the stabilizer delay is applied). #}
         {% set bright_enough_to_open = m == 'brightness' and lux >= 0 and lux >= open_lux_level | float(0) %}
         {% set dark_enough_to_close = m == 'brightness' and lux >= 0 and lux <= close_lux_level | float(0) %}
@@ -1575,34 +1576,34 @@ triggers:
            and now_ts >= todays_sunset | float(0) - brightness_offset_sunrise_sunset %}
 
         {# --- earliest / latest #}
-        {% set helper = cfg.earliest_open_workday_helper if is_workday else cfg.earliest_open_non_workday_helper %}
-        {% set fallback = cfg.earliest_open_workday if is_workday else cfg.earliest_open_non_workday %}
+        {% set helper = inputs.earliest_open_workday_helper if is_workday else inputs.earliest_open_non_workday_helper %}
+        {% set fallback = inputs.earliest_open_workday if is_workday else inputs.earliest_open_non_workday %}
         {% set value = states(helper) if helper != '' else fallback %}
         {% set earliest_open_time = value if ':' in value else fallback %}
-        {% set helper = cfg.earliest_close_workday_tomorrow_helper if is_workday_tomorrow else cfg.earliest_close_non_workday_tomorrow_helper %}
-        {% set fallback = cfg.earliest_close_workday_tomorrow if is_workday_tomorrow else cfg.earliest_close_non_workday_tomorrow %}
+        {% set helper = inputs.earliest_close_workday_tomorrow_helper if is_workday_tomorrow else inputs.earliest_close_non_workday_tomorrow_helper %}
+        {% set fallback = inputs.earliest_close_workday_tomorrow if is_workday_tomorrow else inputs.earliest_close_non_workday_tomorrow %}
         {% set value = states(helper) if helper != '' else fallback %}
         {% set earliest_close_time = value if ':' in value else fallback %}
-        {% set helper = cfg.latest_open_workday_helper if is_workday else cfg.latest_open_non_workday_helper %}
-        {% set fallback = cfg.latest_open_workday if is_workday else cfg.latest_open_non_workday %}
+        {% set helper = inputs.latest_open_workday_helper if is_workday else inputs.latest_open_non_workday_helper %}
+        {% set fallback = inputs.latest_open_workday if is_workday else inputs.latest_open_non_workday %}
         {% set value = states(helper) if helper != '' else fallback %}
         {% set latest_open_time = value if ':' in value else fallback %}
-        {% set helper = cfg.latest_close_workday_tomorrow_helper if is_workday_tomorrow else cfg.latest_close_non_workday_tomorrow_helper %}
-        {% set fallback = cfg.latest_close_workday_tomorrow if is_workday_tomorrow else cfg.latest_close_non_workday_tomorrow %}
+        {% set helper = inputs.latest_close_workday_tomorrow_helper if is_workday_tomorrow else inputs.latest_close_non_workday_tomorrow_helper %}
+        {% set fallback = inputs.latest_close_workday_tomorrow if is_workday_tomorrow else inputs.latest_close_non_workday_tomorrow %}
         {% set value = states(helper) if helper != '' else fallback %}
         {% set latest_close_time = value if ':' in value else fallback %}
 
         {# --- weather #}
-        {% set wind_speed_limit = states(cfg.wind_speed_threshold_helper) | float(cfg.wind_speed_threshold_input)
-           if cfg.wind_speed_threshold_helper != '' else cfg.wind_speed_threshold_input %}
+        {% set wind_speed_limit = states(inputs.wind_speed_threshold_helper) | float(inputs.wind_speed_threshold_input)
+           if inputs.wind_speed_threshold_helper != '' else inputs.wind_speed_threshold_input %}
         {# Do any selected weather events correspond to each dedicated sensor? The
            sensors are real-time proxies, so they only block if the user actually
            asked to block on that kind of weather. Wet events = precipitation-type
            conditions (the ones a moisture sensor stands in for); wind is the
            'windy' condition. #}
         {% set wet_events = ['rainy', 'pouring', 'lightning', 'lightning-rainy', 'snowy-rainy'] %}
-        {% set rain_events_selected = cfg.weather_events | select('in', wet_events) | list | count > 0 %}
-        {% set wind_events_selected = 'windy' in cfg.weather_events %}
+        {% set rain_events_selected = inputs.weather_events | select('in', wet_events) | list | count > 0 %}
+        {% set wind_events_selected = 'windy' in inputs.weather_events %}
         {# The threshold is in km/h; sensors and weather entities report in their own
            unit. A unit missing from this table (e.g. Beaufort) makes the speed
            unknown rather than being compared raw against a km/h limit. #}
@@ -1610,13 +1611,13 @@ triggers:
         {# Current wind speed in km/h: the dedicated sensor if set, otherwise the
            weather entity's wind_speed attribute. -1 = unknown, never blocks. A
            sensor without a unit is taken as km/h. #}
-        {% if cfg.wind_sensor != '' %}
-          {% set v = states(cfg.wind_sensor) %}
-          {% set u = state_attr(cfg.wind_sensor, 'unit_of_measurement') %}
+        {% if inputs.wind_sensor != '' %}
+          {% set v = states(inputs.wind_sensor) %}
+          {% set u = state_attr(inputs.wind_sensor, 'unit_of_measurement') %}
           {% set f = 1 if u in [none, ''] else wind_unit_to_kmh.get(u) %}
-        {% elif cfg.weather_entity != '' %}
-          {% set v = state_attr(cfg.weather_entity, 'wind_speed') %}
-          {% set f = wind_unit_to_kmh.get(state_attr(cfg.weather_entity, 'wind_speed_unit')) %}
+        {% elif inputs.weather_entity != '' %}
+          {% set v = state_attr(inputs.weather_entity, 'wind_speed') %}
+          {% set f = wind_unit_to_kmh.get(state_attr(inputs.weather_entity, 'wind_speed_unit')) %}
         {% else %}
           {% set v = none %}
           {% set f = none %}
@@ -1627,8 +1628,8 @@ triggers:
            speed reaches the threshold (each only when the matching weather event
            was selected). #}
         {% set weather_blocked_now =
-             (cfg.weather_entity != '' and cfg.weather_events | count > 0 and states(cfg.weather_entity) in cfg.weather_events)
-             or (cfg.rain_sensor != '' and rain_events_selected and is_state(cfg.rain_sensor, 'on'))
+             (inputs.weather_entity != '' and inputs.weather_events | count > 0 and states(inputs.weather_entity) in inputs.weather_events)
+             or (inputs.rain_sensor != '' and rain_events_selected and is_state(inputs.rain_sensor, 'on'))
              or (wind_events_selected and current_wind_kmh | float(-1) >= 0
                  and current_wind_kmh | float(-1) >= wind_speed_limit | float(0)) %}
 
@@ -1650,15 +1651,15 @@ triggers:
            error, the heartbeat finds no transition), so it is written to the
            logbook once per reload and start. The times are the effective ones: the
            first moment each phase is due, with earliest and latest applied as in
-           inst (wants_open / wants_closed). Empty text = fine. #}
+           decision (wants_open / wants_closed). Empty text = fine. #}
         {% set order_warning = '' %}
         {% if m == 'time' %}
           {% set o = as_timestamp(today_at(open_time)) %}
           {% set c = as_timestamp(today_at(close_time)) %}
-          {% if cfg.should_use_earliest_open %}{% set o = [o, as_timestamp(today_at(earliest_open_time))] | max %}{% endif %}
-          {% if cfg.should_use_latest_open %}{% set o = [o, as_timestamp(today_at(latest_open_time))] | min %}{% endif %}
-          {% if cfg.should_use_earliest_close %}{% set c = [c, as_timestamp(today_at(earliest_close_time))] | max %}{% endif %}
-          {% if cfg.should_use_latest_close %}{% set c = [c, as_timestamp(today_at(latest_close_time))] | min %}{% endif %}
+          {% if inputs.should_use_earliest_open %}{% set o = [o, as_timestamp(today_at(earliest_open_time))] | max %}{% endif %}
+          {% if inputs.should_use_latest_open %}{% set o = [o, as_timestamp(today_at(latest_open_time))] | min %}{% endif %}
+          {% if inputs.should_use_earliest_close %}{% set c = [c, as_timestamp(today_at(earliest_close_time))] | max %}{% endif %}
+          {% if inputs.should_use_latest_close %}{% set c = [c, as_timestamp(today_at(latest_close_time))] | min %}{% endif %}
           {% if o >= c %}
             {% set order_warning = 'Retract time ' ~ (o | timestamp_custom('%H:%M')) ~ ' is not before extend time '
                                    ~ (c | timestamp_custom('%H:%M')) ~ ': extending wins whenever both are due, so the covers never retract' %}
@@ -1695,62 +1696,62 @@ triggers:
       # stored fingerprint of another version as matching, so a release never
       # re-commands the whole fleet. The prefix also keeps HA from re-parsing an
       # all-digit hash as a number after rendering. fp2 (3.2.0): the inputs moved
-      # into `cfg`; the hashed values are the same as in fp1.
+      # into one dict (`inputs`); the hashed values are the same as in fp1.
       schedule_fingerprint: >
         {{ 'fp2:' ~ ({
-             'daynight_cycle_method': cfg.daynight_cycle_method,
-             'workday_tracker': cfg.workday_tracker,
-             'workday_tomorrow_tracker': cfg.workday_tomorrow_tracker,
-             'sunrise_offset_input': cfg.sunrise_offset_input,
-             'sunrise_offset_helper': cfg.sunrise_offset_helper,
-             'sunset_offset_input': cfg.sunset_offset_input,
-             'sunset_offset_helper': cfg.sunset_offset_helper,
-             'time_open_workday': cfg.time_open_workday,
-             'time_open_workday_helper': cfg.time_open_workday_helper,
-             'time_open_non_workday': cfg.time_open_non_workday,
-             'time_open_non_workday_helper': cfg.time_open_non_workday_helper,
-             'time_close_workday_tomorrow': cfg.time_close_workday_tomorrow,
-             'time_close_workday_tomorrow_helper': cfg.time_close_workday_tomorrow_helper,
-             'time_close_non_workday_tomorrow': cfg.time_close_non_workday_tomorrow,
-             'time_close_non_workday_tomorrow_helper': cfg.time_close_non_workday_tomorrow_helper,
-             'brightness_sensor': cfg.brightness_sensor,
-             'lux_sensor_delay': cfg.lux_sensor_delay,
-             'brightness_open_input': cfg.brightness_open_input,
-             'brightness_open_helper': cfg.brightness_open_helper,
-             'brightness_close_input': cfg.brightness_close_input,
-             'brightness_close_helper': cfg.brightness_close_helper,
-             'should_use_earliest_open': cfg.should_use_earliest_open,
-             'earliest_open_workday': cfg.earliest_open_workday,
-             'earliest_open_workday_helper': cfg.earliest_open_workday_helper,
-             'earliest_open_non_workday': cfg.earliest_open_non_workday,
-             'earliest_open_non_workday_helper': cfg.earliest_open_non_workday_helper,
-             'should_use_earliest_close': cfg.should_use_earliest_close,
-             'earliest_close_workday_tomorrow': cfg.earliest_close_workday_tomorrow,
-             'earliest_close_workday_tomorrow_helper': cfg.earliest_close_workday_tomorrow_helper,
-             'earliest_close_non_workday_tomorrow': cfg.earliest_close_non_workday_tomorrow,
-             'earliest_close_non_workday_tomorrow_helper': cfg.earliest_close_non_workday_tomorrow_helper,
-             'should_use_latest_open': cfg.should_use_latest_open,
-             'latest_open_workday': cfg.latest_open_workday,
-             'latest_open_workday_helper': cfg.latest_open_workday_helper,
-             'latest_open_non_workday': cfg.latest_open_non_workday,
-             'latest_open_non_workday_helper': cfg.latest_open_non_workday_helper,
-             'should_use_latest_close': cfg.should_use_latest_close,
-             'latest_close_workday_tomorrow': cfg.latest_close_workday_tomorrow,
-             'latest_close_workday_tomorrow_helper': cfg.latest_close_workday_tomorrow_helper,
-             'latest_close_non_workday_tomorrow': cfg.latest_close_non_workday_tomorrow,
-             'latest_close_non_workday_tomorrow_helper': cfg.latest_close_non_workday_tomorrow_helper,
+             'daynight_cycle_method': inputs.daynight_cycle_method,
+             'workday_tracker': inputs.workday_tracker,
+             'workday_tomorrow_tracker': inputs.workday_tomorrow_tracker,
+             'sunrise_offset_input': inputs.sunrise_offset_input,
+             'sunrise_offset_helper': inputs.sunrise_offset_helper,
+             'sunset_offset_input': inputs.sunset_offset_input,
+             'sunset_offset_helper': inputs.sunset_offset_helper,
+             'time_open_workday': inputs.time_open_workday,
+             'time_open_workday_helper': inputs.time_open_workday_helper,
+             'time_open_non_workday': inputs.time_open_non_workday,
+             'time_open_non_workday_helper': inputs.time_open_non_workday_helper,
+             'time_close_workday_tomorrow': inputs.time_close_workday_tomorrow,
+             'time_close_workday_tomorrow_helper': inputs.time_close_workday_tomorrow_helper,
+             'time_close_non_workday_tomorrow': inputs.time_close_non_workday_tomorrow,
+             'time_close_non_workday_tomorrow_helper': inputs.time_close_non_workday_tomorrow_helper,
+             'brightness_sensor': inputs.brightness_sensor,
+             'lux_sensor_delay': inputs.lux_sensor_delay,
+             'brightness_open_input': inputs.brightness_open_input,
+             'brightness_open_helper': inputs.brightness_open_helper,
+             'brightness_close_input': inputs.brightness_close_input,
+             'brightness_close_helper': inputs.brightness_close_helper,
+             'should_use_earliest_open': inputs.should_use_earliest_open,
+             'earliest_open_workday': inputs.earliest_open_workday,
+             'earliest_open_workday_helper': inputs.earliest_open_workday_helper,
+             'earliest_open_non_workday': inputs.earliest_open_non_workday,
+             'earliest_open_non_workday_helper': inputs.earliest_open_non_workday_helper,
+             'should_use_earliest_close': inputs.should_use_earliest_close,
+             'earliest_close_workday_tomorrow': inputs.earliest_close_workday_tomorrow,
+             'earliest_close_workday_tomorrow_helper': inputs.earliest_close_workday_tomorrow_helper,
+             'earliest_close_non_workday_tomorrow': inputs.earliest_close_non_workday_tomorrow,
+             'earliest_close_non_workday_tomorrow_helper': inputs.earliest_close_non_workday_tomorrow_helper,
+             'should_use_latest_open': inputs.should_use_latest_open,
+             'latest_open_workday': inputs.latest_open_workday,
+             'latest_open_workday_helper': inputs.latest_open_workday_helper,
+             'latest_open_non_workday': inputs.latest_open_non_workday,
+             'latest_open_non_workday_helper': inputs.latest_open_non_workday_helper,
+             'should_use_latest_close': inputs.should_use_latest_close,
+             'latest_close_workday_tomorrow': inputs.latest_close_workday_tomorrow,
+             'latest_close_workday_tomorrow_helper': inputs.latest_close_workday_tomorrow_helper,
+             'latest_close_non_workday_tomorrow': inputs.latest_close_non_workday_tomorrow,
+             'latest_close_non_workday_tomorrow_helper': inputs.latest_close_non_workday_tomorrow_helper,
              'cover_entity': cover_entity | sort | list
            } | to_json(sort_keys=True) | md5) }}
   - alias: Evaluate after automations are (re)loaded
     trigger: event
     event_type: automation_reloaded
     id: heartbeat
-    variables: *decide
+    variables: *evaluate_schedule
   - alias: Evaluate after Home Assistant starts
     trigger: homeassistant
     event: start
     id: heartbeat
-    variables: *decide
+    variables: *evaluate_schedule
   - alias: Cover state changed (manual detection)
     trigger: state
     entity_id: !input cover_entity
@@ -1777,9 +1778,9 @@ conditions:
     condition: template
     value_template: >
       {{ trigger.id | default('') != 'heartbeat'
-         or decide_ready is not defined
-         or inst.transition_needed or inst.stabilizer_needs_update
-         or (trigger.platform in ['event', 'homeassistant'] and d.order_warning | trim != '') }}
+         or schedule_evaluated is not defined
+         or decision.transition_needed or decision.stabilizer_needs_update
+         or (trigger.platform in ['event', 'homeassistant'] and schedule.order_warning | trim != '') }}
   # A cover state change starts every automation that watches the cover. On a
   # Pi that fan-out is the largest cost of a phase change, so most runs must end
   # here, before manual_check. The checks, in order:
@@ -1857,24 +1858,24 @@ actions:
           - condition: template
             value_template: >
               {{ trigger.id | default('') in ['custom_open', 'custom_close']
-                 or (trigger.id | default('') == 'heartbeat' and decide_ready is not defined) }}
+                 or (trigger.id | default('') == 'heartbeat' and schedule_evaluated is not defined) }}
         sequence:
-          - variables: *decide
+          - variables: *evaluate_schedule
           - variables: *instance
           - alias: Gate a custom heartbeat the same way as the real one
             condition: template
-            value_template: "{{ trigger.id | default('') != 'heartbeat' or inst.transition_needed or inst.stabilizer_needs_update }}"
+            value_template: "{{ trigger.id | default('') != 'heartbeat' or decision.transition_needed or decision.stabilizer_needs_update }}"
           - &stabilizer_step
             alias: Brightness stabilizer bookkeeping
             # Record when a threshold is first crossed / clear it when it's no longer
             # crossed. schedule_wants_* then requires the timestamp to be old enough.
             if:
               - condition: template
-                value_template: "{{ inst.stabilizer_needs_update }}"
+                value_template: "{{ decision.stabilizer_needs_update }}"
             then:
               - if:
                   - condition: template
-                    value_template: "{{ d.bright_enough_to_open and inst.bright_since is none }}"
+                    value_template: "{{ schedule.bright_enough_to_open and decision.bright_since is none }}"
                 then:
                   - event: smarli_tracker_set
                     event_data:
@@ -1883,7 +1884,7 @@ actions:
                       value: "{{ now_ts }}"
               - if:
                   - condition: template
-                    value_template: "{{ not d.bright_enough_to_open and inst.bright_since is not none }}"
+                    value_template: "{{ not schedule.bright_enough_to_open and decision.bright_since is not none }}"
                 then:
                   - event: smarli_tracker_remove
                     event_data:
@@ -1891,7 +1892,7 @@ actions:
                       key: "{{ instance_id }}::bright_since"
               - if:
                   - condition: template
-                    value_template: "{{ d.dark_enough_to_close and inst.dark_since is none }}"
+                    value_template: "{{ schedule.dark_enough_to_close and decision.dark_since is none }}"
                 then:
                   - event: smarli_tracker_set
                     event_data:
@@ -1900,7 +1901,7 @@ actions:
                       value: "{{ now_ts }}"
               - if:
                   - condition: template
-                    value_template: "{{ not d.dark_enough_to_close and inst.dark_since is not none }}"
+                    value_template: "{{ not schedule.dark_enough_to_close and decision.dark_since is not none }}"
                 then:
                   - event: smarli_tracker_remove
                     event_data:
@@ -1913,7 +1914,7 @@ actions:
                 value_template: >
                   {{ trigger.id | default('') == 'custom_open'
                      or (trigger.id | default('') == 'heartbeat'
-                         and inst.transition_needed and inst.desired_position | int == d.position_open) }}
+                         and decision.transition_needed and decision.desired_position | int == schedule.position_open) }}
             then:
               - alias: Custom opening conditions must pass
                 condition: and
@@ -1926,7 +1927,7 @@ actions:
                 action: script.smarli_cover_request
                 data:
                   owner: "{{ instance_id }}"
-                  intent: "{{ inst.intent_payload }}"
+                  intent: "{{ decision.intent_payload }}"
                   # A custom trigger is someone waiting (a button): no collect window.
                   immediate: "{{ trigger.id | default('') != 'heartbeat' }}"
               - alias: Run custom opening actions
@@ -1938,7 +1939,7 @@ actions:
                 value_template: >
                   {{ trigger.id | default('') == 'custom_close'
                      or (trigger.id | default('') == 'heartbeat'
-                         and inst.transition_needed and inst.desired_position | int == d.position_closed) }}
+                         and decision.transition_needed and decision.desired_position | int == schedule.position_closed) }}
             then:
               - alias: Custom closing conditions must pass
                 condition: and
@@ -1946,7 +1947,7 @@ actions:
               - alias: Don't close if the weather is bad right now (retry next minute)
                 if:
                   - condition: template
-                    value_template: "{{ d.weather_blocked_now }}"
+                    value_template: "{{ schedule.weather_blocked_now }}"
                 then:
                   - stop: "Closing blocked by current weather conditions"
               - alias: Don't close if bad weather is forecast within the hour (retry next minute)
@@ -1954,15 +1955,15 @@ actions:
                 if:
                   - condition: template
                     value_template: >
-                      {{ cfg.weather_entity != '' and cfg.weather_events | count > 0
-                         and state_attr(cfg.weather_entity, 'supported_features') | int(0) | bitwise_and(2) > 0 }}
+                      {{ inputs.weather_entity != '' and inputs.weather_events | count > 0
+                         and state_attr(inputs.weather_entity, 'supported_features') | int(0) | bitwise_and(2) > 0 }}
                 then:
                   - action: weather.get_forecasts
                     # Templated (not `!input`) so config validation passes when no
                     # weather entity is set — a bare entity_id:'' fails schema check
                     # even though this branch is runtime-guarded on weather_entity!=''.
                     target:
-                      entity_id: "{{ cfg.weather_entity }}"
+                      entity_id: "{{ inputs.weather_entity }}"
                     data:
                       type: hourly
                     response_variable: forecast_response
@@ -1974,14 +1975,14 @@ actions:
                         # xx:59. Forecast wind_speed is in the entity's wind_speed_unit.
                         value_template: >
                           {% set ns = namespace(hit=false) %}
-                          {% set f = d.wind_unit_to_kmh.get(state_attr(cfg.weather_entity, 'wind_speed_unit')) %}
-                          {% for e in forecast_response.get(cfg.weather_entity, {}).get('forecast') or [] %}
+                          {% set f = schedule.wind_unit_to_kmh.get(state_attr(inputs.weather_entity, 'wind_speed_unit')) %}
+                          {% for e in forecast_response.get(inputs.weather_entity, {}).get('forecast') or [] %}
                             {% set t = as_timestamp(e.get('datetime'), none) %}
                             {% if t is not none and t > now_ts | float(0) - 3600 and t <= now_ts | float(0) + 3600 %}
                               {% set w = e.get('wind_speed') %}
-                              {% if e.get('condition', '') in cfg.weather_events
-                                    or (d.wind_events_selected and f is not none and w is number
-                                        and w * f >= d.wind_speed_limit | float(0)) %}
+                              {% if e.get('condition', '') in inputs.weather_events
+                                    or (schedule.wind_events_selected and f is not none and w is number
+                                        and w * f >= schedule.wind_speed_limit | float(0)) %}
                                 {% set ns.hit = true %}
                               {% endif %}
                             {% endif %}
@@ -1997,7 +1998,7 @@ actions:
                 action: script.smarli_cover_request
                 data:
                   owner: "{{ instance_id }}"
-                  intent: "{{ inst.intent_payload }}"
+                  intent: "{{ decision.intent_payload }}"
                   # A custom trigger is someone waiting (a button): no collect window.
                   immediate: "{{ trigger.id | default('') != 'heartbeat' }}"
               - alias: Run custom closing actions
@@ -2009,12 +2010,12 @@ actions:
       - alias: Say in the logbook that the retract time is not before the extend time
         if:
           - condition: template
-            value_template: "{{ trigger.platform in ['event', 'homeassistant'] and d.order_warning | trim != '' }}"
+            value_template: "{{ trigger.platform in ['event', 'homeassistant'] and schedule.order_warning | trim != '' }}"
         then:
           - action: logbook.log
             data:
               name: "smarli."
-              message: "{{ d.order_warning | trim }}"
+              message: "{{ schedule.order_warning | trim }}"
               entity_id: "{{ this.entity_id }}"
 
       - *stabilizer_step
