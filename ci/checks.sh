@@ -17,6 +17,12 @@
 #               Needs only git.
 #   blueprints  every automation/*.yaml against the rules in Readme.md, via
 #               ci/check-blueprints.js. Needs Node, no packages.
+#   tracker     every tracker namespace a blueprint writes to has a tracker
+#               sensor in the packages. A write that no sensor serves is lost
+#               with no error. Runs ci/check-tracker-templates.js of the
+#               ha-packages repository: the sibling checkout ../ha-packages, or
+#               HA_PACKAGES. Without the sibling it reports "NOT checked" and
+#               passes; with HA_PACKAGES set to a missing folder it fails.
 #
 # Not here: the version-bump rule. It compares against main and needs the
 # history, so it is its own script, ci/check-release.sh, and its own CI job.
@@ -27,7 +33,7 @@
 set -uo pipefail
 cd "$(git rev-parse --show-toplevel)" || exit 2
 
-GROUPS_ALL=(files blueprints)
+GROUPS_ALL=(files blueprints tracker)
 
 if [[ -t 1 ]]; then
   BOLD=$'\e[1m' RED=$'\e[31m' GREEN=$'\e[32m' OFF=$'\e[0m'
@@ -59,6 +65,24 @@ check_blueprints() {
   fi
   if node ci/check-blueprints.js; then passed 'blueprints follow Readme.md'; return 0; fi
   failed 'blueprints break Readme.md rules (list above)'
+  return 1
+}
+
+check_tracker() {
+  local pkgs="${HA_PACKAGES:-../ha-packages}"
+  if [[ ! -d "$pkgs" ]]; then
+    if [[ -n "${HA_PACKAGES:-}" ]]; then failed "HA_PACKAGES is set, but $pkgs does not exist"; return 1; fi
+    passed "NOT checked: $pkgs not found (set HA_PACKAGES)"
+    return 0
+  fi
+  local script="$pkgs/ci/check-tracker-templates.js"
+  if [[ ! -f "$script" ]]; then failed "$script not found"; return 1; fi
+  if ! command -v node >/dev/null 2>&1; then
+    failed 'node is not on the PATH — install Node.js to run this group'
+    return 1
+  fi
+  if SMARLI_BLUEPRINTS="$PWD/automation" node "$script"; then passed "every written namespace has a tracker sensor in $pkgs"; return 0; fi
+  failed 'tracker check found problems (list above)'
   return 1
 }
 

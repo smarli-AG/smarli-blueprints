@@ -1,7 +1,14 @@
-# CI for the blueprints. Two jobs.
+# CI for the blueprints. Three jobs.
 #
 #   checks   every pull request, and main. Runs ci/checks.sh: file checks and
 #            the Readme.md rules for every blueprint.
+#   tracker  every pull request, and main. Runs ci/checks.sh tracker against
+#            ha-packages main: every tracker namespace a blueprint writes to
+#            must have a tracker sensor there, or the write is lost with no
+#            error. ha-packages is private. The job reads it with a token of
+#            the GitHub App "smarli-ha-packages-read" (contents: read, installed
+#            on ha-packages only). Pull requests from forks get no secrets, so
+#            this job fails for them.
 #   release  pull requests into main only. Runs ci/check-release.sh: a changed
 #            blueprint needs a higher version, and a changed settings
 #            fingerprint needs a higher fingerprint version.
@@ -11,6 +18,8 @@
 #
 # The ruleset "protect main" requires the "checks" and "release" status checks
 # by job name. Rename a job here and you must update the ruleset too.
+# "tracker" is not required yet. It can pass only when ha-packages main has
+# ci/check-tracker-templates.js. Add it to the ruleset after that.
 
 name: checks
 
@@ -36,7 +45,35 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-      - run: ./ci/checks.sh
+      # The tracker group needs ha-packages. It runs in its own job below.
+      - run: ./ci/checks.sh files blueprints
+
+  tracker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          client-id: ${{ vars.HA_PACKAGES_APP_CLIENT_ID }}
+          private-key: ${{ secrets.HA_PACKAGES_APP_PRIVATE_KEY }}
+          owner: smarli-AG
+          repositories: ha-packages
+          permission-contents: read
+      - uses: actions/checkout@v7
+        with:
+          repository: smarli-AG/ha-packages
+          ref: main
+          path: .ha-packages
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: ./ci/checks.sh tracker
+        env:
+          HA_PACKAGES: ${{ github.workspace }}/.ha-packages
 
   release:
     # Only on the way into main. A pull request between two working branches
