@@ -43,7 +43,7 @@ Shared logic lives in Home Assistant **packages**, not in blueprints. A blueprin
 
 These packages act as **coordinators**, not configuration holders:
 
-- `smarli_core.yaml` provides `sensor.smarli_automation_tracker`, a generic key-value store for state that must survive restarts or be shared across blueprints.
+- `smarli_core.yaml` provides the tracker: trigger-based template sensors `sensor.smarli_tracker_<namespace>`, a generic key-value store for state that must survive restarts or be shared across blueprints. A family package defines its own tracker sensors; `smarli_core.yaml` holds `sensor.smarli_tracker_shared` and the garbage collection.
 - Family packages (e.g. `smarli_cover.yaml`) provide the shared mechanism for their family: detecting manual operation, resolving conflicts between several automations that control the same device, and actually commanding the device.
 
 For covers specifically: several cover blueprints can target the same cover. None of them command the cover directly. Each one publishes what it wants — a target position, or a standing bound — and a single shared resolver script (`script.smarli_cover_resolve`) combines every contributor's intent into the one position it actually commands.

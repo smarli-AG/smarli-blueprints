@@ -79,12 +79,12 @@ if (Run "5") {
   Write-Host "`n=== CT5 a custom trigger does not override a suspension"
   T-Place $c 100
   $ok = Start-Instance @{} 100
-  HA-SetKey "shared" "$c::suspension" ((HA-Now) + 900); Start-Sleep 2
+  HA-SetKey "cover" "$c::suspension" ((HA-Now) + 900); Start-Sleep 2
   HA-Event "test_force_close" @{}
   HA-Wait { (T-Target $id $c) -eq 0 } 20 | Out-Null; Start-Sleep 10
   $pos = T-Pos $c
   T-Check "CT5 suspended cover is not commanded by a custom close" ($ok -and ($pos -ge 95) -and ((T-Target $id $c) -eq 0)) "pos=$pos target=$(T-Target $id $c)"
-  HA-DelKey "shared" "$c::suspension"; Start-Sleep 20
+  HA-DelKey "cover" "$c::suspension"; Start-Sleep 20
   $pos2 = T-Pos $c
   T-Check "CT5b after the suspension the cancelled custom close is not executed later" ($pos2 -ge 95) "pos=$pos2 target=$(T-Target $id $c)"
   Stop-Instance

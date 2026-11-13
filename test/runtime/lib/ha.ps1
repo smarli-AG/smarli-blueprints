@@ -31,20 +31,39 @@ function HA-Event {
 }
 function HA-State    { param($id) Invoke-RestMethod -Uri "$HA_BASE/api/states/$id" -Headers (HA-Headers) }
 function HA-StateStr { param($id) try { (HA-State $id).state } catch { "missing" } }
-function HA-Tracker  { (HA-State "sensor.smarli_automation_tracker").attributes.data }
+# The tracker: one sensor per namespace (sensor.smarli_tracker_<namespace>, 2026-11-13). The
+# pseudo-namespace "cover" is the cover family as one: a key goes to cover_intents when it is an
+# intent or the resolver fence, else to cover_memory. So a test names "cover" and the
+# helpers find the right sensor.
+function Cover-Ns { param($key) if ($key -match '::intent$' -or $key -eq 'global::resolve_fence') { 'cover_intents' } else { 'cover_memory' } }
+function Tracker-Data { param($ns) try { (HA-State "sensor.smarli_tracker_$ns").attributes.data } catch { $null } }
+# {namespace: data} of every tracker sensor, plus "cover": cover_intents and cover_memory together.
+function HA-Tracker {
+  $out = [ordered]@{}
+  # A variable first: Windows PowerShell 5.1 passes a JSON array down a pipeline as one object.
+  $all = Invoke-RestMethod -Uri "$HA_BASE/api/states" -Headers (HA-Headers)
+  foreach ($s in ($all | Where-Object { $_.entity_id -like 'sensor.smarli_tracker_*' })) {
+    $out[$s.entity_id.Substring('sensor.smarli_tracker_'.Length)] = $s.attributes.data
+  }
+  $cover = [ordered]@{}
+  foreach ($ns in 'cover_intents', 'cover_memory') {
+    if ($null -ne $out[$ns]) { foreach ($p in $out[$ns].PSObject.Properties) { $cover[$p.Name] = $p.Value } }
+  }
+  # New-Object, not a [pscustomobject] cast: Windows PowerShell 5.1 cannot cast a dictionary held in a variable.
+  $out['cover'] = New-Object PSObject -Property $cover
+  New-Object PSObject -Property $out
+}
 # Value of one tracker key, or $null. Property names with '::' need the quoted form.
 function HA-Key {
   param($ns, $key)
-  $d = HA-Tracker
+  $d = Tracker-Data $(if ($ns -eq 'cover') { Cover-Ns $key } else { $ns })
   if ($null -eq $d) { return $null }
-  $b = $d.$ns
-  if ($null -eq $b) { return $null }
-  $b.PSObject.Properties[$key].Value
+  $d.PSObject.Properties[$key].Value
 }
-function HA-Shared { param($key) HA-Key "shared" $key }
+function HA-Shared { param($key) HA-Key "cover" $key }
 function HA-KeyNames { param($ns) $b = (HA-Tracker).$ns; if ($null -ne $b) { $b.PSObject.Properties | ForEach-Object { $_.Name } } }
-function HA-SetKey { param($ns, $key, $value) HA-Event "smarli_tracker_set" @{ namespace = $ns; key = $key; value = $value } }
-function HA-DelKey { param($ns, $key) HA-Event "smarli_tracker_remove" @{ namespace = $ns; key = $key } }
+function HA-SetKey { param($ns, $key, $value) HA-Event "smarli_tracker_set" @{ namespace = $(if ($ns -eq 'cover') { Cover-Ns $key } else { $ns }); key = $key; value = $value } }
+function HA-DelKey { param($ns, $key) HA-Event "smarli_tracker_remove" @{ namespace = $(if ($ns -eq 'cover') { Cover-Ns $key } else { $ns }); key = $key } }
 function HA-Template {
   param($tpl)
   Invoke-RestMethod -Uri "$HA_BASE/api/template" -Method Post -Headers (HA-Headers) `
@@ -89,10 +108,11 @@ function HA-Move { param($targets, $run = "rig") HA-Event "test_mover_fire" @{ t
 function HA-StubDay   { param($targets, [int]$priority = 10, [int]$susp = 1800, $ts = $null, [bool]$transition = $false) $d = @{ targets = $targets; priority = $priority; susp = $susp; transition = $transition }; if ($null -ne $ts) { $d.ts = $ts }; HA-Event "test_stub_day" $d }
 function HA-StubShade { param($bounds, $targets = @{}, [int]$priority = 50, [int]$susp = 1800, $ts = $null) $d = @{ bounds = $bounds; targets = $targets; priority = $priority; susp = $susp }; if ($null -ne $ts) { $d.ts = $ts }; HA-Event "test_stub_shade" $d }
 
-# Remove every *::suspension and *::moving_* key (after bare cover.* calls, which taint context)
+# Remove every *::suspension, *::suspended_at and *::moving_* key (after bare cover.* calls, which taint context).
+# suspended_at too: a blueprint skips manual detection for 60 s after it, which would hide the next test's move.
 function HA-ClearSuspensions {
-  foreach ($k in (HA-KeyNames "shared")) {
-    if ($k -like "*::suspension" -or $k -like "*::moving_*") { HA-DelKey "shared" $k }
+  foreach ($k in (HA-KeyNames "cover")) {
+    if ($k -like "*::suspension" -or $k -like "*::suspended_at" -or $k -like "*::moving_*") { HA-DelKey "cover" $k }
   }
   Start-Sleep 1
 }
@@ -178,16 +198,10 @@ function Build-Automations {
         payload: >
           {{ {'targets': trigger.event.data.targets, 'bounds': {}, 'priority': trigger.event.data.priority | default(10) | int,
               'ts': trigger.event.data.ts | default(as_timestamp(now())) | float(0), 'suspension_duration': trigger.event.data.susp | default(1800) | float(0)} }}
-    - event: smarli_tracker_set
-      event_data:
-        namespace: shared
-        key: stub_day::intent
-        value: "{{ payload }}"
-    - action: script.smarli_cover_resolve
+    - action: script.smarli_cover_request
       data:
         owner: stub_day
-        intent: "{{ payload }}"
-        transition: "{{ trigger.event.data.transition | default(false) | bool }}"
+        intent: "{{ dict(payload, transition=trigger.event.data.transition | default(false) | bool) }}"
 
 - id: stub_shade
   alias: stub_shade_bound
@@ -201,16 +215,10 @@ function Build-Automations {
           {{ {'targets': trigger.event.data.targets | default({}), 'bounds': trigger.event.data.bounds | default({}),
               'priority': trigger.event.data.priority | default(50) | int,
               'ts': trigger.event.data.ts | default(as_timestamp(now())) | float(0), 'suspension_duration': trigger.event.data.susp | default(1800) | float(0)} }}
-    - event: smarli_tracker_set
-      event_data:
-        namespace: shared
-        key: stub_shade::intent
-        value: "{{ payload }}"
-    - action: script.smarli_cover_resolve
+    - action: script.smarli_cover_request
       data:
         owner: stub_shade
-        intent: "{{ payload }}"
-        transition: "{{ trigger.event.data.transition | default(false) | bool }}"
+        intent: "{{ dict(payload, transition=trigger.event.data.transition | default(false) | bool) }}"
 
 - id: cover_sun_test
   alias: covers_day_night_sun

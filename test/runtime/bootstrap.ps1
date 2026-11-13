@@ -117,7 +117,7 @@ HA-Call "automation" "turn_off" @{ entity_id = @("automation.covers_day_night_ti
 
 Step "Check"
 $want = "cover.vfast","cover.vslow","cover.vbright","cover.assumed_rts","cover.garage_door","weather.weather_at_8001",
-        "sensor.smarli_automation_tracker","script.smarli_cover_resolve","automation.covers_day_night_sun"
+        "sensor.smarli_tracker_shared","script.smarli_cover_resolve","automation.covers_day_night_sun"
 $missing = @($want | Where-Object { (HA-StateStr $_) -in @("missing", "unavailable") })
 . "$PSScriptRoot\lib\lib-test.ps1"   # logs the repo refs
 if ($missing.Count) { throw "Missing or unavailable after bootstrap: $($missing -join ', ')" }

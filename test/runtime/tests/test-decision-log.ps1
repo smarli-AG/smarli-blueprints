@@ -31,9 +31,40 @@ if ($Only.Count -eq 0 -or $Only -contains "pause") {
   T-Check "4d-1 one press gives one pause line, not one per detection path" ($n -eq 1) "pause lines: $n"
 }
 
+if ($Only.Count -eq 0 -or $Only -contains "pause-many") {
+  # One command to several covers: the command check suspends them in ONE suspend run (one batch
+  # write, so both covers carry the same suspended_at), and each cover still gets one line.
+  Write-Host "`n=== 4d-1c one command to two covers pauses both in one run"
+  $c2 = "cover.vslow"
+  T-Prep; T-Place $c 100; T-Place $c2 100
+  HA-StubDay @{ $c = 100; $c2 = 100 }; Start-Sleep 4; T-Settle $c 30; T-Settle $c2 60; HA-ClearSuspensions
+  $t0 = Get-Date
+  HA-Call "cover" "set_cover_position" @{ entity_id = @($c, $c2); position = 60 }
+  $m1 = Wait-Log $t0 $c "paused until *(set_cover_position sent by *)*"
+  $m2 = Wait-Log $t0 $c2 "paused until *(set_cover_position sent by *)*"
+  $a1 = HA-Shared "$c::suspended_at"; $a2 = HA-Shared "$c2::suspended_at"
+  T-Check "4d-1c both covers are paused and logged" (($null -ne $m1) -and ($null -ne $m2)) "lines: [$m1] [$m2]"
+  T-Check "4d-1c both pauses come from one batch write" (($null -ne $a1) -and ($a1 -eq $a2)) "suspended_at: $a1 / $a2"
+  T-Settle $c 30; T-Settle $c2 60; Start-Sleep 3
+  $n1 = @(Log-Lines $t0 $c | Where-Object { $_ -like "paused until *" }).Count
+  $n2 = @(Log-Lines $t0 $c2 | Where-Object { $_ -like "paused until *" }).Count
+  T-Check "4d-1c one pause line per cover" (($n1 -eq 1) -and ($n2 -eq 1)) "pause lines: $n1 / $n2"
+}
+
+if ($Only.Count -eq 0 -or $Only -contains "wall") {
+  Write-Host "`n=== 4d-1b a contextless change (user_id null) still reaches the layer-2 check"
+  # A wall switch has no user; the blueprint passes that as null, and a null user_id once failed the variables step.
+  T-Prep; HA-ClearSuspensions
+  $t0 = Get-Date
+  HA-Call "script" "smarli_cover_manual_check" @{ entity_id = $c; user_id = $null; parent_id = ""; suspension_duration = "00:05:00" }
+  $m = Wait-Log $t0 $c "paused until *(moved by hand, not by an automation*"
+  T-Check "4d-1b null user_id: suspended and logged as a hand move" (($null -ne $m) -and ($null -ne (HA-Shared "$c::suspension"))) "line: $m"
+  HA-ClearSuspensions
+}
+
 if ($Only.Count -eq 0 -or $Only -contains "skip") {
   Write-Host "`n=== 4d-2 a move inside a pause is skipped and says so"
-  if ($null -eq (HA-Shared "$c::suspension")) { HA-SetKey "shared" "$c::suspension" ((HA-Now) + 900) }
+  if ($null -eq (HA-Shared "$c::suspension")) { HA-SetKey "cover" "$c::suspension" ((HA-Now) + 900) }
   HA-StubDay @{ $c = 100 }; Start-Sleep 3
   $t0 = Get-Date
   HA-StubDay @{ $c = 0 } 10 1800 (HA-Now)

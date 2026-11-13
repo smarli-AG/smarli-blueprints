@@ -1,8 +1,8 @@
 # More test helpers (timeline sampling). Dot-sourced by lib-test.ps1.
 function Sample-Cover {
   param($cover, $id)
-  $sh = (HA-Tracker).shared; $cs = HA-State $cover
-  $int = if ($id) { $sh.PSObject.Properties["$id::intent"].Value } else { $null }
+  $sh = (HA-Tracker).cover; $cs = HA-State $cover
+  $int = if ($id) { HA-Shared "$id::intent" } else { $null }
   [pscustomobject]@{
     Now = Get-Date; State = $cs.state; Pos = $cs.attributes.current_position; Assumed = $cs.attributes.assumed_state
     Target = $(if ($int) { $int.targets.PSObject.Properties[$cover].Value } else { $null })

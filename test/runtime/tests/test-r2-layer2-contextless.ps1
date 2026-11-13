@@ -14,8 +14,8 @@ function Run-R2([bool]$withMarker) {
   $first = HA-Wait { $null -ne (HA-Shared "$c::suspension") } 10 0.5
   $tFirst = [math]::Round(((Get-Date) - $t0).TotalSeconds, 1)
   Start-Sleep ([math]::Max(0, 7 - ((Get-Date) - $t0).TotalSeconds))      # past the 5 s context-recency cutoff
-  HA-DelKey "shared" "$c::suspension"
-  if ($withMarker) { HA-SetKey "shared" "$c::moving_ctl" @{ target = 0; until = ((HA-Now) + 60); started_ts = (HA-Now) } }
+  HA-DelKey "cover" "$c::suspension"
+  if ($withMarker) { HA-SetKey "cover" "$c::moving_ctl" @{ target = 0; until = ((HA-Now) + 60); started_ts = (HA-Now) } }
   Start-Sleep 1
   $back = HA-Wait { $null -ne (HA-Shared "$c::suspension") } 30 0.5
   $tBack = [math]::Round(((Get-Date) - $t0).TotalSeconds, 1)

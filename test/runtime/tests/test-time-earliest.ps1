@@ -8,8 +8,8 @@ $c = "cover.vfast"; $id = "cover_time_test"
 function Both($key1, $key2, $v) { @{ $key1 = $v; $key2 = $v } }
 
 function Sample {
-  $tr = HA-Tracker; $sh = $tr.shared; $cs = HA-State $c
-  $int = $sh.PSObject.Properties["$id::intent"].Value
+  $tr = HA-Tracker; $sh = $tr.cover; $cs = HA-State $c
+  $int = HA-Shared "$id::intent"
   [pscustomobject]@{
     Now = Get-Date; State = $cs.state; Pos = $cs.attributes.current_position
     Target = $(if ($int) { $int.targets.PSObject.Properties[$c].Value } else { $null })
@@ -27,7 +27,7 @@ function Run-Scenario($name, $kind, $prep) {
   HA-ClearSuspensions
   $baseline = if ($kind -eq "close") { 100 } else { 0 }
   switch ($prep) {
-    "stub" { HA-StubDay @{ $c = $baseline }; Start-Sleep 4; T-Settle $c 30; HA-DelKey "shared" "stub_day::intent"; HA-ClearSuspensions }
+    "stub" { HA-StubDay @{ $c = $baseline }; Start-Sleep 4; T-Settle $c 30; HA-DelKey "cover" "stub_day::intent"; HA-ClearSuspensions }
     "hand" { HA-HandMove $c (100 - (T-Pos $c)) }
     "handkeep" {
       HA-Call "cover" "set_cover_position" @{ entity_id = $c; position = [int](100 - (T-Pos $c)) }

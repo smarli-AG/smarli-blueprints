@@ -4,15 +4,15 @@ $c = "cover.vfast"
 T-Prep; T-Place $c 100
 
 # 1. suspended for 2 min, transition to 0 arrives inside it
-HA-SetKey "shared" "$c::suspension" ((HA-Now) + 120)
+HA-SetKey "cover" "$c::suspension" ((HA-Now) + 120)
 HA-StubDay @{ $c = 0 }
 $rec = HA-Wait { (HA-Shared "$c::resolved") -eq 0 } 15
 Start-Sleep 8
-$names = @(HA-KeyNames "shared")
+$names = @(HA-KeyNames "cover")
 T-Check "A7 transition inside suspension: recorded in ::resolved but cover not commanded" ($rec -and ((T-Pos $c) -ge 95) -and -not ($names | ? { $_ -like "$c::moving_*" })) "resolved=$(HA-Shared "$c::resolved") cover=$(T-Cover $c) markers=$(($names | ? { $_ -like '*::moving_*' }) -join ',')"
 
 # 2. suspension expires; the same intent is published again (unchanged) -> still no catch-up
-HA-SetKey "shared" "$c::suspension" ((HA-Now) - 5)
+HA-SetKey "cover" "$c::suspension" ((HA-Now) - 5)
 HA-StubDay @{ $c = 0 }
 Start-Sleep 10
 T-Check "A7 after expiry: cancelled transition is not deferred / re-asserted" ((T-Pos $c) -ge 95) "cover=$(T-Cover $c) resolved=$(HA-Shared "$c::resolved")"
