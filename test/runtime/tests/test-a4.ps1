@@ -10,7 +10,7 @@ T-Prep; T-Place $c 100
 
 function Run-Case($label, $dayTarget, $dayPrio, $shadeTarget, $shadePrio, $expect) {
   if ($Fresh) {
-    HA-DelKey "shared" "stub_day::intent"; HA-DelKey "shared" "stub_shade::intent"; HA-DelKey "shared" "$c::resolved"
+    HA-DelKey "cover" "stub_day::intent"; HA-DelKey "cover" "stub_shade::intent"; HA-DelKey "cover" "$c::resolved"
     T-Place $c (100 - $expect)       # start at the opposite end so a missing command is visible
   }
   $ts = HA-Now
@@ -27,5 +27,5 @@ for ($n = 1; $n -le $Reps; $n++) {
   Run-Case "rep$n prio 50(0) vs 10(100)" 0 50 100 10 0
   Run-Case "rep$n equal prio, owner id stub_shade > stub_day" 0 10 100 10 100
 }
-T-Check "$tag no false suspension" (-not (@(HA-KeyNames "shared") -contains "$c::suspension")) "suspension=$(HA-Shared "$c::suspension")"
+T-Check "$tag no false suspension" (-not (@(HA-KeyNames "cover") -contains "$c::suspension")) "suspension=$(HA-Shared "$c::suspension")"
 T-Prep

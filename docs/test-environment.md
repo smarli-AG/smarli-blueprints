@@ -21,6 +21,11 @@ test/runtime/
   run-short.ps1          core suites, ~20 min
   run-long.ps1           schedule suites, ~35 min
   check-config.ps1       check_config on 2024.10 and 2025.4
+  load-test.ps1          many automations and covers on this rig (-Autos/-Covers), ~15 min; adds covers,
+                         restarts the container twice and restores both. Not in run-short/run-long.
+                         The real-hardware version is test/hub-load/ (Pi hub)
+  lib/trace-durations.mjs  run times from stored traces (RIG_TOKEN env, prefix as argument), used by load-test.ps1
+  lib/trace-steps.mjs    step times of the longest stored run (RIG_TOKEN env, prefix as argument), used by load-test.ps1
   lib/ha.ps1             helpers (HA-Call, HA-Event, HA-State, HA-Tracker, HA-Apply, ...) — dot-source before use
   lib/lib-test.ps1       T-Check/T-Note (results log), cover helpers, logs the repo refs once per run
   lib/lib-test2.ps1      timeline sampling (Sample-Cover, Watch-Cover)
@@ -209,10 +214,11 @@ Note the id and the entity_id differ: HA derives the entity_id from the **alias*
 - **`last_changed` is the _latest_ transition, not the start of a move.** Measuring when covers
   began moving needs the history API: `/api/history/period/<iso8601>?filter_entity_id=cover.vfast,cover.vslow`,
   then take each entity's first `closing`/`opening` entry.
-- **The tracker cannot delete a namespace.** `smarli_tracker_remove` removes a key and always
-  re-inserts the (possibly empty) namespace bucket. Emptied namespaces persist; assert on keys.
-  They can be purged out-of-band by POSTing a cleaned `data` attribute to
-  `/api/states/sensor.smarli_automation_tracker`.
+- **One tracker sensor per namespace** (`sensor.smarli_tracker_<namespace>`, 2026-11-13). The helpers
+  in `lib/ha.ps1` accept the pseudo-namespace `cover`: an intent or the resolver fence goes to
+  `cover_intents`, every other key to `cover_memory`. A sensor is `unknown`, with no
+  attributes, until its first write. A namespace without a sensor stores nothing: generic tracker
+  tests use `shared`.
 - **The tracker survives restarts via `.storage/core.restore_state`, not the recorder**, so
   excluding it from the recorder is safe and does not lose state across a restart.
 - **PowerShell here is 5.1**: no `&&`/`||` chaining, no ternary, no `if(){}` as an expression.
@@ -303,6 +309,9 @@ until the PC wakes.
 | `test-silent-covers.ps1`                                      | covers without `opening`/`closing` (`cover.silent`): an automated move finishes without suspension for normal, tilt-first, jump-type, slow-start and overshoot reports and with an attribute changing every second; a stop mid-travel suspends; a wall-switch tap away from the end stop inside the quiet window suspends (end-stop rule), after it the mover leaves it to layer 2. `cover.silent` is deliberately not watched by `manual_check`, so every suspension comes from the settle loop |
 | `test-custom-triggers.ps1`                                    | 3.1.2 custom triggers: a custom close/open moves against the schedule and holds through heartbeats and a restart; the next scheduled change takes over; a suspended cover is not commanded and the cancelled command is not executed later |
 | `test-decision-log.ps1`                                       | 3.1.3 decision log (`logbook.log`, name `smarli.`, on the cover): a person's command writes one pause line with service and login; a move inside the pause, a commanded move and an unchanged decision each write their line; a retract time not before the extend time writes a warning on the automation at reload, a correct order writes nothing. **Passes (2026-11-02).** One press must give one pause line: that needed `smarli_cover_suspend` to be `mode: queued` with a wait for the tracker write, because the two detection paths ran 2 ms apart. Reads the logbook through `/api/logbook` |
+| `test-cheap-paths.ps1`                                        | 3.2.0 cheap runs: a cover state change carries no decision variables (trace) and ends in conditions when smarli. caused it; `suspend` writes `<cover>::suspended_at`; the resolver elects one watcher per cover and skips a winner that does not watch; a stale watcher is ignored; within 60 s of a pause the end state ends in conditions; after that only the elected watcher goes on; a custom trigger decides and moves, and a person's command during that move pauses. Uses the real per-minute heartbeat (the 5 s one would push runs out of the 5 stored traces) and a second time instance on `cover.vbright` |
+| `test-request.ps1`                                            | `smarli_cover_request`: 20 request automations, each the only caller for a ghost cover (no entity, paused, so nothing moves). A burst of all 20 lands every decision and the resolver runs fewer times than there are callers; callers 0.2–1 s apart lose no intent; a transition in the intent forces its cover once, also when its caller skipped the resolver call; the old resolver call field `transition` still forces; immediate (button) requests: mixed into a burst, every decision lands; a lone one has no collect window and no fence; a button run leaves covers of older intents alone, the next full run decides them again |
+| `test-tracker-batch.ps1`                                      | Tracker batch events: `smarli_tracker_set_many` writes every key in one write, skips null values and empty keys, overwrites existing keys; `smarli_tracker_remove_many` removes exactly the listed keys; malformed payloads change nothing; the single events still work; a resolver + mover cycle for 4 covers writes the tracker at most 8 times (17 with one write per key and cover); the mover sends one service call per command kind, not one per cover |
 
 The Phase 1 scripts (`test-part1*.ps1`, `racetest.ps1`, `verify-assumptions.ps1`) were lost with
 the old folder and not rebuilt.

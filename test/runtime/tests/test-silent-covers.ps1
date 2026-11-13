@@ -23,7 +23,7 @@ function Watch-Silent([int]$timeout = 60, [switch]$Churn) {
   $t0 = Get-Date; $r = @{ Susp = $false; MarkerSeen = $false; ReleasedAt = $null }; $n = 0
   while (((Get-Date) - $t0).TotalSeconds -lt $timeout) {
     if ($Churn) { $n++; HA-Call "input_number" "set_value" @{ entity_id = "input_number.silent_churn"; value = $n } }
-    $names = @(HA-KeyNames "shared")
+    $names = @(HA-KeyNames "cover")
     $marker = [bool]($names -like "$c::moving_*")
     if ($marker) { $r.MarkerSeen = $true }
     if ($names -contains "$c::suspension") { $r.Susp = $true }
@@ -32,7 +32,7 @@ function Watch-Silent([int]$timeout = 60, [switch]$Churn) {
     Start-Sleep 1
   }
   Start-Sleep 3
-  if (@(HA-KeyNames "shared") -contains "$c::suspension") { $r.Susp = $true }
+  if (@(HA-KeyNames "cover") -contains "$c::suspension") { $r.Susp = $true }
   $r.Pos = T-Pos $c; $r.Tilt = (HA-State $c).attributes.current_tilt_position; $r.State = HA-StateStr $c
   $r
 }
@@ -54,10 +54,10 @@ function Tap-After-Close($name, [int]$waitAfterArrival) {
   HA-Wait { (T-Pos $c) -eq 0 } 40 0.5 | Out-Null
   $tArr = Get-Date
   Start-Sleep $waitAfterArrival
-  $markerAtTap = [bool](@(HA-KeyNames "shared") -like "$c::moving_*")
+  $markerAtTap = [bool](@(HA-KeyNames "cover") -like "$c::moving_*")
   HA-Call "input_number" "set_value" @{ entity_id = "input_number.silent_pos"; value = 2 }
-  $susp = HA-Wait { @(HA-KeyNames "shared") -contains "$c::suspension" } 15 1
-  $markerLeft = [bool](@(HA-KeyNames "shared") -like "$c::moving_*")
+  $susp = HA-Wait { @(HA-KeyNames "cover") -contains "$c::suspension" } 15 1
+  $markerLeft = [bool](@(HA-KeyNames "cover") -like "$c::moving_*")
   [pscustomobject]@{ MarkerAtTap = $markerAtTap; Susp = $susp; MarkerLeft = $markerLeft; Pos = (T-Pos $c); After = [math]::Round(((Get-Date) - $tArr).TotalSeconds) }
 }
 
@@ -102,9 +102,9 @@ if (Run "simhold") {
     HA-Wait { (T-Pos $c) -le 70 } 30 1 | Out-Null
     Set-Held @($c)
     HA-Call "script" "turn_off" @{ entity_id = "script.silent_motor" }      # the "replay" stops it halfway
-    $released = HA-Wait { -not (@(HA-KeyNames "shared") -like "$c::moving_*") } 10 1
+    $released = HA-Wait { -not (@(HA-KeyNames "cover") -like "$c::moving_*") } 10 1
     Start-Sleep 12
-    $susp = @(HA-KeyNames "shared") -contains "$c::suspension"
+    $susp = @(HA-KeyNames "cover") -contains "$c::suspension"
     T-Check "silent: a cover the simulation holds is not judged by a move started before the hold" ((-not $susp) -and $released) "marker released within 10 s=$released; suspension=$susp; pos=$(T-Pos $c)"
   } finally {
     Set-Held @()
@@ -124,7 +124,7 @@ if (Run "stop") {
   HA-Wait { (T-Pos $c) -le 70 } 30 1 | Out-Null
   HA-Call "script" "turn_off" @{ entity_id = "script.silent_motor" }     # the "wall switch" stops the motor
   $stopAt = T-Pos $c
-  $susp = HA-Wait { @(HA-KeyNames "shared") -contains "$c::suspension" } 30 1
+  $susp = HA-Wait { @(HA-KeyNames "cover") -contains "$c::suspension" } 30 1
   T-Check "silent: a stop mid-travel still suspends (layer 3)" ($susp -and ((T-Pos $c) -gt 5)) "stopped at $stopAt; suspension=$susp final=$(T-Cover $c)"
 }
 

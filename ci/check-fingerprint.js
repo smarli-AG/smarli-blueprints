@@ -17,8 +17,11 @@
 //   the default of a hashed input changes. Forgetting the bump moves every
 //   cover on that default at the moment the update lands.
 //
-// Same line-based approach and fixed indentation as check-blueprints.js
-// (variables at 2 spaces, inputs at 8, input fields at 10). No dependencies.
+// Same line-based approach as check-blueprints.js (inputs at 8 spaces, input
+// fields at 10). The fingerprint and the `name: !input input` lines are found at
+// ANY indent: since cover_DayNight 3.2.0 they live in a trigger's `variables:`
+// block, not at the top level. A fixed indent would find nothing there and pass
+// silently. No dependencies.
 //
 // Exit 0: no fingerprint, unchanged, or a higher version. Exit 1: needs a bump.
 
@@ -30,20 +33,24 @@ const indentOf = (l) => l.match(/^ */)[0].length;
 
 function extract(text) {
   const lines = text.replace(/\r/g, '').split('\n');
-  const start = lines.findIndex((l) => l.startsWith(`  ${VAR}:`));
+  const start = lines.findIndex((l) => new RegExp(`^\\s+${VAR}:`).test(l));
   if (start < 0) return null;
+  const varIndent = indentOf(lines[start]);
   let end = start + 1;
-  while (end < lines.length && (lines[end].trim() === '' || indentOf(lines[end]) > 2)) end++;
+  while (end < lines.length && (lines[end].trim() === '' || indentOf(lines[end]) > varIndent)) end++;
   const block = lines.slice(start + 1, end).map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
   const version = (block.join(' ').match(/'(fp(\d+)):'/) || [])[2];
 
   // Variable -> input it is read from (`  name: !input input_name`).
   const source = {};
   for (const l of lines) {
-    const m = l.match(/^ {2}(\w+): !input (\w+)\s*$/);
+    const m = l.match(/^\s+(\w+): !input (\w+)\s*$/);
     if (m) source[m[1]] = m[2];
   }
-  const listed = [...block.join(' ').matchAll(/'\w+':\s*([a-z_]\w*)/g)].map((m) => m[1]);
+  // A hashed value is a bare variable (`x`) or a key of the inputs dict
+  // (`inputs.x` from cover_DayNight 3.2.0, `cfg.x` in its first drafts); `x` is
+  // then the name in `source`.
+  const listed = [...block.join(' ').matchAll(/'\w+':\s*(?:inputs\.|cfg\.)?([a-z_]\w*)/g)].map((m) => m[1]);
 
   // The `default:` of every input, as text: the line plus any deeper lines.
   const defaults = {};

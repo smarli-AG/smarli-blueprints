@@ -10,7 +10,7 @@ function Show($w) { $w.Log | % { Write-Host "    $_" } }
 # resolved 0 (written by a real smarli close), cover physically open (moved outside smarli), instance intent 100
 function Make-Stale {
   HA-StubDay @{ $c = 0 }; Start-Sleep 4; T-Settle $c 30
-  HA-DelKey "shared" "stub_day::intent"; HA-ClearSuspensions
+  HA-DelKey "cover" "stub_day::intent"; HA-ClearSuspensions
   HA-HandMove $c 100
 }
 
@@ -53,10 +53,10 @@ if ($Only.Count -eq 0 -or $Only -contains "iii") {
     { param($T) Watch-Cover $c $id $T.AddSeconds(40) $T } `
     { param($w, $pre) $f = Sample-Cover $c $id
       T-Check "4c-iii caller's transition does not force a cover another owner's newer target wins" ((-not $w.Moved) -and ($f.Pos -le 5) -and ($f.Resolved -eq 100)) "$pre | moved=$($w.Moved) final=$($f.State)/$($f.Pos) resolved=$($f.Resolved) intent=$($f.Target)"
-      HA-DelKey "shared" "stub_day::intent" }
+      HA-DelKey "cover" "stub_day::intent" }
 }
 if ($Only.Count -eq 0 -or $Only -contains "iv") {
-  Timed-Close "4c-iv suspended cover + transition" { Make-Stale; HA-SetKey "shared" "$c::suspension" ((HA-Now) + 900) } `
+  Timed-Close "4c-iv suspended cover + transition" { Make-Stale; HA-SetKey "cover" "$c::suspension" ((HA-Now) + 900) } `
     { param($T) Watch-Cover $c $id $T.AddSeconds(40) $T } `
     { param($w, $pre) $f = Sample-Cover $c $id
       T-Check "4c-iv suspended cover is not commanded despite the transition flag" ((-not $w.Moved) -and ($f.Pos -ge 95) -and (-not $f.Marker)) "$pre | moved=$($w.Moved) final=$($f.State)/$($f.Pos) resolved=$($f.Resolved) susp=$($f.Susp)" }
@@ -65,7 +65,7 @@ if ($Only.Count -eq 0 -or $Only -contains "vi") {
   # forced re-command of a position cover already at the target (open phase): vfast open, resolved 100, instance opens at T
   Write-Host "`n=== 4c-vi position cover already at target, forced"
   T-Prep; T-Place $c 100
-  HA-StubDay @{ $c = 100 }; Start-Sleep 5; T-Settle $c 20; HA-DelKey "shared" "stub_day::intent"; HA-ClearSuspensions
+  HA-StubDay @{ $c = 100 }; Start-Sleep 5; T-Settle $c 20; HA-DelKey "cover" "stub_day::intent"; HA-ClearSuspensions
   $tA = HA-At 30; $Tstr = $tA.Str; $T = $tA.Time
   HA-Apply -Time ((Both "time_open_workday" "time_open_non_workday" $Tstr) + (Both "time_close_workday_tomorrow" "time_close_non_workday_tomorrow" "23:59:00"))
   HA-Call "automation" "turn_on" @{ entity_id = "automation.covers_day_night_time" }
@@ -95,7 +95,7 @@ if ($Only.Count -eq 0 -or $Only -contains "v") {
   Write-Host "  $preTxt"
   $w = Watch-Cover $a $id $T.AddSeconds(30) $T
   Show $w
-  $mk = @(@(HA-KeyNames "shared") | ? { $_ -like "$a::moving_*" })
+  $mk = @(@(HA-KeyNames "cover") | ? { $_ -like "$a::moving_*" })
   $mval = if ($mk.Count -gt 0) { HA-Shared $mk[0] } else { $null }
   $untilIn = if ($mval) { [math]::Round($mval.until - (HA-Now)) } else { "n/a" }
   $f = Sample-Cover $a $id
@@ -105,8 +105,8 @@ if ($Only.Count -eq 0 -or $Only -contains "v") {
   Start-Sleep $waitS
   HA-StubDay @{ "cover.vslow" = [int](T-Pos "cover.vslow") }
   Start-Sleep 6
-  $left = @(@(HA-KeyNames "shared") | ? { $_ -like "$a::moving_*" })
-  $susp = @(@(HA-KeyNames "shared") | ? { $_ -like "$a::suspension" })
+  $left = @(@(HA-KeyNames "cover") | ? { $_ -like "$a::moving_*" })
+  $susp = @(@(HA-KeyNames "cover") | ? { $_ -like "$a::suspension" })
   T-Check "4c-v assumed cover: marker expired and pruned, still no suspension" (($left.Count -eq 0) -and ($susp.Count -eq 0)) "markers left=$($left -join ',') suspension=$($susp -join ',')"
   HA-Call "automation" "turn_off" @{ entity_id = "automation.covers_day_night_time" }; T-Prep
   HA-Apply
