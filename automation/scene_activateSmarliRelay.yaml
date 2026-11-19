@@ -1,0 +1,263 @@
+# ! RELEASE NOTES
+## 1.1.2 | 2026-10-12
+## - Remove trailing spaces in the Danger Zone description
+## 1.1.1 | 2026-10-09
+## - Fix source_url to match the renamed file
+## 1.1.0 | 2026-08-28
+## - Add missing Partner Engine optional/display_if annotations
+## - Rewrite long_description with correct Partner Engine markup
+## - Fix description text that wrongly implied scripts are not used
+## 1.0.0 | 2025-11-26
+## - initial release
+
+# ================
+# Partner Engine
+# ================
+# is_smart_button: true
+# icon: "palette"
+#
+# name_en: "Scene Activation"
+# name_de: "Szene aktivieren"
+# subtitle_en: "smarli. smart button"
+# subtitle_de: "smarli. Smart Button"
+#
+# short_description_en: "Activate a scene with a single press of your preferred smarli. relay."
+# short_description_de: "Aktiviere eine Szene durch das einfache Drücken Deines bevorzugten smarli. relays."
+# long_description_en: |
+#   __Activate a scene with a single press of your preferred smarli. relay.__
+#   [br]
+#   The Scene Activation automation lets you activate any scene in your home with a single button press. Select as many smarli. relays as you like.
+#   [br]
+#   [br]
+#   __How to set it up:__
+#   1. Select the smarli. relays that should trigger the scene
+#   2. Select the scene you want to activate
+#   3. (Optional) Add a delay before the scene activates
+#   [br]
+#   ---
+#   [br]
+#   _Version 1.1.2_
+# long_description_de: |
+#   __Aktiviere eine Szene durch das einfache Drücken Deines bevorzugten smarli. relays.__
+#   [br]
+#   Die Automation zur Szenenaktivierung ermöglicht es Dir, jede Szene in Deinem Zuhause per Knopfdruck zu aktivieren. Wähle beliebig viele smarli. relays aus.
+#   [br]
+#   [br]
+#   __Einrichtung der Automatisierung:__
+#   1. Wähle die smarli. relays aus, welche die Szene auslösen sollen
+#   2. Wähle die Szene aus, die aktiviert werden soll
+#   3. (Optional) Füge eine Verzögerung hinzu, bevor die Szene aktiviert wird
+#   [br]
+#   ---
+#   [br]
+#   _Version 1.1.2_
+#
+# purpose_en: "Comfort"
+# purpose_de: "Komfort"
+#
+# keywords_en: [scene, button, activate, smarli. button]
+# keywords_de: [szene, button, aktivieren, smarli. button]
+# events_en: [button press]
+# events_de: [Knopfdruck]
+# highlight: true
+# deploy: true
+
+blueprint:
+  ############
+  # Metadata #
+  ############
+  name: smarli. Scene Activation with smarli. smart Buttons
+  description: >
+    # 🎨 smarli. Scene Activation with smarli. smart buttons
+
+    This automation activates a selected scene when any of your configured smarli. smart buttons is pressed. The scene activates on any state change of the button (on→off or off→on).
+    This automation uses scripts, not native Home Assistant scenes, under the hood. Scripts support more features than scenes. Select the script that represents your scene under "Scene to Activate".
+
+    *Version 1.1.2*
+
+    <details>
+    <summary><b>How to set it up</b></summary>
+
+      1. Select the smarli. smart buttons that should trigger the scene
+      2. Select the scene you want to activate
+      3. (Optional) Add a delay before the scene activates
+    </details>
+
+
+    All input fields are required unless they are marked as ` (optional) `.
+  domain: automation
+  author: loocd [smarli. AG]
+  source_url: https://github.com/smarli-AG/smarli-blueprints/blob/main/automation/scene_activateSmarliRelay.yaml
+  homeassistant:
+    min_version: 2025.4.0 # support for model_id in device selector
+
+  ###############
+  # User Inputs #
+  ###############
+  input:
+    trigger_inputs:
+      name: Trigger Inputs
+      icon: mdi:star-box-multiple
+      description: These inputs are used to set the automation triggers
+      input:
+        smart_buttons:
+          # translation:
+          #   name:
+          #     en: smarli. Smart Buttons
+          #     de: smarli. Smart Buttons
+          #   description:
+          #     en: Select the smarli. relays that should activate the scene.
+          #     de: Wähle die smarli. relays aus, welche die Szene aktivieren sollen.
+          # optional: false
+          # display_if: true
+          name: smarli. Smart Buttons
+          description: Select the smarli. relays that should activate the scene.
+          selector:
+            device:
+              entity:
+                - domain: switch
+              filter:
+                - manufacturer: "smarli."
+                  model: "relay"
+                  model_id: "S-ZB-1RE1-R251"
+              multiple: true
+    condition_inputs:
+      name: Condition Inputs
+      icon: mdi:help-box-multiple
+      description: These inputs are used to set the automation conditions
+
+    action_inputs:
+      name: Action Inputs
+      icon: mdi:play-box-multiple
+      description: These inputs are used to set the actions
+      input:
+        scene_to_activate:
+          # translation:
+          #   name:
+          #     en: Scene to Activate
+          #     de: Zu aktivierende Szene
+          #   description:
+          #     en: Select the scene that should be activated when the button is pressed.
+          #     de: Wähle die Szene aus, die aktiviert werden soll, wenn der Button gedrückt wird.
+          # optional: false
+          # display_if: true
+          name: Scene to Activate
+          description: Select the scene that should be activated when the button is pressed.
+          selector:
+            entity:
+              filter:
+                - domain: script
+              multiple: false
+        delay:
+          # translation:
+          #   name:
+          #     en: Delay
+          #     de: Verzögerung
+          #   description:
+          #     en: Add a delay before activating the scene.
+          #     de: Füge eine Verzögerung hinzu, bevor die Szene aktiviert wird.
+          # optional: true
+          # display_if: true
+          name: Delay (optional)
+          description: Add a delay before activating the scene.
+          selector:
+            duration:
+              enable_day: false
+              enable_millisecond: false
+          default: "00:00:00"
+
+    custom_inputs: # leave these as is - should be present in any blueprint
+      name: "DANGER ZONE: Additional Custom Inputs"
+      icon: mdi:alert
+      description: >-
+        **WATCH OUT!**
+
+        This is advanced functionality and should only be used if you know what you're doing!
+
+
+        Use this section to define custom triggers and conditions, as well as actions that will run at the end of the automation.
+      collapsed: true
+      input:
+        custom_triggers:
+          name: Custom triggers (optional)
+          description: >-
+            Use this to define custom triggers in addition to the default triggers.
+          selector:
+            trigger:
+          default: []
+        custom_conditions:
+          name: Custom conditions (optional)
+          description: >-
+            Use this to define custom conditions in addition to the default conditions.
+          selector:
+            condition:
+          default: []
+        custom_actions:
+          name: Custom actions (optional)
+          description: >-
+            Use this to define custom actions that should be executed at the end of this automation.
+          selector:
+            action:
+          default: []
+
+#########################
+# Variables Translation #
+#########################
+
+trigger_variables:
+  smart_buttons: !input smart_buttons
+  smart_buttons_entities: >
+    {{
+      smart_buttons 
+      | map('device_entities')
+      | sum(start=[])
+      | select('match', '^switch\.')
+      | list
+    }}
+
+# this is required in order to use inputs as variables within templates
+variables: {}
+
+##############
+# Automation #
+##############
+
+mode: single
+max_exceeded: silent
+
+triggers:
+  - trigger: template
+    value_template: >
+      {% set count_on = smart_buttons_entities | select('is_state', 'on') | list | count %}
+      {{ count_on % 2 == 0 }}
+  - trigger: template
+    value_template: >
+      {% set count_on = smart_buttons_entities | select('is_state', 'on') | list | count %}
+      {{ count_on % 2 == 1 }}
+  ## Custom triggers
+  - triggers: !input custom_triggers
+
+conditions: # by default, conditions follow an AND logic
+  - condition: or
+    conditions:
+      - condition: template
+        value_template: "{{ trigger.platform != 'template' }}"
+      - condition: template
+        value_template: >
+          {{ trigger.from_state.state in ['on', 'off']
+             and trigger.to_state.state in ['on', 'off']
+             and trigger.from_state.state != trigger.to_state.state }}
+  ## Custom conditions
+  - condition: and
+    conditions: !input custom_conditions
+
+actions:
+  - delay: !input delay
+  - action: script.turn_on
+    target:
+      entity_id: !input scene_to_activate
+  ## Custom actions
+  - if:
+      - condition: template
+        value_template: "{{ custom_actions is not none }}"
+    then: !input custom_actions

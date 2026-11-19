@@ -1,0 +1,359 @@
+# ! RELEASE NOTES
+## 1.1.1 | 2026-10-09
+## - Fix source_url to match the renamed file
+## 1.1.0 | 2026-08-28
+## - Add missing Partner Engine optional/display_if annotations
+## - Rewrite long_description with correct Partner Engine markup
+## - Fix source_url pointing at the wrong blueprint file
+## 1.0.0 | 2025-12-01
+## - initial release
+
+# ================
+# Partner Engine
+# ================
+# is_smart_button: true
+# icon: "palette"
+#
+# name_en: "Scene Activation"
+# name_de: "Szene aktivieren"
+# subtitle_en: "Philips hue Tap Dial"
+# subtitle_de: "Philips hue Tap Dial"
+#
+# short_description_en: "Activate a scene using the Philips hue Tap Dial."
+# short_description_de: "Aktiviere eine Szene durch mithilfe des Philips hue Tap Dial."
+# long_description_en: |
+#   __Activate a scene using the Philips hue Tap Dial.__
+#   [br]
+#   The Scene Activation automation lets you activate any scene in your home using the Philips hue Tap Dial. Assign any of the four buttons or the dial to activate the scene on short or long press, or on rotation.
+#   [br]
+#   [br]
+#   __How to set it up:__
+#   1. Select the Philips hue Tap Dial that should trigger the scene
+#   2. Select the type of button press or rotation that should trigger the scene
+#   3. Select the scene you want to activate
+#   4. (Optional) Add a delay before the scene activates
+#   [br]
+#   ---
+#   [br]
+#   _Version 1.1.1_
+# long_description_de: |
+#   __Aktiviere eine Szene mithilfe des Philips hue Tap Dial.__
+#   [br]
+#   Die Automation zur Szenenaktivierung ermöglicht es Dir, jede Szene in Deinem Zuhause mithilfe des Philips hue Tap Dial zu aktivieren. Weise jeder der vier Tasten oder dem Drehrad die Auslösung der Szene durch kurzes oder langes Drücken, bzw. durch Drehen, zu.
+#   [br]
+#   [br]
+#   __Einrichtung der Automatisierung:__
+#   1. Wähle den Philips hue Tap Dial aus, welcher die Szene auslösen soll
+#   2. Wähle die Art des Knopfdrucks oder der Drehung aus, welche die Szene auslösen soll
+#   3. Wähle die Szene aus, die aktiviert werden soll
+#   4. (Optional) Füge eine Verzögerung hinzu, bevor die Szene aktiviert wird
+#   [br]
+#   ---
+#   [br]
+#   _Version 1.1.1_
+#
+# purpose_en: "Comfort"
+# purpose_de: "Komfort"
+#
+# keywords_en: [scene, button, activate, hue tap dial]
+# keywords_de: [szene, button, aktivieren, hue tap dial]
+# events_en: [button press]
+# events_de: [Knopfdruck]
+# highlight: false
+# deploy: true
+
+blueprint:
+  ############
+  # Metadata #
+  ############
+  name: smarli. Scene Activation with Philips hue Tap Dial
+  description: >
+    # 🎨 smarli. Scene Activation with Philips hue Tap Dial
+
+    This automation will activate a selected scene when the defined button on the Philips hue Tap Dial is pressed or the dial is rotated.
+    This automation uses scripts, not native Home Assistant scenes, under the hood. Scripts support more features than scenes. Select the script that represents your scene under "Scene to Activate".
+
+    *Version 1.1.1*
+
+    <details>
+    <summary><b>How to set it up</b></summary>
+
+      1. Select the Philips hue Tap Dial that should trigger the scene
+      2. Select the type of button press or rotation that should trigger the scene
+      3. Select the scene you want to activate
+      4. (Optional) Add a delay before the scene activates
+    </details>
+
+
+    All input fields are required unless they are marked as ` (optional) `.
+  domain: automation
+  author: loocd [smarli. AG]
+  source_url: https://github.com/smarli-AG/smarli-blueprints/blob/main/automation/scene_activateHueTapDial.yaml
+  homeassistant:
+    min_version: 2024.10.0
+
+  ###############
+  # User Inputs #
+  ###############
+  input:
+    trigger_inputs:
+      name: Trigger Inputs
+      icon: mdi:star-box-multiple
+      description: These inputs are used to set the automation triggers
+      input:
+        smart_button:
+          # translation:
+          #   name:
+          #     en: Philips hue Tap Dial
+          #     de: Philips hue Tap Dial
+          #   description:
+          #     en: Select the Philips hue Tap Dial that should activate the scene.
+          #     de: Wähle den Philips hue Tap Dial, welcher die Szene aktivieren soll.
+          # optional: false
+          # display_if: true
+          name: Philips hue Tap Dial
+          description: Select the Philips hue Tap Dial that should activate the scene.
+          selector:
+            device:
+              filter:
+                - integration: mqtt
+                  manufacturer: Philips
+                  model: Hue Tap dial switch
+              multiple: false
+        interaction_type:
+          # translation:
+          #   name:
+          #     en: Interaction Type
+          #     de: Art der Interaktion
+          #   description:
+          #     en: Select the type of interaction that should activate the scene.
+          #     de: Wähle die Art der Interaktion, welche die Szene aktivieren soll.
+          # optional: false
+          # display_if: true
+          name: Interaction Type
+          description: Select the type of interaction that should activate the scene.
+          selector:
+            select:
+              options:
+                - label: "Button 1 Short Press"
+                  # translation:
+                  #   label:
+                  #     en: Button 1 Short Press
+                  #     de: Taste 1 Einfacher Klick
+                  value: "button_1_press_release"
+                - label: "Button 1 Long Press"
+                  # translation:
+                  #   label:
+                  #     en: Button 1 Long Press
+                  #     de: Taste 1 Langer Klick
+                  value: "button_1_hold"
+                - label: "Button 2 Short Press"
+                  # translation:
+                  #   label:
+                  #     en: Button 2 Short Press
+                  #     de: Taste 2 Einfacher Klick
+                  value: "button_2_press_release"
+                - label: "Button 2 Long Press"
+                  # translation:
+                  #   label:
+                  #     en: Button 2 Long Press
+                  #     de: Taste 2 Langer Klick
+                  value: "button_2_hold"
+                - label: "Button 3 Short Press"
+                  # translation:
+                  #   label:
+                  #     en: Button 3 Short Press
+                  #     de: Taste 3 Einfacher Klick
+                  value: "button_3_press_release"
+                - label: "Button 3 Long Press"
+                  # translation:
+                  #   label:
+                  #     en: Button 3 Long Press
+                  #     de: Taste 3 Langer Klick
+                  value: "button_3_hold"
+                - label: "Button 4 Short Press"
+                  # translation:
+                  #   label:
+                  #     en: Button 4 Short Press
+                  #     de: Taste 4 Einfacher Klick
+                  value: "button_4_press_release"
+                - label: "Button 4 Long Press"
+                  # translation:
+                  #   label:
+                  #     en: Button 4 Long Press
+                  #     de: Taste 4 Langer Klick
+                  value: "button_4_hold"
+                # rotation cases don't set the actual action as a value, because we want to trigger on both fast and slow rotation.
+                # To handle this we always trigger on rotation (slow and fast) and then check against the defined interaction_type in the conditions
+                # to decide whether or not rotations should actually activate the scene.
+                - label: "Rotate Right"
+                  # translation:
+                  #   label:
+                  #     en: Rotate Right
+                  #     de: Rechts drehen
+                  value: "specialCase_Rotate_Right"
+                - label: "Rotate Left"
+                  # translation:
+                  #   label:
+                  #     en: Rotate Left
+                  #     de: Links drehen
+                  value: "specialCase_Rotate_Left"
+              multiple: false
+          default: "button_1_press_release"
+
+    condition_inputs:
+      name: Condition Inputs
+      icon: mdi:help-box-multiple
+      description: These inputs are used to set the automation conditions
+
+    action_inputs:
+      name: Action Inputs
+      icon: mdi:play-box-multiple
+      description: These inputs are used to set the actions
+      input:
+        scene_to_activate:
+          # translation:
+          #   name:
+          #     en: Scene to Activate
+          #     de: Zu aktivierende Szene
+          #   description:
+          #     en: Select the scene that should be activated when the button is pressed.
+          #     de: Wähle die Szene aus, die aktiviert werden soll, wenn der Button gedrückt wird.
+          # optional: false
+          # display_if: true
+          name: Scene to Activate
+          description: Select the scene that should be activated when the button is pressed.
+          selector:
+            entity:
+              filter:
+                - domain: script
+              multiple: false
+        delay:
+          # translation:
+          #   name:
+          #     en: Delay
+          #     de: Verzögerung
+          #   description:
+          #     en: Add a delay before activating the scene.
+          #     de: Füge eine Verzögerung hinzu, bevor die Szene aktiviert wird.
+          # optional: true
+          # display_if: true
+          name: Delay (optional)
+          description: Add a delay before activating the scene.
+          selector:
+            duration:
+              enable_day: false
+              enable_millisecond: false
+          default: "00:00:00"
+
+    custom_inputs: # leave these as is - should be present in any blueprint
+      name: "DANGER ZONE: Additional Custom Inputs"
+      icon: mdi:alert
+      description: >-
+        **WATCH OUT!**
+
+        This is advanced functionality and should only be used if you know what you're doing!
+
+
+        Use this section to define custom triggers and conditions, as well as actions that will run at the end of the automation.
+      collapsed: true
+      input:
+        custom_triggers:
+          name: Custom triggers (optional)
+          description: >-
+            Use this to define custom triggers in addition to the default triggers.
+          selector:
+            trigger:
+          default: []
+        custom_conditions:
+          name: Custom conditions (optional)
+          description: >-
+            Use this to define custom conditions in addition to the default conditions.
+          selector:
+            condition:
+          default: []
+        custom_actions:
+          name: Custom actions (optional)
+          description: >-
+            Use this to define custom actions that should be executed at the end of this automation.
+          selector:
+            action:
+          default: []
+
+#########################
+# Variables Translation #
+#########################
+
+trigger_variables: {}
+
+# this is required in order to use inputs as variables within templates
+variables:
+  interaction_type: !input interaction_type
+
+##############
+# Automation #
+##############
+
+mode: single
+max_exceeded: silent
+
+triggers:
+  - domain: mqtt
+    device_id: !input smart_button
+    type: action
+    subtype: !input interaction_type
+    trigger: device
+    id: specific_interaction_type
+  - domain: mqtt
+    device_id: !input smart_button
+    type: action
+    subtype: dial_rotate_right_slow
+    trigger: device
+    id: specialCase_Rotate_Right
+  - domain: mqtt
+    device_id: !input smart_button
+    type: action
+    subtype: dial_rotate_right_fast
+    trigger: device
+    id: specialCase_Rotate_Right
+  - domain: mqtt
+    device_id: !input smart_button
+    type: action
+    subtype: dial_rotate_left_slow
+    trigger: device
+    id: specialCase_Rotate_Left
+  - domain: mqtt
+    device_id: !input smart_button
+    type: action
+    subtype: dial_rotate_left_fast
+    trigger: device
+    id: specialCase_Rotate_Left
+  ## Custom triggers
+  - triggers: !input custom_triggers
+
+conditions: # by default, conditions follow an AND logic
+  ## Only run the actions if it has been triggered by either a specific interaction type (button press) or if the triggered rotation is actually the
+  ## interaction type we need to look for. This is necessary because we trigger for both rotate fast and rotate slow. We cannot dynamically use
+  ## one or two triggers (button press vs fast/slow rotation), so we always trigger on rotation and then check if this is actually the desired interaction type.
+  - condition: template
+    value_template: "{{ trigger.id in ['specific_interaction_type', interaction_type] }}"
+  ## Custom conditions
+  - condition: and
+    conditions: !input custom_conditions
+
+actions:
+  - delay: !input delay
+  - action: script.turn_on
+    target:
+      entity_id: !input scene_to_activate
+  - if:
+      ## in case of trigger by rotation, add a delay of 2s before finishing the automation to avoid multiple activations by fast rotation or choppy rotation
+      - condition: template
+        value_template: "{{ trigger.id == interaction_type }}"
+    then:
+      - delay: "00:00:02"
+  ## Custom actions
+  - if:
+      - condition: template
+        value_template: "{{ custom_actions is not none }}"
+    then: !input custom_actions
